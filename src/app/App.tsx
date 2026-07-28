@@ -32,11 +32,12 @@ import { setTheme, themeLabels } from '../themes';
 import type { ThemeName } from '../themes';
 import type { SearchScope } from '../ui/SearchPanel';
 import type { Tone } from '../ui/StatusBar';
+import { createAppCommands } from './appCommands';
 import { AppView } from './AppView';
 import { clashWarning } from './clashes';
-import { buildCommands } from './commands';
 import { CLASH_CHANGED, CLASH_DELETED, EDITOR_MIN, READY } from './constants';
 import { confirmationForPrompt } from './confirmation';
+import { createGitCommands } from './gitCommands';
 import { within } from './pathRules';
 import { promptTitleFor, isTextPrompt } from './prompts';
 import { restoreAppState } from './restore';
@@ -115,9 +116,6 @@ export function App(props: {
 		const path = activePath();
 		return path ? buffers[path] : undefined;
 	};
-	const overlay = createMemo(
-		() => !!(prompt() || palette() || conflict() || help() || search() || update() || picker()),
-	);
 	const dirtyPaths = () => Object.keys(unwrap(buffers)).filter((path) => buffers[path]?.dirty);
 	const quit = (discardUnsaved = false) => {
 		const dirty = dirtyPaths();
@@ -202,6 +200,7 @@ export function App(props: {
 		focusTree();
 	};
 	const openFile = (path: string, preview = false) => {
+		const leaving = activePath();
 		setNotice(null);
 		if (!buffers[path]) {
 			try {
@@ -233,6 +232,9 @@ export function App(props: {
 		reveal(path);
 		setSelectedPath(path);
 		setActivePath(path);
+		if (config.autoSaveOnBlur && leaving && leaving !== path && buffers[leaving]?.dirty) {
+			saveDirtyPaths([leaving]);
+		}
 		setFocus('editor');
 	};
 	const pinTab = (path: string) => {
@@ -456,11 +458,11 @@ export function App(props: {
 		}
 		writeBuffer(path, buffer.content);
 	};
-	const saveDirtyOnBlur = () => {
+	const saveDirtyPaths = (paths: string[]) => {
 		const skipped: string[] = [];
 		const failed: string[] = [];
 		let saved = 0;
-		for (const path of Object.keys(buffers)) {
+		for (const path of paths) {
 			const buffer = buffers[path]!;
 			if (!buffer.dirty) continue;
 			if (mtimeOf(path) !== buffer.mtime) {
@@ -474,6 +476,7 @@ export function App(props: {
 		if (skipped.length > 0) say(`${CLASH_CHANGED}${skipped.join(', ')}`, 'warn');
 		if (failed.length > 0) say(`Save failed: ${failed.join(', ')}`, 'error');
 	};
+	const saveDirtyOnBlur = () => saveDirtyPaths(Object.keys(buffers));
 	const resolveConflict = (choice: string) => {
 		const c = conflict();
 		setConflict(null);
@@ -486,13 +489,13 @@ export function App(props: {
 			say(`Reloaded ${basename(c.path)} from disk`);
 		}
 	};
-	const onEditorChange = (text: string) => {
-		const path = activePath();
-		if (!path || buffers[path]?.content === text) return;
-		pinTab(path);
-		setBuffers(path, { content: text, dirty: true });
-	};
-	const syncFromDisk = (): DiskSync => {
+		const onEditorChange = (text: string) => {
+			const path = activePath();
+			if (!path || buffers[path]?.content === text) return;
+			pinTab(path);
+			setBuffers(path, { content: text, dirty: true });
+		};
+		const syncFromDisk = (): DiskSync => {
 		const updates: [string, BufferState][] = [];
 		const changed: string[] = [];
 		const deleted: string[] = [];
@@ -523,18 +526,46 @@ export function App(props: {
 			);
 			setReloadKey((k) => k + 1);
 		}
-		refreshTree();
-		return { changed, deleted };
-	};
-	const submitPrompt = (value: string) => {
-		const name = value.trim();
-		const p = prompt();
-		setPrompt(null);
-		if (!p || !isTextPrompt(p)) return;
-		if (!name) return say('Nothing entered', 'warn');
-		if (p.kind === 'gotoLine') {
-			const asked = Number.parseInt(name, 10);
-			if (!Number.isInteger(asked) || asked < 1) return say(`Not a line number: ${name}`, 'error');
+			refreshTree();
+			return { changed, deleted };
+		};
+		const gitCommands = createGitCommands({
+			rootDir,
+			branch,
+			upstream,
+			setBusy,
+			setGitRevision,
+			setPrompt,
+			say,
+			whileFree,
+			syncFromDisk: () => {
+				syncFromDisk();
+			},
+		});
+		const overlay = createMemo(
+			() =>
+				!!(
+					prompt() ||
+					palette() ||
+					conflict() ||
+					help() ||
+					search() ||
+					update() ||
+					picker() ||
+					gitCommands.commitFiles()
+				),
+		);
+		const submitPrompt = (value: string) => {
+			const name = value.trim();
+			const p = prompt();
+			setPrompt(null);
+			if (!p || !isTextPrompt(p)) return;
+			if (!name) return say('Nothing entered', 'warn');
+			if (p.kind === 'commitMessage') {
+				gitCommands.submitCommit(name);
+			} else if (p.kind === 'gotoLine') {
+				const asked = Number.parseInt(name, 10);
+				if (!Number.isInteger(asked) || asked < 1) return say(`Not a line number: ${name}`, 'error');
 			const total = activeBuffer()?.content.split('\n').length ?? 1;
 			const line = Math.min(asked, total);
 			setGoto((prev) => ({ line: line - 1, col: 0, key: (prev?.key ?? 0) + 1 }));
@@ -558,12 +589,12 @@ export function App(props: {
 			const err = movePath(p.target, join(dirname(p.target), name));
 			if (err) return say(err, 'error');
 			say(`Renamed to ${name}`);
-		}
-	};
-	const confirmPrompt = () => {
-		const p = prompt();
-		setPrompt(null);
-		switch (p?.kind) {
+			}
+		};
+		const confirmPrompt = () => {
+			const p = prompt();
+			setPrompt(null);
+			switch (p?.kind) {
 			case 'delete': {
 				for (const target of p.targets) {
 					if (tabs().includes(target)) closeTab(target, true);
@@ -601,10 +632,12 @@ export function App(props: {
 				for (const path of p.paths) closeTab(path, true);
 				return say(`Discarded unsaved edits in ${p.names.join(', ')}`, 'warn');
 			}
-			case 'quitDirty':
-				return quit(true);
-		}
-	};
+				case 'quitDirty':
+					return quit(true);
+				case 'undoCommit':
+					return gitCommands.undoCommit();
+			}
+		};
 	const applyTheme = (name: ThemeName) => {
 		setTheme(name);
 		invalidateSyntaxStyle();
@@ -646,69 +679,14 @@ export function App(props: {
 		const p = prompt();
 		return p?.kind === 'rename' ? basename(p.target) : '';
 	};
-	const confirmation = createMemo(() => confirmationForPrompt(prompt()));
-	const commands = createMemo(() =>
-		buildCommands(
-			{
-				save: saveActive,
-				openFile: () => setPicker('files'),
-				switchTab: () => setPicker('tabs'),
-				closeOthers: () => {
-					const keep = activePath();
-					if (keep)
-						closeTabs(
-							tabs().filter((path) => path !== keep),
-							'Closed other tabs',
-						);
-				},
-				closeAll: () => closeTabs(tabs(), 'Closed all tabs'),
-				gotoLine: () => setPrompt({ kind: 'gotoLine' }),
-				undo: () => setHistory((prev) => ({ kind: 'undo', key: (prev?.key ?? 0) + 1 })),
-				redo: () => setHistory((prev) => ({ kind: 'redo', key: (prev?.key ?? 0) + 1 })),
-				findInFile: () => setSearch({ scope: 'file' }),
-				findInProject: () => setSearch({ scope: 'project' }),
-				replaceInFile: () => setSearch({ scope: 'file', replacing: true }),
-				newFile: () => setPrompt({ kind: 'newFile', dir: targetDir() }),
-				newFolder: () => setPrompt({ kind: 'newFolder', dir: targetDir() }),
-				rename: withNode((n) => setPrompt({ kind: 'rename', target: n.path })),
-				remove: () => {
-					const targets = actionTargets();
-					if (targets.length === 0) return say('Nothing selected', 'warn');
-					setPrompt({ kind: 'delete', targets });
-				},
-				cutForMove: () => takeForPaste('cut'),
-				copyForPaste: () => takeForPaste('copy'),
-				paste,
-				closeTab: () => void (activePath() && closeTab(activePath()!)),
-				reopenTab,
-				nextTab: () => switchTab(1),
-				prevTab: () => switchTab(-1),
-				toggleFocus: () => (focus() === 'tree' ? setFocus('editor') : focusTree()),
-				toggleSidebar,
-				setVim: applyVim,
-				setTabSize: applyTabSize,
-				setTheme: applyTheme,
-				lineOp: (op) => setLineOp((prev) => ({ op, key: (prev?.key ?? 0) + 1 })),
-				toggleTrim: () => {
-					patchConfig({ trimOnSave: !config.trimOnSave });
-					say(`Trim on save ${config.trimOnSave ? 'on' : 'off'}`);
-				},
-				toggleAutoSave: () => {
-					patchConfig({ autoSaveOnBlur: !config.autoSaveOnBlur });
-					say(`Auto-save on blur ${config.autoSaveOnBlur ? 'on' : 'off'}`);
-				},
-				showHelp: () => setHelp(true),
-				quit,
-			},
-			{
-				vimEnabled: config.vim,
-				activeTheme: config.theme,
-				tabSize: config.tabSize,
-				trimOnSave: config.trimOnSave,
-				autoSaveOnBlur: config.autoSaveOnBlur,
-			},
-		),
-	);
+		const confirmation = createMemo(() => confirmationForPrompt(prompt()));
+		const commands = createAppCommands({
+			config,
+			saveActive, setPicker, activePath, tabs, closeTabs, setPrompt, setHistory, setSearch,
+			targetDir, withNode, actionTargets, say, takeForPaste, paste, closeTab, reopenTab,
+			switchTab, focus, setFocus, focusTree, toggleSidebar, applyVim, applyTabSize,
+			applyTheme, setLineOp, patchConfig, gitCommands, setHelp, quit,
+		});
 	onMount(() => {
 		if (restored.failed) setNotice({ name: basename(single!), reason: restored.failed });
 		const line = props.openLine;
@@ -949,6 +927,7 @@ export function App(props: {
 			picker={picker()}
 			palette={palette()}
 			commands={commands()}
+			commitFiles={gitCommands.commitFiles()}
 			conflict={conflict()}
 			update={update()}
 			peek={peek()}
@@ -986,6 +965,8 @@ export function App(props: {
 			}}
 			onClosePicker={() => setPicker(null)}
 			onClosePalette={() => setPalette(false)}
+			onCommitFiles={gitCommands.startCommit}
+			onCancelCommit={gitCommands.cancelCommit}
 			onResolveConflict={resolveConflict}
 			onCancelConflict={() => setConflict(null)}
 			onCloseUpdate={() => setUpdate(null)}

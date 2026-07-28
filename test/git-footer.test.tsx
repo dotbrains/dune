@@ -8,8 +8,8 @@ import { launch, settle } from './helpers';
 import type { Harness } from './helpers';
 
 /**
- * dune runs no git commands of its own any more, so everything here is set up with
- * real git and only the reporting is asserted.
+ * Everything here is set up with real git; the footer assertions only care about
+ * reporting, not the command-palette git mutation flow.
  */
 const git = (cwd: string, ...args: string[]) => execFileSync('git', args, { cwd });
 

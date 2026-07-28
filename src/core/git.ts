@@ -1,4 +1,4 @@
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { realpathSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
@@ -6,8 +6,9 @@ export type LineChange = 'added' | 'modified' | 'deleted';
 export type FileStatus = 'untracked' | 'added' | 'modified' | 'deleted';
 
 /**
- * Read-only: dune reports what git says and never asks it to change anything. Every
- * call here is a query behind the gutter marks, the tree marks or the status bar.
+ * Queries run synchronously because they sit behind gutter marks, tree marks and
+ * the status bar. Mutations run asynchronously below, so push/fetch/stash/commit
+ * cannot freeze the terminal UI.
  *
  * `spawnSync` truncates at 1 MB by default and reports ENOBUFS, which every caller
  * here reads as "no output" — `status` would lose files in a large repository.
@@ -16,6 +17,18 @@ const MAX_OUTPUT = 128 * 1024 * 1024;
 
 function git(cwd: string, args: string[], timeout = 5000) {
 	return spawnSync('git', args, { cwd, encoding: 'utf8', timeout, maxBuffer: MAX_OUTPUT });
+}
+
+function keyBase(cwd: string): string | null {
+	const top = git(cwd, ['rev-parse', '--show-toplevel'], 3000);
+	if (top.status !== 0) return null;
+	const root = top.stdout.trim();
+	try {
+		if (realpathSync(cwd) === realpathSync(root)) return cwd;
+	} catch {
+		// unreadable path: fall back to git's own root
+	}
+	return root;
 }
 
 /**
@@ -76,17 +89,8 @@ const STATUS_BY_CODE: Record<string, FileStatus> = {
  */
 export function statusMap(cwd: string): Map<string, FileStatus> {
 	const statuses = new Map<string, FileStatus>();
-	const top = git(cwd, ['rev-parse', '--show-toplevel'], 3000);
-	if (top.status !== 0) return statuses;
-	// git reports the resolved path (/private/var/…), while the tree holds the
-	// path the user opened (/var/…). Key by the caller's form when they match.
-	const root = top.stdout.trim();
-	let base = root;
-	try {
-		if (realpathSync(cwd) === realpathSync(root)) base = cwd;
-	} catch {
-		// unreadable path: fall back to git's own root
-	}
+	const base = keyBase(cwd);
+	if (base === null) return statuses;
 
 	// `-z` because the default output C-quotes and octal-escapes any path that is
 	// not plain ASCII; unquoting that by hand loses every accented or spaced name.
@@ -134,4 +138,100 @@ export function upstreamOf(cwd: string): Upstream | null {
 	const counts = git(cwd, ['rev-list', '--left-right', '--count', '@{u}...HEAD']);
 	const [behind, ahead] = (counts.stdout ?? '').trim().split(/\s+/).map(Number);
 	return { name: ref.stdout.trim(), ahead: ahead ?? 0, behind: behind ?? 0 };
+}
+
+export function inRepository(cwd: string): boolean {
+	return git(cwd, ['rev-parse', '--is-inside-work-tree'], 3000).stdout?.trim() === 'true';
+}
+
+export function stagedPaths(cwd: string): Set<string> {
+	const staged = new Set<string>();
+	const base = keyBase(cwd);
+	if (base === null) return staged;
+	const run = git(cwd, ['diff', '--cached', '--name-only', '-z']);
+	if (run.status !== 0) return staged;
+	for (const rel of run.stdout.split('\0')) {
+		if (rel.length > 0) staged.add(join(base, rel));
+	}
+	return staged;
+}
+
+export function lastCommitSubject(cwd: string): string | null {
+	const run = git(cwd, ['log', '-1', '--format=%s'], 3000);
+	if (run.status !== 0) return null;
+	const subject = run.stdout.trim();
+	return subject.length > 0 ? subject : null;
+}
+
+export interface GitResult {
+	ok: boolean;
+	detail: string;
+}
+
+const MUTATE_TIMEOUT = 60_000;
+
+function firstLine(text: string): string {
+	return (
+		text
+			.split('\n')
+			.map((line) => line.trim())
+			.find((line) => line.length > 0) ?? ''
+	);
+}
+
+function mutate(cwd: string, args: string[]): Promise<GitResult> {
+	return new Promise((resolve) => {
+		const child = spawn('git', args, {
+			cwd,
+			env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+			stdio: ['ignore', 'pipe', 'pipe'],
+		});
+		let stdout = '';
+		let stderr = '';
+		child.stdout.on('data', (chunk) => (stdout += chunk));
+		child.stderr.on('data', (chunk) => (stderr += chunk));
+		const timer = setTimeout(() => child.kill('SIGKILL'), MUTATE_TIMEOUT);
+		let settled = false;
+		const finish = (result: GitResult) => {
+			if (settled) return;
+			settled = true;
+			clearTimeout(timer);
+			resolve(result);
+		};
+		child.on('error', (err) => finish({ ok: false, detail: err.message }));
+		child.on('close', (code) => {
+			const ok = code === 0;
+			finish({ ok, detail: firstLine(ok ? stdout || stderr : stderr || stdout) });
+		});
+	});
+}
+
+export async function commitPaths(
+	cwd: string,
+	message: string,
+	paths: string[],
+): Promise<GitResult> {
+	const add = await mutate(cwd, ['add', '-A', '--', ...paths]);
+	if (!add.ok) return add;
+	return mutate(cwd, ['commit', '-m', message, '--', ...paths]);
+}
+
+export function undoLastCommit(cwd: string): Promise<GitResult> {
+	return mutate(cwd, ['reset', '--soft', 'HEAD~1']);
+}
+
+export function stashPush(cwd: string): Promise<GitResult> {
+	return mutate(cwd, ['stash', 'push', '-u']);
+}
+
+export function stashPop(cwd: string): Promise<GitResult> {
+	return mutate(cwd, ['stash', 'pop']);
+}
+
+export function fetch(cwd: string): Promise<GitResult> {
+	return mutate(cwd, ['fetch']);
+}
+
+export function push(cwd: string, branch: string, hasUpstream: boolean): Promise<GitResult> {
+	return mutate(cwd, hasUpstream ? ['push'] : ['push', '--set-upstream', 'origin', branch]);
 }

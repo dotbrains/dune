@@ -53,6 +53,12 @@ export interface CommandActions {
 	lineOp: (op: 'comment' | 'up' | 'down' | 'duplicate') => void;
 	toggleTrim: () => void;
 	toggleAutoSave: () => void;
+	commit: () => void;
+	undoCommit: () => void;
+	stash: () => void;
+	stashPop: () => void;
+	fetch: () => void;
+	push: () => void;
 	showHelp: () => void;
 	quit: () => void;
 }
@@ -210,9 +216,21 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 				},
 				{
 					id: 'editor.autoSave',
-					label: `${check(ctx.autoSaveOnBlur)}Auto-save when the terminal loses focus`,
+					label: `${check(ctx.autoSaveOnBlur)}Auto-save on blur and tab switch`,
 					run: actions.toggleAutoSave,
 				},
+			],
+		},
+		{
+			id: 'git',
+			label: 'Git',
+			children: [
+				{ id: 'git.commit', label: 'Commit…', run: actions.commit },
+				{ id: 'git.undoCommit', label: 'Undo last commit…', run: actions.undoCommit },
+				{ id: 'git.stash', label: 'Stash changes', run: actions.stash },
+				{ id: 'git.stashPop', label: 'Stash pop', run: actions.stashPop },
+				{ id: 'git.fetch', label: 'Fetch', run: actions.fetch },
+				{ id: 'git.push', label: 'Push', run: actions.push },
 			],
 		},
 		{ id: 'help', label: 'Keyboard shortcuts', run: actions.showHelp },

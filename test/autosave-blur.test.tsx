@@ -33,6 +33,34 @@ test('off by default: blur leaves the buffer dirty', async () => {
 	expect(t.captureCharFrame()).toContain('unsaved');
 });
 
+test('switching tabs saves the buffer left behind', async () => {
+	const dir = fixture({ 'a.ts': 'aaa\n', 'b.ts': 'bbb\n' });
+	const t = await launch(dir, { autoSaveOnBlur: true });
+	await press(t, (input) => input.pressArrow('down'));
+	await press(t, (input) => input.pressEnter());
+	await press(t, (input) => void input.typeText('ONE'));
+	await pressEscape(t);
+	await press(t, (input) => input.pressArrow('down'));
+	await press(t, (input) => input.pressEnter());
+
+	expect(readFileSync(join(dir, 'a.ts'), 'utf8')).toBe('ONEaaa\n');
+	expect(t.captureCharFrame()).toContain('Saved a.ts');
+});
+
+test('off: switching tabs leaves the buffer dirty', async () => {
+	const dir = fixture({ 'a.ts': 'aaa\n', 'b.ts': 'bbb\n' });
+	const t = await launch(dir, { autoSaveOnBlur: false });
+	await press(t, (input) => input.pressArrow('down'));
+	await press(t, (input) => input.pressEnter());
+	await press(t, (input) => void input.typeText('ONE'));
+	await pressEscape(t);
+	await press(t, (input) => input.pressArrow('down'));
+	await press(t, (input) => input.pressEnter());
+
+	expect(readFileSync(join(dir, 'a.ts'), 'utf8')).toBe('aaa\n');
+	expect(t.captureCharFrame()).toContain('a.ts ●');
+});
+
 test('every dirty tab is saved, not only the active one', async () => {
 	const dir = fixture({ 'a.ts': 'aaa\n', 'b.ts': 'bbb\n' });
 	const t = await launch(dir, { autoSaveOnBlur: true });
@@ -47,7 +75,7 @@ test('every dirty tab is saved, not only the active one', async () => {
 
 	expect(readFileSync(join(dir, 'a.ts'), 'utf8')).toBe('ONEaaa\n');
 	expect(readFileSync(join(dir, 'b.ts'), 'utf8')).toBe('TWObbb\n');
-	expect(t.captureCharFrame()).toContain('Saved 2 files');
+	expect(t.captureCharFrame()).toContain('Saved b.ts');
 });
 
 test('a buffer whose file changed on disk is skipped, not clobbered', async () => {
@@ -59,6 +87,22 @@ test('a buffer whose file changed on disk is skipped, not clobbered', async () =
 	expect(readFileSync(file, 'utf8')).toBe('theirs from outside\n');
 	const frame = t.captureCharFrame();
 	expect(frame).toContain('Changed on disk with unsaved edits: a.ts');
+});
+
+test('tab switch skips a buffer whose file changed on disk', async () => {
+	const dir = fixture({ 'a.ts': 'aaa\n', 'b.ts': 'bbb\n' });
+	const t = await launch(dir, { autoSaveOnBlur: true });
+	await press(t, (input) => input.pressArrow('down'));
+	await press(t, (input) => input.pressEnter());
+	await press(t, (input) => void input.typeText('ONE'));
+	writeFileSync(join(dir, 'a.ts'), 'theirs from outside\n');
+	await settle(t, 300);
+	await pressEscape(t);
+	await press(t, (input) => input.pressArrow('down'));
+	await press(t, (input) => input.pressEnter());
+
+	expect(readFileSync(join(dir, 'a.ts'), 'utf8')).toBe('theirs from outside\n');
+	expect(t.captureCharFrame()).toContain('Changed on disk with unsaved edits: a.ts');
 });
 
 test('focus-in reports do not save anything', async () => {

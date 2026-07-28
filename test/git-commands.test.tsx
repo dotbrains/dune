@@ -1,0 +1,92 @@
+import { expect, test } from 'bun:test';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+import { fixture, launch, press, runCommand, settle } from './helpers';
+import type { Harness } from './helpers';
+
+function repo(committed: string) {
+	const dir = mkdtempSync(join(tmpdir(), 'dune-git-commands-'));
+	const git = (...args: string[]) => execFileSync('git', args, { cwd: dir });
+	git('init', '-q', '-b', 'main');
+	git('config', 'user.email', 'test@example.com');
+	git('config', 'user.name', 'Test');
+	writeFileSync(join(dir, 'a.ts'), committed);
+	git('add', '.');
+	git('commit', '-q', '-m', 'init');
+	return dir;
+}
+
+const subject = (dir: string) =>
+	execFileSync('git', ['log', '-1', '--format=%s'], { cwd: dir }).toString().trim();
+const porcelain = (dir: string) =>
+	execFileSync('git', ['status', '--porcelain'], { cwd: dir }).toString();
+
+async function until(t: Harness, cond: () => boolean, ms = 5000) {
+	const start = Date.now();
+	while (!cond() && Date.now() - start < ms) await settle(t, 25);
+	expect(cond()).toBe(true);
+}
+
+test('commit picker commits selected changes', async () => {
+	const dir = repo('one\n');
+	writeFileSync(join(dir, 'a.ts'), 'two\n');
+	writeFileSync(join(dir, 'b.ts'), 'new\n');
+
+	const t = await launch(dir);
+	await runCommand(t, 'Commit');
+	const picker = t.captureCharFrame();
+	expect(picker).toContain('2 of 2 files selected');
+	expect(picker).toContain('[x] M a.ts');
+	expect(picker).toContain('[x] U b.ts');
+
+	await press(t, (input) => input.pressEnter());
+	expect(t.captureCharFrame()).toContain('Commit message');
+	await press(t, (input) => void input.typeText('add things'));
+	await press(t, (input) => input.pressEnter());
+
+	await until(t, () => subject(dir) === 'add things');
+	expect(porcelain(dir)).toBe('');
+});
+
+test('staged paths prefill the commit picker', async () => {
+	const dir = repo('one\n');
+	writeFileSync(join(dir, 'a.ts'), 'two\n');
+	execFileSync('git', ['add', 'a.ts'], { cwd: dir });
+	writeFileSync(join(dir, 'b.ts'), 'new\n');
+
+	const t = await launch(dir);
+	await runCommand(t, 'Commit');
+	const picker = t.captureCharFrame();
+	expect(picker).toContain('1 of 2 files selected');
+	expect(picker).toContain('[x] M a.ts');
+	expect(picker).toContain('[ ] U b.ts');
+
+	await press(t, (input) => input.pressEnter());
+	await press(t, (input) => void input.typeText('staged only'));
+	await press(t, (input) => input.pressEnter());
+
+	await until(t, () => subject(dir) === 'staged only');
+	expect(porcelain(dir)).toContain('?? b.ts');
+	expect(porcelain(dir)).not.toContain('a.ts');
+});
+
+test('stash reverts the working tree and pop brings it back', async () => {
+	const dir = repo('one\ntwo\n');
+	writeFileSync(join(dir, 'a.ts'), 'CHANGED\ntwo\n');
+
+	const t = await launch(dir);
+	await runCommand(t, 'Stash changes');
+	await until(t, () => readFileSync(join(dir, 'a.ts'), 'utf8') === 'one\ntwo\n');
+
+	await runCommand(t, 'Stash pop');
+	await until(t, () => readFileSync(join(dir, 'a.ts'), 'utf8') === 'CHANGED\ntwo\n');
+});
+
+test('outside a repository git commands warn instead of mutating', async () => {
+	const t = await launch(fixture({ 'a.ts': 'x\n' }));
+	await runCommand(t, 'Commit');
+	await until(t, () => t.captureCharFrame().includes('Not a git repository'));
+});

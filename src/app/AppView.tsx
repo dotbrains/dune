@@ -13,6 +13,8 @@ import { filetypeForPath } from '../languages/highlight';
 import { ui } from '../themes';
 import { ChoiceModal } from '../ui/ChoiceModal';
 import { CommandPalette } from '../ui/CommandPalette';
+import { CommitModal } from '../ui/CommitModal';
+import type { CommitFile } from '../ui/CommitModal';
 import { ConfirmModal } from '../ui/ConfirmModal';
 import { EditorPane } from '../ui/EditorPane';
 import { FilePicker } from '../ui/FilePicker';
@@ -72,6 +74,7 @@ interface AppViewProps {
 	picker: 'files' | 'tabs' | null;
 	palette: boolean;
 	commands: Command[];
+	commitFiles: CommitFile[] | null;
 	conflict: Conflict | null;
 	update: { current: string; latest: string } | null;
 	peek: boolean;
@@ -101,6 +104,8 @@ interface AppViewProps {
 	onPickFile: (path: string) => void;
 	onClosePicker: () => void;
 	onClosePalette: () => void;
+	onCommitFiles: (paths: string[]) => void;
+	onCancelCommit: () => void;
 	onResolveConflict: (choice: string) => void;
 	onCancelConflict: () => void;
 	onCloseUpdate: () => void;
@@ -267,6 +272,16 @@ export function AppView(props: AppViewProps) {
 			</Show>
 			<Show when={props.palette}>
 				<CommandPalette commands={props.commands} onClose={() => props.onClosePalette()} />
+			</Show>
+			<Show when={props.commitFiles}>
+				{(files: () => CommitFile[]) => (
+					<CommitModal
+						rootDir={props.rootDir}
+						files={files()}
+						onCommit={props.onCommitFiles}
+						onCancel={() => props.onCancelCommit()}
+					/>
+				)}
 			</Show>
 			<Show when={props.conflict}>
 				{(c: () => Conflict) => (

@@ -30,6 +30,13 @@ export function confirmationForPrompt(prompt: Prompt): Confirmation | null {
 				danger: true,
 				message: `Unsaved edits in ${prompt.names.join(', ')} will be lost. Quit anyway?`,
 			};
+		case 'undoCommit':
+			return {
+				title: 'Undo last commit',
+				verb: 'undo commit',
+				danger: true,
+				message: `Undo "${prompt.subject}" and keep its changes staged?`,
+			};
 		default:
 			return null;
 	}
