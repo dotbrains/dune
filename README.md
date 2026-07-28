@@ -1,5 +1,12 @@
 # dune
 
+[![CI](https://github.com/dotbrains/dune/actions/workflows/ci.yml/badge.svg)](https://github.com/dotbrains/dune/actions/workflows/ci.yml)
+[![License: PolyForm Shield 1.0.0](https://img.shields.io/badge/license-PolyForm%20Shield%201.0.0-blue.svg)](LICENSE)
+[![Platform: macOS + Linux + Windows](https://img.shields.io/badge/platform-macOS%20%2B%20Linux%20%2B%20Windows-lightgrey.svg)](docs/releasing.md)
+[![TypeScript: strict](https://img.shields.io/badge/typescript-strict-3178c6.svg)](tsconfig.json)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](.pre-commit-config.yaml)
+[![Dev env: Flox](https://img.shields.io/badge/dev%20env-flox-7c3aed.svg)](https://flox.dev)
+
 A terminal code editor with a file tree, tabs, search, git marks, themes, vim mode, and
 tree-sitter highlighting for 30+ languages.
 
