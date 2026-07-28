@@ -1,0 +1,93 @@
+import { basename } from 'node:path';
+
+import { createMemo } from 'solid-js';
+
+import type { Config } from '../core/config';
+import type { TreeNode } from '../core/fs';
+import { invalidateSyntaxStyle } from '../languages/highlight';
+import { setTheme, themeLabels } from '../themes';
+import type { ThemeName } from '../themes';
+import { confirmationForPrompt } from './confirmation';
+import { createAppCommands } from './appCommands';
+import { promptTitleFor } from './prompts';
+import type { Focus, Prompt } from './types';
+
+export function createAppControls(deps: {
+	config: Config;
+	prompt: () => Prompt;
+	selectedNode: () => TreeNode | undefined;
+	setVimMode: (mode: 'normal' | null) => void;
+	patchConfig: (patch: Partial<Config>) => void;
+	say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
+}) {
+	const applyTheme = (name: ThemeName) => {
+		setTheme(name);
+		invalidateSyntaxStyle();
+		deps.patchConfig({ theme: name });
+		deps.say(`Theme: ${themeLabels[name]}`);
+	};
+	const applyTabSize = (size: number) => {
+		deps.patchConfig({ tabSize: size });
+		deps.say(`Tab size: ${size}`);
+	};
+	const applyVim = (enabled: boolean) => {
+		deps.setVimMode(enabled ? 'normal' : null);
+		deps.patchConfig({ vim: enabled });
+		deps.say(`Vim mode ${enabled ? 'on' : 'off'}`);
+	};
+	const withNode = (run: (node: TreeNode) => void) => () => {
+		const node = deps.selectedNode();
+		if (node) run(node);
+		else deps.say('Select a file in the tree first', 'warn');
+	};
+	const promptTitle = () => promptTitleFor(deps.prompt());
+	const promptValue = () => {
+		const p = deps.prompt();
+		return p?.kind === 'rename' ? basename(p.target) : '';
+	};
+	const confirmation = createMemo(() => confirmationForPrompt(deps.prompt()));
+	return { applyTheme, applyTabSize, applyVim, confirmation, promptTitle, promptValue, withNode };
+}
+
+export type AppCommandDeps = {
+	config: Config;
+	saveActive: () => void;
+	setPicker: (kind: 'files' | 'tabs') => void;
+	activePath: () => string | null;
+	tabs: () => string[];
+	closeTabs: (paths: string[], done: string) => void;
+	setPrompt: (prompt: Prompt) => void;
+	setHistory: (
+		update: (prev: { kind: 'undo' | 'redo'; key: number } | null) => {
+			kind: 'undo' | 'redo';
+			key: number;
+		},
+	) => void;
+	setSearch: (search: { scope: 'file' | 'project'; replacing?: boolean }) => void;
+	targetDir: () => string;
+	withNode: (run: (node: TreeNode) => void) => () => void;
+	actionTargets: () => string[];
+	say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
+	takeForPaste: (mode: 'cut' | 'copy') => void;
+	paste: () => void;
+	closeTab: (path: string) => void;
+	reopenTab: () => void;
+	switchTab: (delta: number) => void;
+	focus: () => Focus;
+	setFocus: (focus: Focus) => void;
+	focusTree: () => void;
+	toggleSidebar: () => void;
+	applyVim: (enabled: boolean) => void;
+	applyTabSize: (size: number) => void;
+	applyTheme: (name: ThemeName) => void;
+	setLineOp: (
+		update: (prev: { op: 'comment' | 'up' | 'down' | 'duplicate'; key: number } | null) => {
+			op: 'comment' | 'up' | 'down' | 'duplicate';
+			key: number;
+		},
+	) => void;
+	patchConfig: (patch: Partial<Config>) => void;
+	gitCommands: Parameters<typeof createAppCommands>[0]['gitCommands'];
+	setHelp: (show: boolean) => void;
+	quit: () => void;
+};

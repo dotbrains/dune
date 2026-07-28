@@ -27,23 +27,23 @@ sequenceDiagram
 
 ## Release Workflow Jobs
 
-| Job | Purpose |
-| --- | --- |
-| `check` | Reads `package.json`, validates the tag when the workflow was triggered by a tag push, and exposes the version to later jobs. |
-| `build` | Builds native binaries on host runners that match the target platform family and uploads artifacts. |
+| Job       | Purpose                                                                                                                            |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `check`   | Reads `package.json`, validates the tag when the workflow was triggered by a tag push, and exposes the version to later jobs.      |
+| `build`   | Builds native binaries on host runners that match the target platform family and uploads artifacts.                                |
 | `publish` | Downloads artifacts, normalizes the `dist/` layout, creates or reuses the GitHub release, uploads binaries, then publishes to npm. |
 
 ## Platform Matrix
 
 The release workflow builds on one runner per target family because optional native packages are installed according to the host platform.
 
-| Target | Runner |
-| --- | --- |
-| `darwin-arm64` | `macos-latest` |
-| `darwin-x64` | `macos-15-intel` |
-| `linux-arm64` | `ubuntu-24.04-arm` |
-| `linux-x64` | `ubuntu-latest` |
-| `windows-x64` | `windows-latest` |
+| Target         | Runner             |
+| -------------- | ------------------ |
+| `darwin-arm64` | `macos-latest`     |
+| `darwin-x64`   | `macos-15-intel`   |
+| `linux-arm64`  | `ubuntu-24.04-arm` |
+| `linux-x64`    | `ubuntu-latest`    |
+| `windows-x64`  | `windows-latest`   |
 
 ```mermaid
 flowchart TD
@@ -63,13 +63,13 @@ flowchart TD
 
 The release workflow has several invariants that should not be weakened:
 
-| Invariant | Reason |
-| --- | --- |
-| Validate tag/version before building. | A mismatched tag would publish assets under one version while the npm shim fetches another. |
-| Build on matching platform runners. | Optional OpenTUI native packages are host-specific. |
-| Upload GitHub release binaries before npm publish. | The npm package fetches binaries from the GitHub release. |
-| Use npm provenance without `NODE_AUTH_TOKEN`. | Trusted publishing uses OIDC; an empty token can break authentication before OIDC runs. |
-| Reuse existing tags instead of moving them. | Re-running a release should not rewrite published version history. |
+| Invariant                                          | Reason                                                                                      |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Validate tag/version before building.              | A mismatched tag would publish assets under one version while the npm shim fetches another. |
+| Build on matching platform runners.                | Optional OpenTUI native packages are host-specific.                                         |
+| Upload GitHub release binaries before npm publish. | The npm package fetches binaries from the GitHub release.                                   |
+| Use npm provenance without `NODE_AUTH_TOKEN`.      | Trusted publishing uses OIDC; an empty token can break authentication before OIDC runs.     |
+| Reuse existing tags instead of moving them.        | Re-running a release should not rewrite published version history.                          |
 
 ## Manual Release Checklist
 
@@ -106,13 +106,13 @@ Use `bun run release` locally only when inspecting the staged release output. Pu
 
 ## Failure Recovery
 
-| Failure point | Recovery |
-| --- | --- |
-| Version check fails | Fix `package.json` version or push the correct tag. Do not publish from a mismatched tag. |
-| One platform build fails | Fix the target-specific build issue and re-run the workflow. |
-| Release upload fails | Re-run after confirming the tag exists and `contents: write` permission is available. |
-| npm publish fails before a package is published | Fix authentication/provenance configuration and re-run. |
-| npm version already exists | Treat the npm package as immutable; bump version for any content change. |
+| Failure point                                   | Recovery                                                                                  |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Version check fails                             | Fix `package.json` version or push the correct tag. Do not publish from a mismatched tag. |
+| One platform build fails                        | Fix the target-specific build issue and re-run the workflow.                              |
+| Release upload fails                            | Re-run after confirming the tag exists and `contents: write` permission is available.     |
+| npm publish fails before a package is published | Fix authentication/provenance configuration and re-run.                                   |
+| npm version already exists                      | Treat the npm package as immutable; bump version for any content change.                  |
 
 If GitHub release assets were uploaded but npm publish failed, do not delete or move the tag unless the version was never meant to ship. Fix npm publishing and re-run the same workflow so the npm package points at the already-correct release assets.
 

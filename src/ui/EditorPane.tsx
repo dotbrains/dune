@@ -1,14 +1,11 @@
-import { TextAttributes } from '@opentui/core';
-import type { KeyEvent, MouseEvent, TextareaRenderable } from '@opentui/core';
-import { useKeyboard, useRenderer, useTerminalDimensions } from '@opentui/solid';
-import { createEffect, createMemo, createSignal, For, on, onCleanup, Show } from 'solid-js';
-import { copyToClipboard, readClipboard } from '../core/clipboard';
+import type { TextareaRenderable } from '@opentui/core';
+import { useRenderer, useTerminalDimensions } from '@opentui/solid';
+import { createEffect, createMemo, createSignal, on, onCleanup, Show } from 'solid-js';
 import type { LineChange } from '../core/git';
 import { changeRows } from '../editor/changes';
 import { History } from '../editor/history';
 import { duplicateLines, moveLines, toggleComment } from '../editor/lines';
-import { handleTyping } from '../editor/typing';
-import { handleVimKey, initialVimState } from '../editor/vim';
+import { initialVimState } from '../editor/vim';
 import type { VimMode } from '../editor/vim';
 import { lineAt, logicalWindow } from '../editor/window';
 import { commentPrefix } from '../languages';
@@ -16,6 +13,12 @@ import { computeHighlights, getSyntaxStyle, segmentsIn, STALE } from '../languag
 import type { Highlighted, Segment } from '../languages/highlight';
 import { ui } from '../themes';
 import type { ThemeName } from '../themes';
+import { EditorEmptyState, EditorNotice } from './EditorEmptyState';
+import { EditorPaneBody } from './EditorPaneBody';
+import type { GutterHost } from './EditorPaneBody';
+import { afterResize, allowSelectionOnlyInEditor, ignoreScrollOutsideBounds } from './editorHost';
+import { useEditorKeymap } from './editorKeymap';
+export { ignoreScrollOutsideBounds } from './editorHost';
 export interface EditorPaneProps {
 	path: string | null;
 	content: string;
@@ -41,51 +44,9 @@ export interface EditorPaneProps {
 const DEBOUNCE_MS = 16;
 const OVERSCAN = 60;
 const SIGN_GLYPH: Record<LineChange, string> = { added: '▎', modified: '▎', deleted: '▁' };
-const CHANGE_COLORS: Record<LineChange, () => string> = {
-	added: () => ui.gitAdded,
-	modified: () => ui.gitModified,
-	deleted: () => ui.gitDeleted,
-};
-const selectionHosts = new WeakMap<object, unknown>();
-function allowSelectionOnlyInEditor(el: TextareaRenderable) {
-	const renderer = useRenderer() as unknown as {
-		startSelection: (renderable: unknown, x: number, y: number) => void;
-	};
-	const gated = selectionHosts.has(renderer);
-	selectionHosts.set(renderer, el);
-	if (gated) return;
-	const start = renderer.startSelection.bind(renderer);
-	renderer.startSelection = (renderable: unknown, x: number, y: number) => {
-		if (renderable === selectionHosts.get(renderer)) start(renderable, x, y);
-	};
-}
-export function afterResize(el: TextareaRenderable, after: () => void) {
-	const host = el as unknown as { onResize: (width: number, height: number) => void };
-	const resize = host.onResize.bind(host);
-	host.onResize = (width: number, height: number) => {
-		resize(width, height);
-		after();
-	};
-}
-export function ignoreScrollOutsideBounds(el: TextareaRenderable) {
-	const host = el as unknown as { onMouseEvent: (event: MouseEvent) => void };
-	const handle = host.onMouseEvent.bind(host);
-	host.onMouseEvent = (event: MouseEvent) => {
-		if (event.type === 'scroll') {
-			const { x, y, width, height } = el;
-			const inside = event.x >= x && event.x < x + width && event.y >= y && event.y < y + height;
-			if (!inside) return;
-		}
-		handle(event);
-	};
-}
 export function EditorPane(props: EditorPaneProps) {
 	const dimensions = useTerminalDimensions();
 	const renderer = useRenderer();
-	interface GutterHost {
-		gutter?: { _minWidth?: number };
-		setLineSigns?: (signs: Map<number, { before?: string; beforeColor?: string }>) => void;
-	}
 	let gutter: GutterHost | undefined;
 	let editor: TextareaRenderable | undefined;
 	let highlightTimer: ReturnType<typeof setTimeout> | null = null;
@@ -404,91 +365,15 @@ export function EditorPane(props: EditorPaneProps) {
 		cursorSync = null;
 	};
 	onCleanup(releaseEditor);
-	useKeyboard((key: KeyEvent) => {
-		if (key.defaultPrevented) return;
-		if (props.blocked || !editor || !props.focused) return;
-		scheduleCursorSync();
-		cursorBeforeEdit = editor.cursorOffset;
-		if (key.ctrl && key.name === 'a') {
-			key.preventDefault();
-			editor.selectAll();
-			applyWindow(true);
-			return;
-		}
-		if (editor.hasSelection() && (!props.vim || vimState.mode === 'insert')) {
-			const typed = key.sequence;
-			const printable =
-				typed?.length === 1 && typed >= ' ' && typed !== '\u007F' && !key.ctrl && !key.meta;
-			if (key.name === 'backspace' || key.name === 'delete' || printable) {
-				key.preventDefault();
-				editor.deleteSelection();
-				if (printable) editor.insertText(typed!);
-				props.onChange(editor.plainText);
-				scheduleHighlight();
-				applyWindow(true);
-				return;
-			}
-		}
-		if (key.ctrl && key.name === 'z') {
-			key.preventDefault();
-			stepHistory(key.shift ? 'redo' : 'undo');
-			return;
-		}
-		if (key.ctrl && key.name === 'y') {
-			key.preventDefault();
-			stepHistory('redo');
-			return;
-		}
-		if (key.ctrl && (key.name === 'c' || key.name === 'x')) {
-			key.preventDefault();
-			const selected = editor.getSelectedText();
-			if (!selected) {
-				if (key.name === 'c') props.onQuit();
-				return;
-			}
-			copyToClipboard(selected);
-			renderer.copyToClipboardOSC52(selected);
-			if (key.name === 'x') {
-				editor.deleteSelection();
-				applyWindow(true);
-			}
-			return;
-		}
-		if (key.ctrl && key.name === 'v') {
-			key.preventDefault();
-			const text = readClipboard();
-			if (text === null) return;
-			editor.deleteSelection();
-			editor.insertText(text);
-			return;
-		}
-		if (key.ctrl && (key.name === '_' || key.name === '/' || key.name === 'l')) {
-			key.preventDefault();
-			toggleCommentLines();
-			return;
-		}
-		if ((key.option || key.meta) && !key.ctrl && (key.name === 'up' || key.name === 'down')) {
-			key.preventDefault();
-			if (key.shift) duplicateSelectedLines(key.name === 'down');
-			else moveSelectedLines(key.name === 'up' ? -1 : 1);
-			return;
-		}
-		if (props.vim && vimState.mode !== 'insert') return;
-		if (handleTyping(editor, key, props.tabSize)) key.preventDefault();
-	});
-	useKeyboard((key: KeyEvent) => {
-		if (key.defaultPrevented) return;
-		if (props.blocked || !props.vim || !editor || !props.focused) return;
-		const before = vimState.mode;
-		const stepped = { undo: () => stepHistory('undo'), redo: () => stepHistory('redo') };
-		if (handleVimKey(editor, key, vimState, stepped)) key.preventDefault();
-		if (vimState.mode !== before) {
-			editor.cursorStyle = {
-				style: vimState.mode === 'insert' ? 'line' : 'block',
-				blinking: true,
-			};
-			props.onVimMode(vimState.mode);
-		}
+	useEditorKeymap({
+		blocked: () => props.blocked, focused: () => props.focused, vim: () => props.vim,
+		tabSize: () => props.tabSize, editor: () => editor, vimState, renderer,
+		onChange: props.onChange, onQuit: props.onQuit, onVimMode: props.onVimMode,
+		applyWindow, scheduleCursorSync, scheduleHighlight,
+		setCursorBeforeEdit: (offset) => {
+			cursorBeforeEdit = offset;
+		},
+		stepHistory, toggleCommentLines, moveSelectedLines, duplicateSelectedLines,
 	});
 	createEffect(
 		on(
@@ -504,43 +389,17 @@ export function EditorPane(props: EditorPaneProps) {
 			},
 		),
 	);
-	createEffect(
-		on(
-			() => props.focused,
-			(focused) => {
-				if (focused) editor?.focus();
-			},
-		),
-	);
-	createEffect(
-		on(
-			() => props.blocked,
-			(blocked) => {
-				if (!blocked && props.focused) editor?.focus();
-			},
-			{ defer: true },
-		),
-	);
-	createEffect(
-		on(
-			() => [props.vim, props.path],
-			() => {
-				Object.assign(vimState, initialVimState());
-				props.onVimMode(props.vim ? 'normal' : null);
-			},
-		),
-	);
-	createEffect(
-		on(
-			() => [props.theme, props.tabSize],
-			() => {
-				if (!editor) return;
-				editor.syntaxStyle = getSyntaxStyle();
-				void highlight(editor.plainText, props.path);
-			},
-			{ defer: true },
-		),
-	);
+	createEffect(on(() => props.focused, (focused) => void (focused && editor?.focus())));
+	createEffect(on(() => props.blocked, (blocked) => void (!blocked && props.focused && editor?.focus()), { defer: true }));
+	createEffect(on(() => [props.vim, props.path], () => {
+		Object.assign(vimState, initialVimState());
+		props.onVimMode(props.vim ? 'normal' : null);
+	}));
+	createEffect(on(() => [props.theme, props.tabSize], () => {
+		if (!editor) return;
+		editor.syntaxStyle = getSyntaxStyle();
+		void highlight(editor.plainText, props.path);
+	}, { defer: true }));
 	createEffect(
 		on(
 			() => props.reloadKey,
@@ -570,176 +429,64 @@ export function EditorPane(props: EditorPaneProps) {
 			{ defer: true },
 		),
 	);
-	createEffect(
-		on(
-			() => props.goto?.key,
-			() => {
-				const target = props.goto;
-				if (!target || !editor) return;
-				editor.setCursor(target.line, target.col);
-				editor.focus();
-			},
-		),
-	);
+	createEffect(on(() => props.goto?.key, () => {
+		const target = props.goto;
+		if (!target || !editor) return;
+		editor.setCursor(target.line, target.col);
+		editor.focus();
+	}));
 	return (
 		<box flexGrow={1} flexDirection="column" backgroundColor={ui.bg}>
 			<Show when={props.notice}>
-				{(refused: () => { name: string; reason: string }) => (
-					<box
-						position="absolute"
-						top={0}
-						left={0}
-						width="100%"
-						height="100%"
-						flexDirection="column"
-						alignItems="center"
-						justifyContent="center"
-						backgroundColor={ui.bg}
-						zIndex={10}
-					>
-						<text
-							fg={ui.text}
-							bg={ui.bg}
-							content={`${refused().name} cannot be shown`}
-							attributes={TextAttributes.BOLD}
-						/>
-						<text fg={ui.faint} bg={ui.bg} content="" />
-						<text fg={ui.dim} bg={ui.bg} content={refused().reason} />
-						<text fg={ui.faint} bg={ui.bg} content="" />
-						<text fg={ui.faint} bg={ui.bg} content="Press any key to go back" />
-					</box>
-				)}
+				{(refused: () => { name: string; reason: string }) => <EditorNotice notice={refused()} />}
 			</Show>
-			<Show
-				when={props.path != null}
-				fallback={
-					<box
-						flexGrow={1}
-						flexDirection="column"
-						backgroundColor={ui.bg}
-						alignItems="center"
-						justifyContent="center"
-					>
-						<text fg={ui.dim} bg={ui.bg} content="dune" attributes={TextAttributes.BOLD} />
-						<text fg={ui.faint} bg={ui.bg} content="" />
-						<text fg={ui.faint} bg={ui.bg} content="Enter   open file from the tree" />
-						<text fg={ui.faint} bg={ui.bg} content="Ctrl+P  commands" />
-						<text fg={ui.faint} bg={ui.bg} content="Ctrl+F  find" />
-					</box>
-				}
-			>
-				{}
-				<box
-					flexGrow={1}
-					flexDirection="row"
-					backgroundColor={ui.bg}
-					onMouseDown={() => props.onFocus()}
-					onMouseDrag={(event: MouseEvent) => {
-						if (dragging()) dragTo(event.y);
-					}}
-					onMouseDragEnd={() => setDragging(false)}
-					onMouseUp={() => setDragging(false)}
-				>
-					<line_number
-						ref={(el: unknown) => {
-							gutter = el as GutterHost;
-						}}
-						target={editorEl() ?? undefined}
-						fg={ui.gutter}
-						bg={ui.bg}
-						minWidth={gutterWidth()}
-						paddingRight={1}
-						flexGrow={1}
-						lineColors={
-							new Map([[cursorLine(), { gutter: ui.currentLine, content: ui.currentLine }]])
-						}
-					>
-						<textarea
-							ref={(el) => {
-								editor = el;
-								setEditorEl(el);
-								ignoreScrollOutsideBounds(el);
-								afterResize(el, () => {
-									applyLineSigns();
-									syncViewport();
-									forgetWrapMap();
-									applyWindow(true);
-								});
-								allowSelectionOnlyInEditor(el);
-								onCleanup(releaseEditor);
-							}}
-							initialValue={props.content}
-							focused={props.focused}
-							syntaxStyle={getSyntaxStyle()}
-							backgroundColor={ui.bg}
-							textColor={ui.text}
-							focusedBackgroundColor={ui.bg}
-							focusedTextColor={ui.text}
-							cursorColor={ui.cursor}
-							wrapMode="word"
-							tabIndicator={props.tabSize}
-							tabIndicatorColor={ui.indentGuide}
-							flexGrow={1}
-							paddingLeft={1}
-							onContentChange={() => {
-								if (!editor) return;
-								history.record({ content: editor.plainText, cursor: cursorBeforeEdit }, Date.now());
-								props.onChange(editor.plainText);
-								scheduleHighlight();
-							}}
-							onMouse={() => applyWindow()}
-							onCursorChange={() => {
-								applyWindow();
-								syncCursor();
-							}}
-						/>
-					</line_number>
+				<Show when={props.path != null} fallback={<EditorEmptyState />}>
 					{}
-					<Show when={changeTrack().some(Boolean)}>
-						<box
-							width={1}
-							flexShrink={0}
-							backgroundColor={ui.bg}
-							onMouseDown={(event: MouseEvent) => {
-								if (!dragging()) jumpToRow(event.y - (editor?.y ?? 0));
-							}}
-						>
-							<For each={changeTrack()}>
-								{(change) => (
-									<text
-										fg={change ? CHANGE_COLORS[change]() : ui.bg}
-										bg={ui.bg}
-										content={change ? '▎' : ' '}
-									/>
-								)}
-							</For>
-						</box>
-					</Show>
-					<Show when={scrollbar().length > 0}>
-						<box
-							ref={(el: { y: number }) => {
-								track = el;
-							}}
-							width={1}
-							flexShrink={0}
-							backgroundColor={ui.bg}
-							onMouseDown={(event: MouseEvent) => {
-								setDragging(true);
-								dragTo(event.y);
-							}}
-						>
-							<For each={scrollbar()}>
-								{(filled) => (
-									<text
-										fg={filled ? ui.scrollbar : ui.bg}
-										bg={ui.bg}
-										content={filled ? '█' : '│'}
-									/>
-								)}
-							</For>
-						</box>
-					</Show>
-				</box>
+					<EditorPaneBody
+						content={props.content} focused={props.focused} tabSize={props.tabSize}
+						editorEl={editorEl()} cursorLine={cursorLine()} gutterWidth={gutterWidth()}
+						changeTrack={changeTrack()} scrollbar={scrollbar()} dragging={dragging()}
+						onFocus={() => props.onFocus()}
+						onDrag={(event) => {
+							if (dragging()) dragTo(event.y);
+					}}
+					onDragEnd={() => setDragging(false)}
+					onGutter={(el) => {
+						gutter = el as GutterHost;
+					}}
+					onEditor={(el) => {
+						editor = el;
+						setEditorEl(el);
+						ignoreScrollOutsideBounds(el);
+						afterResize(el, () => {
+							applyLineSigns();
+							syncViewport();
+							forgetWrapMap();
+							applyWindow(true);
+						});
+						allowSelectionOnlyInEditor(el);
+						onCleanup(releaseEditor);
+					}}
+						onContentChange={() => {
+							if (!editor) return;
+							history.record({ content: editor.plainText, cursor: cursorBeforeEdit }, Date.now());
+							props.onChange(editor.plainText);
+							scheduleHighlight();
+						}}
+						onMouse={() => applyWindow()}
+						onCursorChange={() => {
+							applyWindow();
+							syncCursor();
+						}}
+						onJumpTrack={(row) => jumpToRow(row - (editor?.y ?? 0))}
+						onStartScrollbarDrag={(y) => {
+							setDragging(true);
+							dragTo(y);
+						}}
+					onTrack={(el) => {
+						track = el;
+					}}
+				/>
 			</Show>
 		</box>
 	);

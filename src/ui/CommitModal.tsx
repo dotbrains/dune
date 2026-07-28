@@ -121,7 +121,11 @@ export function CommitModal(props: CommitModalProps) {
 					<text fg={ui.dim} bg={ui.panelBg} content="No changed files" />
 				</Show>
 				<text fg={ui.panelBg} bg={ui.panelBg} content="" />
-				<text fg={ui.dim} bg={ui.panelBg} content="Space toggle · A all · Enter commit · Esc cancel" />
+				<text
+					fg={ui.dim}
+					bg={ui.panelBg}
+					content="Space toggle · A all · Enter commit · Esc cancel"
+				/>
 			</box>
 		</Overlay>
 	);

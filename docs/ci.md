@@ -32,13 +32,13 @@ All Bun commands in CI run through `flox activate -- ...`. This is the contract 
 
 ## Jobs
 
-| Job | Runner | Purpose | Commands |
-| --- | --- | --- | --- |
-| `Hygiene` | `ubuntu-latest` | Static correctness and repository policy | `bun run check-types`, `bun run lint`, `bun run budget` |
-| `Tests` | `macos-latest` | Runtime behavior using the OpenTUI/Solid test harness | `bun run test:ci` |
-| `Build (linux-x64)` | `ubuntu-latest` | Linux binary smoke build | `bun run build linux-x64` |
-| `Build (darwin-arm64)` | `macos-latest` | Apple Silicon binary smoke build | `bun run build darwin-arm64` |
-| `Docs and Metadata` | `ubuntu-latest` | Required repository documentation and license presence | shell `test -s` checks |
+| Job                    | Runner          | Purpose                                                | Commands                                                |
+| ---------------------- | --------------- | ------------------------------------------------------ | ------------------------------------------------------- |
+| `Hygiene`              | `ubuntu-latest` | Static correctness and repository policy               | `bun run check-types`, `bun run lint`, `bun run budget` |
+| `Tests`                | `macos-latest`  | Runtime behavior using the OpenTUI/Solid test harness  | `bun run test:ci`                                       |
+| `Build (linux-x64)`    | `ubuntu-latest` | Linux binary smoke build                               | `bun run build linux-x64`                               |
+| `Build (darwin-arm64)` | `macos-latest`  | Apple Silicon binary smoke build                       | `bun run build darwin-arm64`                            |
+| `Docs and Metadata`    | `ubuntu-latest` | Required repository documentation and license presence | shell `test -s` checks                                  |
 
 The workflow uses `fail-fast: false` for matrixed jobs where seeing all platform results is more useful than stopping at the first failure.
 
@@ -46,13 +46,13 @@ The workflow uses `fail-fast: false` for matrixed jobs where seeing all platform
 
 Flox is the source of the CI toolchain. The checked-in environment installs:
 
-| Tool | Purpose |
-| --- | --- |
-| Bun | Runtime, package manager, test runner, script runner, and build entry point |
-| Node.js | Compatibility for TypeScript tooling and release ecosystem commands |
-| Git | Source metadata, release tagging, and local developer workflow |
-| GitHub CLI | Release and repository automation support |
-| pre-commit | Local hook runner that mirrors repository checks |
+| Tool       | Purpose                                                                     |
+| ---------- | --------------------------------------------------------------------------- |
+| Bun        | Runtime, package manager, test runner, script runner, and build entry point |
+| Node.js    | Compatibility for TypeScript tooling and release ecosystem commands         |
+| Git        | Source metadata, release tagging, and local developer workflow              |
+| GitHub CLI | Release and repository automation support                                   |
+| pre-commit | Local hook runner that mirrors repository checks                            |
 
 ```mermaid
 flowchart LR
@@ -76,10 +76,10 @@ The hygiene job is designed to fail quickly on issues that do not require render
 
 `bun run budget` runs both repository budget scripts:
 
-| Script | Enforces |
-| --- | --- |
-| `scripts/check-file-sizes.ts` | Every tracked source/doc/script/workflow/config file stays at or below 999 lines, excluding generated or binary paths. |
-| `scripts/check-flat-directories.ts` | Direct file counts stay below the default directory budget unless a documented exception exists. |
+| Script                              | Enforces                                                                                                               |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `scripts/check-file-sizes.ts`       | Every tracked source/doc/script/workflow/config file stays at or below 999 lines, excluding generated or binary paths. |
+| `scripts/check-flat-directories.ts` | Direct file counts stay below the default directory budget unless a documented exception exists.                       |
 
 ## Test Gate
 
@@ -106,15 +106,15 @@ Local builds can still use `bun run build` for the host platform. For target-spe
 
 The docs job checks that the repository has the required public-facing documentation set:
 
-| File | Role |
-| --- | --- |
-| `README.md` | First entry point for users and contributors |
-| `LICENSE` | Exact project license |
+| File                   | Role                                             |
+| ---------------------- | ------------------------------------------------ |
+| `README.md`            | First entry point for users and contributors     |
+| `LICENSE`              | Exact project license                            |
 | `docs/architecture.md` | Runtime shape, boundaries, and maintenance rules |
-| `docs/ci.md` | Hosted CI, Flox, and repository gates |
-| `docs/development.md` | Local development workflow |
-| `docs/testing.md` | Test strategy and commands |
-| `docs/releasing.md` | Release sequence and package publication rules |
+| `docs/ci.md`           | Hosted CI, Flox, and repository gates            |
+| `docs/development.md`  | Local development workflow                       |
+| `docs/testing.md`      | Test strategy and commands                       |
+| `docs/releasing.md`    | Release sequence and package publication rules   |
 
 The docs job intentionally starts with presence checks. More semantic documentation checks can be added later, but they should not replace human review. Diagrams and prose still need reviewers to confirm that they describe reality.
 
@@ -126,11 +126,11 @@ Formatting is available locally through `bun run format` and `bun run format:che
 
 Use the failing job to choose the first investigation path:
 
-| Failing job | First checks |
-| --- | --- |
-| Hygiene | Run the exact failing command inside `flox activate`; inspect type errors, lint errors, or budget output. |
-| Tests | Re-run `bun run test:ci`; if needed, run the single failing `test/*.test.tsx` file. |
-| Build | Check target-specific optional dependencies and whether the build target matches the runner host. |
-| Docs and Metadata | Confirm required docs exist and are non-empty. |
+| Failing job       | First checks                                                                                              |
+| ----------------- | --------------------------------------------------------------------------------------------------------- |
+| Hygiene           | Run the exact failing command inside `flox activate`; inspect type errors, lint errors, or budget output. |
+| Tests             | Re-run `bun run test:ci`; if needed, run the single failing `test/*.test.tsx` file.                       |
+| Build             | Check target-specific optional dependencies and whether the build target matches the runner host.         |
+| Docs and Metadata | Confirm required docs exist and are non-empty.                                                            |
 
 Do not broaden a CI workaround without documenting why. If a gate is temporarily narrowed because of an upstream or hosted-runner issue, record the issue here and keep coverage elsewhere.

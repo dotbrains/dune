@@ -8,9 +8,15 @@
 [![Dev env: Flox](https://img.shields.io/badge/dev%20env-flox-7c3aed.svg)](https://flox.dev)
 
 A terminal code editor with a file tree, tabs, search, git marks, themes, vim mode, and
-tree-sitter highlighting for 30+ languages.
+tree-sitter highlighting for 30+ languages. `dune` is meant to feel like a small,
+fast project workspace rather than a shell command that happens to open one file.
 
-![dune editing a TypeScript file](./screenshot.png)
+When it starts, the first screen is the editor itself: a tree on the left, tabs across
+the top, a status bar along the bottom, and the active buffer taking the rest of the
+terminal. The tree supports preview tabs, pinned tabs, range selection, copy and move
+operations, guarded deletes, and mouse resizing. The editor keeps line numbers,
+indent guides, syntax colour, git change markers, a change track, and scrollbars in
+the terminal grid without requiring a GUI.
 
 ## Status
 

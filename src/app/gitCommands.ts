@@ -88,7 +88,8 @@ export function createGitCommands(deps: {
 		startCommit,
 		submitCommit,
 		confirmUndoCommit,
-		undoCommit: () => runGit('Undoing commit', () => undoLastCommit(deps.rootDir), 'Undid last commit'),
+		undoCommit: () =>
+			runGit('Undoing commit', () => undoLastCommit(deps.rootDir), 'Undid last commit'),
 		stash: () => runGit('Stashing', () => stashPush(deps.rootDir), 'Stashed changes'),
 		stashPop: () => runGit('Applying stash', () => stashPop(deps.rootDir), 'Applied stash'),
 		fetch: () => runGit('Fetching', () => gitFetch(deps.rootDir), 'Fetched'),

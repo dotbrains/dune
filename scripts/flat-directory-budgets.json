@@ -10,5 +10,5 @@
 			"reason": "Each theme is a small independent palette registered from one directory."
 		}
 	},
-	"exclude": ["^bun\\.lock$", "^screenshot\\.png$"]
+	"exclude": ["^bun\\.lock$"]
 }

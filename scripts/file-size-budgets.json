@@ -1,4 +1,4 @@
 {
-	"default_lines": 999,
-	"exclude": ["^bun\\.lock$", "^screenshot\\.png$"]
+	"default_lines": 500,
+	"exclude": ["^bun\\.lock$"]
 }

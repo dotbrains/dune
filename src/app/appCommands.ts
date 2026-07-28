@@ -14,10 +14,12 @@ export function createAppCommands(deps: {
 	tabs: () => string[];
 	closeTabs: (paths: string[], done: string) => void;
 	setPrompt: (prompt: Prompt) => void;
-	setHistory: (update: (prev: { kind: 'undo' | 'redo'; key: number } | null) => {
-		kind: 'undo' | 'redo';
-		key: number;
-	}) => void;
+	setHistory: (
+		update: (prev: { kind: 'undo' | 'redo'; key: number } | null) => {
+			kind: 'undo' | 'redo';
+			key: number;
+		},
+	) => void;
 	setSearch: (search: { scope: 'file' | 'project'; replacing?: boolean }) => void;
 	targetDir: () => string;
 	withNode: (run: (node: TreeNode) => void) => () => void;
@@ -35,10 +37,12 @@ export function createAppCommands(deps: {
 	applyVim: (enabled: boolean) => void;
 	applyTabSize: (size: number) => void;
 	applyTheme: (name: ThemeName) => void;
-	setLineOp: (update: (prev: { op: 'comment' | 'up' | 'down' | 'duplicate'; key: number } | null) => {
-		op: 'comment' | 'up' | 'down' | 'duplicate';
-		key: number;
-	}) => void;
+	setLineOp: (
+		update: (prev: { op: 'comment' | 'up' | 'down' | 'duplicate'; key: number } | null) => {
+			op: 'comment' | 'up' | 'down' | 'duplicate';
+			key: number;
+		},
+	) => void;
 	patchConfig: (patch: Partial<Config>) => void;
 	gitCommands: {
 		openCommitPicker: () => void;
@@ -59,7 +63,11 @@ export function createAppCommands(deps: {
 				switchTab: () => deps.setPicker('tabs'),
 				closeOthers: () => {
 					const keep = deps.activePath();
-					if (keep) deps.closeTabs(deps.tabs().filter((path) => path !== keep), 'Closed other tabs');
+					if (keep)
+						deps.closeTabs(
+							deps.tabs().filter((path) => path !== keep),
+							'Closed other tabs',
+						);
 				},
 				closeAll: () => deps.closeTabs(deps.tabs(), 'Closed all tabs'),
 				gotoLine: () => deps.setPrompt({ kind: 'gotoLine' }),

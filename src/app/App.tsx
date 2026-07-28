@@ -1,49 +1,31 @@
-import { basename, dirname, join, relative } from 'node:path';
-import type { KeyEvent, MouseEvent } from '@opentui/core';
-import { useKeyboard, useRenderer, useTerminalDimensions } from '@opentui/solid';
-import { createEffect, createMemo, createSignal, on, onCleanup, onMount } from 'solid-js';
+import { basename, join } from 'node:path';
+import type { MouseEvent } from '@opentui/core';
+import { useRenderer, useTerminalDimensions } from '@opentui/solid';
+import { createMemo, createSignal } from 'solid-js';
 import { createStore, produce, unwrap } from 'solid-js/store';
-import { copyAll, moveAll, removeAll } from '../core/bulk';
 import { saveConfig, sidebarColumns, SIDEBAR_MIN, SIDEBAR_MAX } from '../core/config';
 import type { Config } from '../core/config';
 import type { TreeNode } from '../core/fs';
-import {
-	BinaryFileError,
-	createDir,
-	createFile,
-	exists,
-	freePath,
-	flattenVisible,
-	mtimeOf,
-	readFile,
-	rename,
-	watchTree,
-	writeFile,
-} from '../core/fs';
-import { currentBranch, diffLines, statusMap, upstreamOf } from '../core/git';
+import { BinaryFileError, flattenVisible, mtimeOf, readFile } from '../core/fs';
+import { currentBranch } from '../core/git';
 import type { FileStatus, LineChange, Upstream } from '../core/git';
 import type { Match } from '../core/search';
-import { saveSession } from '../core/session';
 import { checkForUpdate } from '../core/update';
-import { trimTrailing } from '../editor/lines';
 import type { VimMode } from '../editor/vim';
-import { invalidateSyntaxStyle } from '../languages/highlight';
-import { setTheme, themeLabels } from '../themes';
-import type { ThemeName } from '../themes';
 import type { SearchScope } from '../ui/SearchPanel';
 import type { Tone } from '../ui/StatusBar';
 import { createAppCommands } from './appCommands';
+import { createAppControls } from './appControls';
 import { AppView } from './AppView';
-import { clashWarning } from './clashes';
-import { CLASH_CHANGED, CLASH_DELETED, EDITOR_MIN, READY } from './constants';
-import { confirmationForPrompt } from './confirmation';
+import { EDITOR_MIN, READY } from './constants';
+import { createDocumentActions } from './documentActions';
+import { createFileActions } from './fileActions';
 import { createGitCommands } from './gitCommands';
-import { within } from './pathRules';
-import { promptTitleFor, isTextPrompt } from './prompts';
+import { useAppKeyboard } from './keyboard';
+import { useAppLifecycle } from './lifecycle';
 import { restoreAppState } from './restore';
 import { createReplacementHandlers } from './searchReplace';
-import type { BufferState, Conflict, DiskSync, Focus, Prompt } from './types';
-const chord = (key: KeyEvent) => key.shift || key.option || key.meta;
+import type { BufferState, Conflict, Focus, Prompt } from './types';
 export function App(props: {
 	rootDir: string;
 	openFile?: string | null;
@@ -144,6 +126,7 @@ export function App(props: {
 			if (!next.delete(path)) next.add(path);
 			return next;
 		});
+	let saveDirtyPaths = (_paths: string[]) => {};
 	const reveal = (path: string) => {
 		const parts = path.startsWith(rootDir) ? path.slice(rootDir.length + 1).split('/') : [];
 		if (parts.length < 2) return;
@@ -183,12 +166,6 @@ export function App(props: {
 		const [lo, hi] = start <= next ? [start, next] : [next, start];
 		setMarked(rows.slice(lo, hi + 1).map((n) => n.path));
 		setSelectedPath(rows[next]!.path);
-	};
-	const actionTargets = (): string[] => {
-		const all = marked();
-		if (all.length > 0) return all;
-		const path = selectedPath();
-		return path ? [path] : [];
 	};
 	const toggleSidebar = () => {
 		if (sidebar()) {
@@ -240,179 +217,13 @@ export function App(props: {
 	const pinTab = (path: string) => {
 		if (previewPath() === path) setPreviewPath(null);
 	};
-	const adoptMove = (from: string, to: string) => {
-		const inside = `${from}/`;
-		const remap = (path: string) =>
-			path === from ? to : path.startsWith(inside) ? to + path.slice(from.length) : path;
-		setTabs((prev) => prev.map(remap));
-		for (const path of Object.keys(unwrap(buffers))) {
-			const next = remap(path);
-			if (next === path) continue;
-			setBuffers(next, { ...buffers[path]! });
-			discardBuffer(path);
-		}
-		const active = activePath();
-		if (active) setActivePath(remap(active));
-		const preview = previewPath();
-		if (preview) setPreviewPath(remap(preview));
-		setSelectedPath(to);
-		setExpanded((prev) => new Set([...prev].map(remap)));
-	};
-	const movePath = (from: string, to: string): string | null => {
-		const err = rename(from, to);
-		if (err) return err;
-		adoptMove(from, to);
-		return null;
-	};
-	const whyNotMove = (path: string, dir: string): string | null => {
-		if (dirname(path) === dir) return `${basename(path)} is already there`;
-		if (within(dir, path)) return `Cannot move ${basename(path)} into itself`;
-		return null;
-	};
-	const moveInto = (path: string, dir: string) => {
-		const refused = whyNotMove(path, dir);
-		if (refused) return say(refused, 'warn');
-		const err = movePath(path, join(dir, basename(path)));
-		if (err) return say(err, 'error');
-		expand(dir);
-		say(`Moved ${basename(path)} to ${relative(rootDir, dir) || basename(rootDir)}/`);
-	};
-	const moveAllInto = (paths: string[], dir: string) => {
-		if (paths.length === 1) return moveInto(paths[0]!, dir);
-		const refused: string[] = [];
-		const movable = paths.filter((path) => {
-			if (!whyNotMove(path, dir)) return true;
-			refused.push(basename(path));
-			return false;
-		});
-		setMarked([]);
-		setAnchor(null);
-		whileFree(
-			() =>
-				void (async () => {
-					setBusy({ label: 'Moving', done: 0, total: movable.length });
-					const { done, failed, moved } = await moveAll(
-						movable,
-						dir,
-						(into, base) => join(into, base),
-						(progress) => setBusy({ label: 'Moving', done: progress.done, total: progress.total }),
-					);
-					setBusy(null);
-					for (const { from, to } of moved) adoptMove(from, to);
-					if (done > 0) expand(dir);
-					refreshTree();
-					const where = relative(rootDir, dir) || basename(rootDir);
-					const left = [...refused, ...failed];
-					if (left.length === 0) return say(`Moved ${done} items to ${where}/`);
-					say(`Moved ${done} to ${where}/ — left ${left.join(', ')}`, 'warn');
-				})(),
-		);
-	};
-	const activateNode = (node: TreeNode) => {
-		setSelectedPath(node.path);
-		if (node.isDir) toggleExpand(node.path);
-		else openFile(node.path, true);
-	};
-	const selectedNode = () => nodes().find((n) => n.path === selectedPath());
-	const targetDir = () => {
-		const node = selectedNode();
-		if (!node) return rootDir;
-		return node.isDir ? node.path : dirname(node.path);
-	};
-	const copyAllInto = (paths: string[], dir: string) => {
-		const refused: string[] = [];
-		const copyable = paths.filter((path) => {
-			if (!within(dir, path)) return true;
-			refused.push(basename(path));
-			return false;
-		});
-		setMarked([]);
-		setAnchor(null);
-		if (copyable.length === 0) {
-			return say(`Cannot copy ${refused.join(', ')} into itself`, 'warn');
-		}
-		whileFree(
-			() =>
-				void (async () => {
-					setBusy({ label: 'Copying', done: 0, total: copyable.length });
-					const { done, failed } = await copyAll(copyable, dir, freePath, (progress) =>
-						setBusy({ label: 'Copying', done: progress.done, total: progress.total }),
-					);
-					setBusy(null);
-					if (done === 0) return;
-					expand(dir);
-					refreshTree();
-					const where = relative(rootDir, dir) || basename(rootDir);
-					const what = done === 1 ? basename(copyable[0]!) : `${done} items`;
-					const left = [...refused, ...failed];
-					if (left.length > 0) return say(`Copied ${what} — left ${left.join(', ')}`, 'warn');
-					say(`Copied ${what} to ${where}/`);
-				})(),
-		);
-	};
-	const takeForPaste = (mode: 'cut' | 'copy') => {
-		const targets = actionTargets();
-		if (targets.length === 0) return say('Nothing selected', 'warn');
-		setClipboard({ paths: targets, mode });
-		setMarked([]);
-		setAnchor(null);
-		const what = targets.length === 1 ? basename(targets[0]!) : `${targets.length} items`;
-		const verb = mode === 'cut' ? 'Cut' : 'Copied';
-		say(`${verb} ${what} — press p on the folder to ${mode === 'cut' ? 'move' : 'copy'} into`);
-	};
-	const paste = () => {
-		const { paths, mode } = clipboard();
-		if (paths.length === 0) {
-			return say('Nothing taken — press x or c on a file or folder first', 'warn');
-		}
-		const from = paths.filter((path) => exists(path));
-		if (mode === 'cut') setClipboard({ paths: [], mode: 'cut' });
-		if (from.length === 0) return say(`What was ${mode} is gone`, 'warn');
-		if (mode === 'cut') moveAllInto(from, targetDir());
-		else copyAllInto(from, targetDir());
-	};
-	const closeTab = (path: string, discardUnsaved = false) => {
-		if (!discardUnsaved && buffers[path]?.dirty) {
-			return setPrompt({ kind: 'closeDirty', paths: [path], names: [basename(path)] });
-		}
-		const idx = tabs().indexOf(path);
-		const next = tabs().filter((p) => p !== path);
-		setTabs(next);
-		if (activePath() === path) {
-			const fallback = next[idx] ?? next[idx - 1] ?? null;
-			setActivePath(fallback);
-			if (!fallback && sidebar()) focusTree();
-		}
-		if (previewPath() === path) setPreviewPath(null);
-		discardBuffer(path);
-		setRecentlyClosed((prev) => [...prev.filter((p) => p !== path), path]);
-	};
-	const reopenTab = () => {
-		const stack = [...recentlyClosed()];
-		while (stack.length > 0) {
-			const path = stack.pop()!;
-			if (exists(path)) {
-				setRecentlyClosed(stack);
-				return openFile(path);
-			}
-		}
-		setRecentlyClosed([]);
-		say('No closed tab to reopen', 'warn');
-	};
-	const closeTabs = (paths: string[], done: string) => {
-		const dirty = paths.filter((path) => buffers[path]?.dirty);
-		if (dirty.length > 0) {
-			return setPrompt({ kind: 'closeDirty', paths, names: dirty.map((path) => basename(path)) });
-		}
-		for (const path of paths) closeTab(path, true);
-		say(done);
-	};
-	const switchTab = (delta: number) => {
-		const list = tabs();
-		if (list.length === 0) return;
-		const idx = activePath() ? list.indexOf(activePath()!) : 0;
-		openFile(list[(idx + delta + list.length) % list.length]!);
-	};
+	const fileActions = createFileActions({
+		rootDir, buffers, nodes, tabs, activePath, previewPath, recentlyClosed, clipboard, marked,
+		selectedPath, sidebar, setBuffers, setTabs, setActivePath, setPreviewPath, setSelectedPath,
+		setExpanded, setMarked, setAnchor, setClipboard, setRecentlyClosed, setPrompt, setBusy,
+		say, whileFree, refreshTree, expand, discardBuffer, focusTree, openFile, toggleExpand,
+	});
+	const { actionTargets, activateNode, closeTab, closeTabs, movePath, paste, reopenTab, selectedNode, switchTab, takeForPaste, targetDir } = fileActions;
 	const pushEdit = (content: string) => setEdit((prev) => ({ content, key: (prev?.key ?? 0) + 1 }));
 	const applyReplacement = (path: string, next: string) => {
 		pinTab(path);
@@ -425,225 +236,19 @@ export function App(props: {
 		setGoto((prev) => ({ line: match.line, col: match.col, key: (prev?.key ?? 0) + 1 }));
 		setFocus('editor');
 	};
-	const writeBuffer = (path: string, content: string): boolean => {
-		const final = config.trimOnSave ? trimTrailing(content) : content;
-		const err = writeFile(path, final);
-		if (err) {
-			say(`Save failed: ${err}`, 'error');
-			return false;
-		}
-		setBuffers(path, { content: final, dirty: false, mtime: mtimeOf(path) });
-		if (final !== content && path === activePath()) pushEdit(final);
-		setGitRevision((n) => n + 1);
-		say(`Saved ${basename(path)}`);
-		return true;
-	};
-	const saveActive = () => {
-		const path = activePath();
-		const buffer = activeBuffer();
-		if (!path || !buffer) return;
-		if (mtimeOf(path) !== buffer.mtime) {
-			if (!exists(path)) {
-				setConflict({ path, disk: '', deleted: true });
-				return;
-			}
-			let disk = '';
-			try {
-				disk = readFile(path);
-			} catch {}
-			if (disk !== buffer.content) {
-				setConflict({ path, disk, deleted: false });
-				return;
-			}
-		}
-		writeBuffer(path, buffer.content);
-	};
-	const saveDirtyPaths = (paths: string[]) => {
-		const skipped: string[] = [];
-		const failed: string[] = [];
-		let saved = 0;
-		for (const path of paths) {
-			const buffer = buffers[path]!;
-			if (!buffer.dirty) continue;
-			if (mtimeOf(path) !== buffer.mtime) {
-				skipped.push(basename(path));
-				continue;
-			}
-			if (writeBuffer(path, buffer.content)) saved++;
-			else failed.push(basename(path));
-		}
-		if (saved > 1) say(`Saved ${saved} files`);
-		if (skipped.length > 0) say(`${CLASH_CHANGED}${skipped.join(', ')}`, 'warn');
-		if (failed.length > 0) say(`Save failed: ${failed.join(', ')}`, 'error');
-	};
-	const saveDirtyOnBlur = () => saveDirtyPaths(Object.keys(buffers));
-	const resolveConflict = (choice: string) => {
-		const c = conflict();
-		setConflict(null);
-		if (!c) return;
-		if (choice === 'overwrite' && buffers[c.path]) {
-			writeBuffer(c.path, buffers[c.path]!.content);
-		} else if (choice === 'reload') {
-			setBuffers(c.path, { content: c.disk, dirty: false, mtime: mtimeOf(c.path) });
-			setReloadKey((k) => k + 1);
-			say(`Reloaded ${basename(c.path)} from disk`);
-		}
-	};
-		const onEditorChange = (text: string) => {
-			const path = activePath();
-			if (!path || buffers[path]?.content === text) return;
-			pinTab(path);
-			setBuffers(path, { content: text, dirty: true });
-		};
-		const syncFromDisk = (): DiskSync => {
-		const updates: [string, BufferState][] = [];
-		const changed: string[] = [];
-		const deleted: string[] = [];
-		const vanished: string[] = [];
-		for (const path of Object.keys(buffers)) {
-			const buffer = buffers[path]!;
-			if (!exists(path)) {
-				if (buffer.dirty) deleted.push(basename(path));
-				else vanished.push(path);
-				continue;
-			}
-			let disk: string;
-			try {
-				disk = readFile(path);
-			} catch {
-				continue;
-			}
-			if (disk === buffer.content) continue;
-			if (buffer.dirty) changed.push(basename(path));
-			else updates.push([path, { content: disk, dirty: false, mtime: mtimeOf(path) }]);
-		}
-		for (const path of vanished) closeTab(path, true);
-		if (updates.length > 0) {
-			setBuffers(
-				produce((draft) => {
-					for (const [path, buffer] of updates) draft[path] = buffer;
-				}),
-			);
-			setReloadKey((k) => k + 1);
-		}
-			refreshTree();
-			return { changed, deleted };
-		};
-		const gitCommands = createGitCommands({
-			rootDir,
-			branch,
-			upstream,
-			setBusy,
-			setGitRevision,
-			setPrompt,
-			say,
-			whileFree,
-			syncFromDisk: () => {
-				syncFromDisk();
-			},
-		});
-		const overlay = createMemo(
-			() =>
-				!!(
-					prompt() ||
-					palette() ||
-					conflict() ||
-					help() ||
-					search() ||
-					update() ||
-					picker() ||
-					gitCommands.commitFiles()
-				),
-		);
-		const submitPrompt = (value: string) => {
-			const name = value.trim();
-			const p = prompt();
-			setPrompt(null);
-			if (!p || !isTextPrompt(p)) return;
-			if (!name) return say('Nothing entered', 'warn');
-			if (p.kind === 'commitMessage') {
-				gitCommands.submitCommit(name);
-			} else if (p.kind === 'gotoLine') {
-				const asked = Number.parseInt(name, 10);
-				if (!Number.isInteger(asked) || asked < 1) return say(`Not a line number: ${name}`, 'error');
-			const total = activeBuffer()?.content.split('\n').length ?? 1;
-			const line = Math.min(asked, total);
-			setGoto((prev) => ({ line: line - 1, col: 0, key: (prev?.key ?? 0) + 1 }));
-			setFocus('editor');
-			say(line === asked ? `Line ${line}` : `Line ${line} — the file ends there`);
-		} else if (p.kind === 'newFile') {
-			const path = join(p.dir, name);
-			const err = createFile(path);
-			if (err) return say(err, 'error');
-			expand(p.dir);
-			openFile(path);
-			say(`Created ${name}`);
-		} else if (p.kind === 'newFolder') {
-			const path = join(p.dir, name);
-			const err = createDir(path);
-			if (err) return say(err, 'error');
-			expand(path);
-			setSelectedPath(path);
-			say(`Created ${name}/`);
-		} else if (p.kind === 'rename') {
-			const err = movePath(p.target, join(dirname(p.target), name));
-			if (err) return say(err, 'error');
-			say(`Renamed to ${name}`);
-			}
-		};
-		const confirmPrompt = () => {
-			const p = prompt();
-			setPrompt(null);
-			switch (p?.kind) {
-			case 'delete': {
-				for (const target of p.targets) {
-					if (tabs().includes(target)) closeTab(target, true);
-				}
-				const gone = selectedPath();
-				const wasAt =
-					gone && p.targets.includes(gone) ? nodes().findIndex((n) => n.path === gone) : -1;
-				setMarked([]);
-				setAnchor(null);
-				const targets = p.targets;
-				whileFree(
-					() =>
-						void (async () => {
-							setBusy({ label: 'Deleting', done: 0, total: 0 });
-							const { failed } = await removeAll(targets, (progress) =>
-								setBusy({ label: 'Deleting', done: progress.done, total: progress.total }),
-							);
-							setBusy(null);
-							refreshTree();
-							if (wasAt >= 0) {
-								const rows = nodes();
-								setSelectedPath(rows[Math.min(wasAt, rows.length - 1)]?.path ?? null);
-							}
-							if (failed.length > 0) return say(`Could not delete ${failed.join(', ')}`, 'error');
-							say(
-								targets.length === 1
-									? `Deleted ${basename(targets[0]!)}`
-									: `Deleted ${targets.length} items`,
-							);
-						})(),
-				);
-				return;
-			}
-			case 'closeDirty': {
-				for (const path of p.paths) closeTab(path, true);
-				return say(`Discarded unsaved edits in ${p.names.join(', ')}`, 'warn');
-			}
-				case 'quitDirty':
-					return quit(true);
-				case 'undoCommit':
-					return gitCommands.undoCommit();
-			}
-		};
-	const applyTheme = (name: ThemeName) => {
-		setTheme(name);
-		invalidateSyntaxStyle();
-		patchConfig({ theme: name });
-		say(`Theme: ${themeLabels[name]}`);
-	};
+	const gitCommands = createGitCommands({
+		rootDir, branch, upstream, setBusy, setGitRevision, setPrompt, say, whileFree,
+		syncFromDisk: () => documentActions.syncFromDisk(),
+	});
+	const documentActions = createDocumentActions({
+		config, buffers, activePath, activeBuffer, prompt, conflict, nodes, tabs, selectedPath,
+		gitCommands, closeTab, expand, movePath, openFile, pinTab, quit, refreshTree, say,
+		setAnchor, setBuffers, setBusy, setConflict, setFocus, setGitRevision, setGoto,
+		setMarked, setPrompt, setReloadKey, setSelectedPath, pushEdit, whileFree,
+	});
+	saveDirtyPaths = documentActions.saveDirtyPaths;
+	const { onEditorChange, resolveConflict, saveActive, saveDirtyOnBlur, submitPrompt, confirmPrompt, syncFromDisk } = documentActions;
+	const overlay = createMemo(() => !!(prompt() || palette() || conflict() || help() || search() || update() || picker() || gitCommands.commitFiles()));
 	const treeWidth = () =>
 		Math.max(
 			0,
@@ -657,228 +262,54 @@ export function App(props: {
 		if (next !== config.sidebarWidth) patchConfig({ sidebarWidth: next });
 	};
 	const nudgeSidebar = (delta: number) => resizeSidebar(treeWidth() + delta);
-	const applyTabSize = (size: number) => {
-		patchConfig({ tabSize: size });
-		say(`Tab size: ${size}`);
-	};
-	const applyVim = (enabled: boolean) => {
-		setVimMode(enabled ? 'normal' : null);
-		patchConfig({ vim: enabled });
-		say(`Vim mode ${enabled ? 'on' : 'off'}`);
-	};
-	const withNode = (run: (node: TreeNode) => void) => () => {
-		const node = selectedNode();
-		if (node) run(node);
-		else say('Select a file in the tree first', 'warn');
-	};
-	const promptTitle = () => {
-		const p = prompt();
-		return promptTitleFor(p);
-	};
-	const promptValue = () => {
-		const p = prompt();
-		return p?.kind === 'rename' ? basename(p.target) : '';
-	};
-		const confirmation = createMemo(() => confirmationForPrompt(prompt()));
-		const commands = createAppCommands({
-			config,
-			saveActive, setPicker, activePath, tabs, closeTabs, setPrompt, setHistory, setSearch,
-			targetDir, withNode, actionTargets, say, takeForPaste, paste, closeTab, reopenTab,
-			switchTab, focus, setFocus, focusTree, toggleSidebar, applyVim, applyTabSize,
-			applyTheme, setLineOp, patchConfig, gitCommands, setHelp, quit,
-		});
-	onMount(() => {
-		if (restored.failed) setNotice({ name: basename(single!), reason: restored.failed });
-		const line = props.openLine;
-		const buffer = activeBuffer();
-		if (line != null && buffer) {
-			const total = buffer.content.split('\n').length;
-			setGoto({ line: Math.min(line, total - 1), col: 0, key: 1 });
-		}
+	const { applyTabSize, applyTheme, applyVim, confirmation, promptTitle, promptValue, withNode } =
+		createAppControls({ config, prompt, selectedNode, setVimMode, patchConfig, say });
+	const commands = createAppCommands({
+		config,
+		saveActive,
+		setPicker,
+		activePath,
+		tabs,
+		closeTabs,
+		setPrompt,
+		setHistory,
+		setSearch,
+		targetDir,
+		withNode,
+		actionTargets,
+		say,
+		takeForPaste,
+		paste,
+		closeTab,
+		reopenTab,
+		switchTab,
+		focus,
+		setFocus,
+		focusTree,
+		toggleSidebar,
+		applyVim,
+		applyTabSize,
+		applyTheme,
+		setLineOp,
+		patchConfig,
+		gitCommands,
+		setHelp,
+		quit,
 	});
-	onMount(() => {
-		if (props.checkUpdates === false) return;
-		let cancelled = false;
-		onCleanup(() => {
-			cancelled = true;
-		});
-		void (async () => {
-			const info = await checkForUpdate();
-			if (!cancelled && info && info.latest !== props.initialConfig.skipUpdate) setUpdate(info);
-		})();
+	useAppLifecycle({
+		rootDir, single, openLine: props.openLine, initialConfig: props.initialConfig,
+		checkUpdates: props.checkUpdates, restoredFailed: restored.failed, activeBuffer, activePath,
+		expanded, gitRevision, reloadKey, sidebar, tabs, branch, config, renderer, saveDirtyOnBlur,
+		syncFromDisk, say, setGitRevision, setGitLines, setGitStatus, setBranch, setUpstream,
+		setGoto, setNotice, setUpdate, status,
 	});
-	onMount(() => {
-		if (process.stdout.isTTY) process.stdout.write('\x1B[?1004h');
-		const onStdin = (chunk: BufferState | string) => {
-			if (config.autoSaveOnBlur && chunk.toString().includes('\x1B[O')) saveDirtyOnBlur();
-		};
-		renderer.stdin.on('data', onStdin);
-		onCleanup(() => {
-			renderer.stdin.off('data', onStdin);
-			if (process.stdout.isTTY) process.stdout.write('\x1B[?1004l');
-		});
-	});
-	onMount(() =>
-		onCleanup(
-			watchTree(rootDir, (changed) => {
-				if (changed.git) setGitRevision((n) => n + 1);
-				if (!changed.tree) return;
-				const warning = clashWarning(syncFromDisk());
-				if (warning) {
-					say(warning, 'warn');
-				} else if (
-					status().msg.startsWith(CLASH_CHANGED) ||
-					status().msg.startsWith(CLASH_DELETED)
-				) {
-					say(READY);
-				}
-			}),
-		),
-	);
-	createEffect(
-		on(
-			() => [activePath(), reloadKey(), gitRevision()] as const,
-			([path]) => {
-				setGitLines(path ? diffLines(path) : new Map());
-			},
-		),
-	);
-	createEffect(
-		on(
-			() => [branch(), gitRevision()] as const,
-			() => setUpstream(upstreamOf(rootDir)),
-		),
-	);
-	createEffect(
-		on(
-			() => [expanded(), gitRevision(), reloadKey()] as const,
-			() => {
-				setGitStatus(statusMap(rootDir));
-				setBranch(currentBranch(rootDir));
-			},
-		),
-	);
-	createEffect(
-		on(
-			() => [tabs(), activePath(), expanded(), sidebar()] as const,
-			([openTabs, active, folders, showTree]) => {
-				if (single) return;
-				saveSession(rootDir, {
-					tabs: openTabs,
-					activePath: active,
-					expanded: [...folders],
-					sidebar: showTree,
-				});
-			},
-		),
-	);
-	useKeyboard((key: KeyEvent) => {
-		const k = key.name;
-		if (help()) {
-			if (k === 'escape') setHelp(false);
-			return;
-		}
-		if (overlay()) return;
-		if (notice()) setNotice(null);
-		const claim = (run: () => void) => {
-			key.preventDefault();
-			run();
-		};
-		if (key.ctrl && k === 'k') return claim(() => setPeek((p) => !p));
-		if (peek()) setPeek(false);
-		if (key.ctrl && k === 'q') return claim(quit);
-		if (key.ctrl && k === 'c' && focus() !== 'editor') return claim(quit);
-		if (key.ctrl && k === 'p') return claim(() => setPalette(true));
-		if (key.ctrl && k === 'o') return claim(() => setPicker('files'));
-		if (key.ctrl && chord(key) && k === 't') return claim(reopenTab);
-		if (key.ctrl && (k === 't' || k === 'up')) return claim(() => setPicker('tabs'));
-		if (key.ctrl && k === 'g') return claim(() => setPrompt({ kind: 'gotoLine' }));
-		if (key.ctrl && k === 's') return claim(saveActive);
-		const vimOwnsRedo = config.vim && focus() === 'editor' && vimMode() !== 'insert';
-		if (key.ctrl && k === 'r' && !vimOwnsRedo) return claim(() => setSearch({ scope: 'project' }));
-		if (key.ctrl && chord(key) && k === 'f') return claim(() => setSearch({ scope: 'project' }));
-		if (key.ctrl && k === 'f') return claim(() => setSearch({ scope: 'file' }));
-		if (key.ctrl && k === 'w') {
-			return claim(() => void (activePath() && closeTab(activePath()!)));
-		}
-		if (key.ctrl && chord(key) && k === 'n') {
-			return claim(() => setPrompt({ kind: 'newFolder', dir: targetDir() }));
-		}
-		if (key.ctrl && k === 'n') return claim(() => setPrompt({ kind: 'newFile', dir: targetDir() }));
-		if (key.ctrl && k === 'b') return claim(toggleSidebar);
-		if (key.ctrl && (k === 'pageup' || k === 'left')) return claim(() => switchTab(-1));
-		if (key.ctrl && (k === 'pagedown' || k === 'right')) return claim(() => switchTab(1));
-		if (focus() === 'editor') {
-			const vimOwnsEscape = config.vim && vimMode() !== 'normal';
-			if (k === 'escape' && sidebar() && !vimOwnsEscape) focusTree();
-			return;
-		}
-		if (key.ctrl || key.meta || key.option) return;
-		key.preventDefault();
-		const node = selectedNode();
-		switch (k) {
-			case 'tab':
-				if (activePath()) setFocus('editor');
-				break;
-			case 'up':
-				if (key.shift) extendSelection(-1);
-				else moveSelection(-1);
-				break;
-			case 'down':
-				if (key.shift) extendSelection(1);
-				else moveSelection(1);
-				break;
-			case 'right':
-				if (node?.isDir && !expanded().has(node.path)) toggleExpand(node.path);
-				else moveSelection(1);
-				break;
-			case 'left':
-				if (node?.isDir && expanded().has(node.path)) toggleExpand(node.path);
-				else if (node) setSelectedPath(dirname(node.path));
-				break;
-			case 'return':
-			case 'enter':
-				if (node) activateNode(node);
-				break;
-			case '[':
-				nudgeSidebar(-2);
-				break;
-			case ']':
-				nudgeSidebar(2);
-				break;
-			case 'a':
-				setPrompt({ kind: key.shift ? 'newFolder' : 'newFile', dir: targetDir() });
-				break;
-			case 'r':
-				if (node) setPrompt({ kind: 'rename', target: node.path });
-				break;
-			case 'x':
-				takeForPaste('cut');
-				break;
-			case 'c':
-				takeForPaste('copy');
-				break;
-			case 'p':
-				paste();
-				break;
-			case 'escape':
-				if (clipboard().paths.length > 0) {
-					const cancelled = clipboard().mode === 'cut' ? 'Move' : 'Copy';
-					setClipboard({ paths: [], mode: 'cut' });
-					say(`${cancelled} cancelled`);
-				} else if (marked().length > 0) {
-					setMarked([]);
-					setAnchor(null);
-				}
-				break;
-			case 'd':
-			case 'delete':
-			case 'backspace': {
-				const targets = actionTargets();
-				if (targets.length > 0) setPrompt({ kind: 'delete', targets });
-				break;
-			}
-		}
+	useAppKeyboard({
+		config, activePath, clipboard, focus, help, marked, notice, overlay, peek, selectedNode,
+		sidebar, vimMode, activateNode, actionTargets, closeTab, extendSelection, focusTree,
+		moveSelection, nudgeSidebar, paste, quit, reopenTab, saveActive, say, setAnchor,
+		setClipboard, setFocus, setHelp, setMarked, setNotice, setPalette, setPeek, setPicker,
+		setPrompt, setSearch, setSelectedPath, switchTab, takeForPaste, targetDir, toggleExpand,
+		toggleSidebar, expanded,
 	});
 	const { replaceOne, replaceEvery } = createReplacementHandlers({
 		activePath,

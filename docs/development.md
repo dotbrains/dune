@@ -24,14 +24,14 @@ flowchart TD
 
 ## Tooling Rules
 
-| Tool | Use |
-| --- | --- |
-| Flox | Provides the reviewed development toolchain. |
-| Bun | Installs dependencies, runs scripts, runs tests, and builds binaries. |
-| TypeScript | Typechecks the source with `tsc --noEmit`. |
-| Oxlint | Lints TypeScript and TSX files. |
-| Oxfmt | Formats source locally. |
-| pre-commit | Runs repository hooks before commits. |
+| Tool       | Use                                                                   |
+| ---------- | --------------------------------------------------------------------- |
+| Flox       | Provides the reviewed development toolchain.                          |
+| Bun        | Installs dependencies, runs scripts, runs tests, and builds binaries. |
+| TypeScript | Typechecks the source with `tsc --noEmit`.                            |
+| Oxlint     | Lints TypeScript and TSX files.                                       |
+| Oxfmt      | Formats source locally.                                               |
+| pre-commit | Runs repository hooks before commits.                                 |
 
 Use `bun install`, not npm or pnpm. `bun.lock` is the lockfile.
 
@@ -54,24 +54,24 @@ For small documentation-only changes, the full build may not be necessary, but `
 
 ## Commands
 
-| Task | Command |
-| --- | --- |
-| Activate toolchain | `flox activate` |
-| Install dependencies | `bun install` |
-| Run from source | `bun run start .` |
-| Run in watch mode | `bun run dev .` |
-| Build host binary | `bun run build` |
-| Build target binary | `bun run build linux-x64` or `bun run build darwin-arm64` |
-| Type check | `bun run check-types` |
-| Lint | `bun run lint` |
-| Lint and apply fixes | `bun run lint:fix` |
-| Format | `bun run format` |
-| Format check | `bun run format:check` |
-| Run parallel tests | `bun run test` |
-| Run CI-style tests | `bun run test:ci` |
-| Watch tests | `bun run test:watch` |
-| Check LOC and directory budgets | `bun run budget` |
-| Full local CI-style gate | `bun run ci` |
+| Task                            | Command                                                   |
+| ------------------------------- | --------------------------------------------------------- |
+| Activate toolchain              | `flox activate`                                           |
+| Install dependencies            | `bun install`                                             |
+| Run from source                 | `bun run start .`                                         |
+| Run in watch mode               | `bun run dev .`                                           |
+| Build host binary               | `bun run build`                                           |
+| Build target binary             | `bun run build linux-x64` or `bun run build darwin-arm64` |
+| Type check                      | `bun run check-types`                                     |
+| Lint                            | `bun run lint`                                            |
+| Lint and apply fixes            | `bun run lint:fix`                                        |
+| Format                          | `bun run format`                                          |
+| Format check                    | `bun run format:check`                                    |
+| Run parallel tests              | `bun run test`                                            |
+| Run CI-style tests              | `bun run test:ci`                                         |
+| Watch tests                     | `bun run test:watch`                                      |
+| Check LOC and directory budgets | `bun run budget`                                          |
+| Full local CI-style gate        | `bun run ci`                                              |
 
 ## Pre-commit
 
@@ -93,11 +93,11 @@ Pre-commit runs through Flox, so hooks use the same Bun and repository tooling a
 
 App-level changes usually touch `src/app/App.tsx` and one or more helpers under `src/app`. Keep the top-level app file focused on coordination:
 
-| Put it in `App.tsx` when | Extract it when |
-| --- | --- |
-| The logic coordinates multiple state owners. | The logic is pure or mostly pure. |
-| The behavior is tied to Solid lifecycle and effects. | The behavior has a clear name and testable input/output. |
-| The code decides which UI callback should run. | The code builds prompt copy, resolves paths, or transforms search results. |
+| Put it in `App.tsx` when                             | Extract it when                                                            |
+| ---------------------------------------------------- | -------------------------------------------------------------------------- |
+| The logic coordinates multiple state owners.         | The logic is pure or mostly pure.                                          |
+| The behavior is tied to Solid lifecycle and effects. | The behavior has a clear name and testable input/output.                   |
+| The code decides which UI callback should run.       | The code builds prompt copy, resolves paths, or transforms search results. |
 
 If `App.tsx` approaches the 999-line budget, extract by responsibility. Do not split a block merely to satisfy the counter.
 
@@ -121,15 +121,15 @@ Filesystem features need explicit error handling. A failed read, write, rename, 
 
 For path-changing operations, update every path-bearing state owner:
 
-| State | Why it matters |
-| --- | --- |
-| Buffers | Keeps open file contents mapped to the new path. |
-| Tabs | Prevents tabs from pointing at missing files. |
-| Active path | Keeps editor focus correct. |
-| Preview path | Avoids stale preview state. |
-| Tree selection | Keeps keyboard navigation anchored. |
-| Expanded folders | Preserves the visible tree shape. |
-| Session data | Makes restart restore the new paths. |
+| State            | Why it matters                                   |
+| ---------------- | ------------------------------------------------ |
+| Buffers          | Keeps open file contents mapped to the new path. |
+| Tabs             | Prevents tabs from pointing at missing files.    |
+| Active path      | Keeps editor focus correct.                      |
+| Preview path     | Avoids stale preview state.                      |
+| Tree selection   | Keeps keyboard navigation anchored.              |
+| Expanded folders | Preserves the visible tree shape.                |
+| Session data     | Makes restart restore the new paths.             |
 
 ## Working On Syntax Highlighting
 
@@ -167,10 +167,10 @@ If the flat-directory budget fails, prefer grouping by responsibility. A new fol
 
 ## Troubleshooting
 
-| Symptom | Likely cause | First action |
-| --- | --- | --- |
-| `bun` version differs from CI | Flox is not active | Run `flox activate`. |
-| Optional OpenTUI package missing for a target | Build target does not match host install | Use the matching CI runner or install on the target host. |
-| Tests write to real config | Test setup was bypassed | Check `test/setup.ts` and the failing test harness path. |
-| Keyboard shortcut triggers twice | Overlay/focus guard is missing | Inspect app-level key handling and editor key handling. |
-| Save overwrites external changes | Conflict mtime check was skipped | Follow the dirty/conflict lifecycle in `docs/architecture.md`. |
+| Symptom                                       | Likely cause                             | First action                                                   |
+| --------------------------------------------- | ---------------------------------------- | -------------------------------------------------------------- |
+| `bun` version differs from CI                 | Flox is not active                       | Run `flox activate`.                                           |
+| Optional OpenTUI package missing for a target | Build target does not match host install | Use the matching CI runner or install on the target host.      |
+| Tests write to real config                    | Test setup was bypassed                  | Check `test/setup.ts` and the failing test harness path.       |
+| Keyboard shortcut triggers twice              | Overlay/focus guard is missing           | Inspect app-level key handling and editor key handling.        |
+| Save overwrites external changes              | Conflict mtime check was skipped         | Follow the dirty/conflict lifecycle in `docs/architecture.md`. |

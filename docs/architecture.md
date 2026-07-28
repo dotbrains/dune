@@ -29,16 +29,16 @@ The CLI parses process arguments and identifies the starting workspace. `src/ind
 
 ## Source Layout
 
-| Directory | Responsibility | Notes |
-| --- | --- | --- |
-| `src/app` | Application state machine and app-level helper modules | This layer may coordinate lower-level modules, but lower-level modules must not import it. |
-| `src/core` | Process, filesystem, git, config, search, session, update, and release-adjacent primitives | Keep these functions UI-agnostic and explicit about IO errors. |
-| `src/editor` | Pure or mostly pure editor operations | Prefer this folder for line math, history, typing, vim, and change-map logic. |
-| `src/ui` | OpenTUI/Solid components | Components should receive data and callbacks rather than reaching up into app state. |
-| `src/languages` | Tree-sitter grammar and query integration | Changes here affect highlight behavior and parser cost. |
-| `src/themes` | Theme palettes and theme registry | Each theme should remain a small standalone palette file. |
-| `test` | Behavior and integration tests | Tests are intentionally flat so individual behavior surfaces are easy to run. |
-| `scripts` | Repository automation | Budget, release, and packaging scripts live here. |
+| Directory       | Responsibility                                                                             | Notes                                                                                      |
+| --------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| `src/app`       | Application state machine and app-level helper modules                                     | This layer may coordinate lower-level modules, but lower-level modules must not import it. |
+| `src/core`      | Process, filesystem, git, config, search, session, update, and release-adjacent primitives | Keep these functions UI-agnostic and explicit about IO errors.                             |
+| `src/editor`    | Pure or mostly pure editor operations                                                      | Prefer this folder for line math, history, typing, vim, and change-map logic.              |
+| `src/ui`        | OpenTUI/Solid components                                                                   | Components should receive data and callbacks rather than reaching up into app state.       |
+| `src/languages` | Tree-sitter grammar and query integration                                                  | Changes here affect highlight behavior and parser cost.                                    |
+| `src/themes`    | Theme palettes and theme registry                                                          | Each theme should remain a small standalone palette file.                                  |
+| `test`          | Behavior and integration tests                                                             | Tests are intentionally flat so individual behavior surfaces are easy to run.              |
+| `scripts`       | Repository automation                                                                      | Budget, release, and packaging scripts live here.                                          |
 
 ## Dependency Rule
 
@@ -192,16 +192,16 @@ Prefer returning structured results from lower-level modules over throwing throu
 
 The enforced source budget is 999 lines per tracked source, docs, script, workflow, JSON, TOML, or shell file. This is a hard maintenance constraint, not just a CI preference.
 
-| Responsibility | Module |
-| --- | --- |
-| App state, effects, global handlers | `src/app/App.tsx` |
-| App render composition | `src/app/AppView.tsx` |
-| App startup restoration | `src/app/restore.ts` |
-| Prompt confirmation copy | `src/app/confirmation.ts` |
-| Prompt title metadata | `src/app/prompts.ts` |
-| Shared app types | `src/app/types.ts` |
-| Editor renderable integration | `src/ui/EditorPane.tsx` |
-| File-size and directory budgets | `scripts/check-file-sizes.ts`, `scripts/check-flat-directories.ts` |
+| Responsibility                      | Module                                                             |
+| ----------------------------------- | ------------------------------------------------------------------ |
+| App state, effects, global handlers | `src/app/App.tsx`                                                  |
+| App render composition              | `src/app/AppView.tsx`                                              |
+| App startup restoration             | `src/app/restore.ts`                                               |
+| Prompt confirmation copy            | `src/app/confirmation.ts`                                          |
+| Prompt title metadata               | `src/app/prompts.ts`                                               |
+| Shared app types                    | `src/app/types.ts`                                                 |
+| Editor renderable integration       | `src/ui/EditorPane.tsx`                                            |
+| File-size and directory budgets     | `scripts/check-file-sizes.ts`, `scripts/check-flat-directories.ts` |
 
 When a file approaches the budget, extract along an existing responsibility boundary. Do not split by arbitrary line ranges. A good extraction has a name that describes the behavior it owns and leaves both the source and extracted file easier to review.
 
@@ -209,11 +209,11 @@ When a file approaches the budget, extract along an existing responsibility boun
 
 Before merging architecture-significant changes, verify:
 
-| Question | Why it matters |
-| --- | --- |
-| Did any lower-level module import from `src/app`? | That reverses the dependency graph and makes tests harder. |
-| Did a path-changing operation update all path-bearing state? | Missing one structure causes stale tabs, stale dirty markers, or broken session restore. |
-| Did an overlay restore the correct focus owner? | Keyboard behavior depends on explicit focus ownership. |
-| Did a file-writing operation respect conflict detection? | Silent overwrites are data loss. |
-| Did the change stay under file-size and flat-directory budgets? | CI enforces this and the project relies on it for reviewability. |
-| Did behavior tests cover the user-visible workflow? | Terminal editor bugs are often integration bugs. |
+| Question                                                        | Why it matters                                                                           |
+| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Did any lower-level module import from `src/app`?               | That reverses the dependency graph and makes tests harder.                               |
+| Did a path-changing operation update all path-bearing state?    | Missing one structure causes stale tabs, stale dirty markers, or broken session restore. |
+| Did an overlay restore the correct focus owner?                 | Keyboard behavior depends on explicit focus ownership.                                   |
+| Did a file-writing operation respect conflict detection?        | Silent overwrites are data loss.                                                         |
+| Did the change stay under file-size and flat-directory budgets? | CI enforces this and the project relies on it for reviewability.                         |
+| Did behavior tests cover the user-visible workflow?             | Terminal editor bugs are often integration bugs.                                         |
