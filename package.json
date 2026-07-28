@@ -1,0 +1,73 @@
+{
+	"name": "dune",
+	"displayName": "Dune",
+	"version": "1.4.0",
+	"private": true,
+	"description": "A terminal code editor — file tree, tabs, tree-sitter syntax highlighting and search; keyboard and mouse driven.",
+	"keywords": [
+		"bun",
+		"cli",
+		"code-editor",
+		"editor",
+		"opentui",
+		"search",
+		"syntax-highlighting",
+		"terminal",
+		"tree-sitter",
+		"tui"
+	],
+	"homepage": "https://github.com/dotbrains/dune",
+	"bugs": {
+		"url": "https://github.com/dotbrains/dune/issues"
+	},
+	"license": "PolyForm-Shield-1.0.0",
+	"author": "dotbrains",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/dotbrains/dune.git"
+	},
+	"bin": {
+		"dune": "./bin/dune.js"
+	},
+	"files": [
+		"bin"
+	],
+	"type": "module",
+	"scripts": {
+		"start": "bun run src/index.tsx",
+		"dev": "bun run --watch src/index.tsx",
+		"build": "bun build.ts",
+		"release": "bun scripts/release.ts",
+		"formula": "bun scripts/formula.ts",
+		"check-types": "tsc --noEmit",
+		"lint": "bunx --bun oxlint",
+		"lint:fix": "bunx --bun oxlint --fix",
+		"format": "bunx --bun oxfmt --config .oxfmtrc.json",
+		"format:check": "bunx --bun oxfmt --config .oxfmtrc.json --check",
+		"check": "bun run check-types && bun run lint && bun run format:check && bun run test",
+		"test": "bun test --parallel",
+		"test:ci": "bun test",
+		"test:watch": "bun test --watch",
+		"budget:file-sizes": "bun scripts/check-file-sizes.ts",
+		"budget:flat-dirs": "bun scripts/check-flat-directories.ts",
+		"budget": "bun run budget:file-sizes && bun run budget:flat-dirs",
+		"ci": "bun run check-types && bun run lint && bun run format:check && bun run budget && bun run test:ci && bun run build"
+	},
+	"dependencies": {
+		"@opentui/core": "^0.4.5",
+		"@opentui/solid": "^0.4.5",
+		"nypm": "^0.6.8",
+		"solid-js": "^1.9.14",
+		"tree-sitter-wasms": "^0.1.13"
+	},
+	"devDependencies": {
+		"@types/bun": "latest",
+		"oxfmt": "^0.60.0",
+		"oxlint": "^1.75.0",
+		"typescript": "^5"
+	},
+	"engines": {
+		"bun": ">=1.1"
+	},
+	"//private": "What npm publishes is staged by scripts/release.ts, never this directory."
+}

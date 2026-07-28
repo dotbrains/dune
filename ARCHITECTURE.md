@@ -1,0 +1,283 @@
+# Architecture
+
+dune is a Solid app rendered to the terminal by [OpenTUI](https://github.com/anomalyco/opentui).
+OpenTUI supplies the hard parts — layout, the editable text buffer (undo/redo, selection,
+grapheme handling), mouse hit-testing and the tree-sitter worker. This repo is the wiring
+around it.
+
+```
+src/
+  index.tsx          entry: flags → load config → apply theme → render <App/>
+  assets.d.ts        types for `with { type: 'file' }` imports (wasm, .scm)
+build.ts             compiles a standalone binary per platform (Bun.build + Solid plugin)
+bin/dune.js          npm launcher: runs the binary, fetching it first if it is missing
+bin/binary.mjs       finds or downloads the platform binary from the GitHub release
+bin/postinstall.mjs  fetches it at install time, so the first run does not have to
+install              curl | bash installer, served at dune.dotbrains.dev/install
+scripts/
+  release.ts         stages the npm package + release archives from dist/
+  formula.ts         Homebrew formula for the current version's archives
+  app/
+    App.tsx          all application state + keybindings
+    commands.ts      command tree  ← the feature index (Ctrl+P palette)
+  core/
+    cli.ts           argv -> project directory + optional single file
+    config.ts        user settings, persisted to ~/.config/dune/config.json
+    fs.ts            file listing, read/write, binary guard, directory watcher
+    search.ts        in-file/project search, fuzzy matching, replace
+    git.ts           read-only queries: diff hunks, status, branch, ahead/behind
+    bulk.ts          delete/copy/move in the background, reporting progress
+    clipboard.ts     pbcopy/wl-copy/xclip/xsel wrappers
+    session.ts       per-project open tabs + expanded folders, keyed by path
+    update.ts        startup npm version check (best-effort, opt-out)
+    upgrade.ts       `dune update`: which install is running, and how to upgrade it
+    assets.ts        pins OpenTUI's tree-sitter asset lookup (side-effect import)
+  languages/
+    index.ts         language registry  ← add a language here
+    grammars.ts      wasm + query file imports, the form the binary can embed
+    queries/*.scm    highlight queries for grammars we vendor
+    highlight.ts     tree-sitter client → non-overlapping highlight segments
+  themes/
+    index.ts         theme registry  ← add a theme here
+    types.ts         Theme / ThemeUi shape
+    github-dark.ts   one file per theme: also github-light, ayu-dark/mirage/light,
+                     the four catppuccin flavors, dracula, everforest-dark/light,
+                     gruvbox-dark/light, kanagawa-wave/dragon/lotus, nord,
+                     one-dark, the three rosé pine variants, solarized-dark/light,
+                     tokyo-night, vesper
+  editor/
+    vim.ts           modal editing state machine (normal / insert / visual)
+    history.ts       undo/redo, coalesced per edit burst
+    changes.ts       git changes per track row, for the column by the scrollbar
+    window.ts        visual rows -> logical lines, for the highlight window
+    typing.ts        auto-closing pairs and indentation on Enter
+  ui/                presentational components, no app state
+    EditorPane, FileTree, Tabs, StatusBar, CommandPalette, FilePicker,
+    SearchPanel, UpdateBanner, Overlay, TextInput, PromptModal,
+    ConfirmModal, ChoiceModal, HelpOverlay
+```
+
+Dependency direction is one-way: `ui/` and feature folders never import from `app/`.
+`App.tsx` owns state and passes it down; components take props and call callbacks.
+
+## Extension points
+
+### Add a language
+
+1. Confirm a grammar wasm exists (most are in the `tree-sitter-wasms` package).
+2. Write a highlight query at `src/languages/queries/<id>.scm`, capturing the scopes
+   the themes style (`keyword`, `string`, `function`, `type`, `comment`, …).
+3. Import both in [`src/languages/grammars.ts`](src/languages/grammars.ts) and add them to
+   `GRAMMARS`. The imports have to be static and carry `with { type: 'file' }` — that is
+   what makes `bun build --compile` embed them; a path built at runtime resolves to
+   nothing inside the shipped binary.
+4. Add an entry to `LANGUAGES` in [`src/languages/index.ts`](src/languages/index.ts):
+
+```ts
+{ id: 'python', ...GRAMMARS.python }   // id must match OpenTUI's filetype name
+```
+
+Grammars OpenTUI already bundles (javascript, typescript, markdown, zig) only need
+`bundled: true` — no wasm or query. Parser registration and highlighting both read from
+this one table.
+
+The status bar shows the `id`, which is fine for almost all of them. Add a `label` only
+where OpenTUI's filetype name is not what a person would call the file — `typescriptreact`
+shows as `tsx`, `javascriptreact` as `jsx`.
+
+Highlight queries are easy to get wrong in a way that fails _silently_: a query naming a
+node the grammar does not have simply matches nothing, and one invalid pattern stops the
+parser from loading at all. Compile a query against its grammar before trusting it, and
+assert in `test/languages.test.ts` that a sample really produces highlights.
+
+When no grammar works — tree-sitter-yaml, for one, needs an external scanner OpenTUI's
+worker cannot link — declare `patterns` instead: a list of `{ group, re }` painted in
+order, later entries winning the characters they overlap. Good enough for line-oriented
+config formats, and it needs no wasm.
+
+### Add a theme
+
+Copy an existing theme file and **use a published palette verbatim** — cite the source in
+the file header, as the shipped themes do. Change the colors, and register it in `THEMES` in
+[`src/themes/index.ts`](src/themes/index.ts). It appears in the command palette
+automatically. `ui` covers the chrome; `syntax` maps tree-sitter capture groups to
+styles, and sub-scopes fall back to their parent (`type.builtin` → `type`).
+
+Where a published palette maps onto a capture group, follow the scheme's own highlighting
+guide too — most upstreams ship one (catppuccin's style guide, everforest's `palette.md`,
+solarized's vim colorscheme), and matching it is what makes the theme recognisable. Only
+`currentLine` and `indentGuide` are usually absent from a palette; blend them off `bg`
+yourself, within the bounds `test/unit.test.ts` and `test/indent.test.tsx` assert.
+
+`setTheme()` **replaces** `syntaxTheme` rather than merging into it. Themes do not all
+define the same capture groups, and a leftover group from the previous theme renders in
+the wrong palette — near-invisible text when the switch flips light to dark. Sub-scopes
+fall back to their parent anyway, so an omitted group costs nothing.
+
+`ui` is a **Solid store**, not a plain object. Solid components never re-render, so a
+mutated object would leave every color on screen stale after a theme switch — reading
+`ui.bg` inside JSX is what subscribes that spot to the change. `syntaxTheme` can stay a
+plain object because it is only read when the style table is rebuilt.
+
+Indent guides ride the same pipeline: `computeHighlights` appends one `indent.guide`
+capture per indent stop, so they inherit the newline-offset conversion and run-merging
+that syntax highlights use.
+
+### Add a setting
+
+Add the field to `Config`, a value to `DEFAULTS`, and validation to `parse()` in
+[`src/core/config.ts`](src/core/config.ts). Unknown or malformed values fall back to
+defaults, so a hand-edited config can never break startup.
+
+### Add a command
+
+Add an action to `CommandActions` and an entry to `buildCommands` in
+[`src/app/commands.ts`](src/app/commands.ts), then implement the action in `App.tsx`.
+For a keybinding, also add a case to the `useKeyboard` handler in `App.tsx` and set the
+command's `hint`.
+
+Commands form a tree: an entry either runs (`run`) or opens a submenu (`children`),
+never both. Group related commands under a parent to keep the root list short —
+typing in the palette searches every leaf across all levels, so nesting never hides
+anything. Use the `check()` marker when a submenu reflects current state (themes,
+vim mode).
+
+## Things worth knowing
+
+- **Bun only.** OpenTUI's native core loads through Bun's FFI; Node has no FFI.
+- **Highlight offsets.** `highlightOnce` returns absolute string offsets, but the edit
+  buffer indexes text with newlines removed. `segmentsIn` converts between the two —
+  without it, highlights drift right by one column per line above.
+- **Key routing.** `useKeyboard` handlers run _before_ the focused textarea, and
+  `preventDefault()` hides a key from it — that is how vim normal mode captures keys. Any
+  open modal sets `blocked` on the editor so it stops consuming input.
+- **Global chords must claim their key.** OpenTUI's textarea has its own Ctrl bindings
+  (`Ctrl+W` deletes a word, `Ctrl+F`/`Ctrl+B` move the caret, `Ctrl+←`/`→` jump a word), so
+  a chord App handles without `preventDefault()` fires twice — closing a tab used to eat a
+  word on the way out. `App.tsx`'s `claim()` wrapper exists for this.
+- **`Ctrl+Shift` is not deliverable.** Outside the kitty keyboard protocol
+  `Ctrl+Shift+<letter>` arrives byte-identical to `Ctrl+<letter>` with `shift: false`, so a
+  shifted chord silently runs the unshifted command. Bindings accept `Ctrl+Opt` as well.
+- **Esc is contested.** It leaves vim insert mode and moves focus to the tree. App's
+  handler runs first and Solid applies focus synchronously, so it has to check `vimMode()`
+  before surrendering the editor — otherwise the vim handler is already unfocused when it
+  runs and never sees the key.
+- **git paths are resolved.** `git rev-parse --show-toplevel` returns the real path
+  (`/private/var/…`) while the tree holds what the user opened (`/var/…`), so status keys
+  are rebased onto the caller's form before they can be looked up.
+- **Gutter is imperative.** `minWidth` and `lineSigns` are constructor arguments or methods
+  on `LineNumberRenderable`, not settable props, so `EditorPane` pokes them through a ref.
+  Passing them as JSX props silently does nothing, and a fixed width clips line numbers
+  once a file passes 99 lines.
+- **Global handlers ignore preventDefault.** It stops the focused renderable, not sibling
+  `useKeyboard` handlers — those must check `key.defaultPrevented` themselves.
+- **Highlights are windowed.** Each `addHighlightByCharRange` is an FFI call, so pushing a
+  whole 1500-line file costs ~270ms and repeats on every edit. `EditorPane` applies only
+  the viewport plus `OVERSCAN` lines, re-applying when the cursor or a scroll moves the
+  window. Segments carry a `line` for exactly this. `applyWindow` therefore has to run
+  from the deferred cursor sync too: `↑`/`↓` fire no cursor-change event, so without it
+  the window never leaves where the file opened and anything past `OVERSCAN` renders
+  unstyled.
+- **Highlighting is two stages, and the split is what keeps typing responsive.**
+  `computeHighlights` parses (in the tree-sitter worker, off this thread) and returns a
+  `Highlighted`; `segmentsIn` turns a _line range_ of it into segments. Segmenting walks
+  every character it is given, so doing the whole document cost more than the parse did —
+  measured at 5 000 lines: 179ms parse, 152ms segmentation, and only the second number
+  blocks. `EditorPane` caches the parse and segments each window once.
+- **Everything per-document belongs on `Highlighted`, not in `segmentsIn`.** The line
+  offsets and the specificity sort are computed once, at parse time, and this is not a
+  micro-optimisation: they are O(characters) and O(captures log n), so recomputing them
+  per call put a floor under a _window_ proportional to the whole file. Measured on a
+  20 000-line file, segmenting a single line: 2.07ms before, 0.155ms after — and the
+  before figure was paid on every scroll tick. `test/perf.test.tsx` guards it as a ratio
+  against a whole-document pass, so a slow machine cannot make it pass by accident.
+  Adding a per-window `.map()`, `.filter()` or `.sort()` over `ordered` reintroduces it.
+- **Incremental parsing is not available for this.** The client does expose
+  `createBuffer`/`updateBuffer`, and it is roughly twice as fast — but it reports
+  highlights only for the lines the edit _touched_, not the ones it invalidates. Typing
+  `/*` at the top of a 400-line file reports one row while a full parse recolours all 400,
+  and there is no range-request API to fill the gap. Verified before ruling it out.
+- **Async highlight staleness.** Results are only applied if the buffer text still
+  matches the snapshot that was highlighted. `computeHighlights` also takes an `isStale`
+  probe and answers `STALE` rather than sorting and segmenting work nobody will use.
+- **Long lists must be windowed, not just culled.** The Zig core stops handing out
+  renderables a few thousand in, and `viewportCulling` skips _drawing_ off-screen
+  children while still building them. So a `<For>` over every row is a hard failure,
+  not a slow one: `FileTree` left the tree empty when a directory held 8000 entries. It
+  renders a window between two spacer boxes, so the scrollbox's extent and mouse wheel
+  still work. Do not "simplify" it back to rendering the whole list, and size the window
+  from the terminal rather than with a constant — a fixed 200 rows left the bottom of the
+  tree blank on a tall screen.
+- **The editor scrollbar is ours; the sidebar's is OpenTUI's.** `FileTree` sits in a
+  `<scrollbox>` with a real draggable scrollbar. The editor paints its own track, and
+  dragging it cannot assign `editor.scrollY` — that is read-only at runtime, and moving
+  the caret instead would retarget the cursor. The drag therefore synthesizes the one
+  input the buffer accepts, a wheel event whose `delta` is in rows, aimed at
+  coordinates inside the textarea so `ignoreScrollOutsideBounds` does not drop it.
+- **Single-file mode is a different entry state, not a mode flag.** `dune file.ts` passes
+  `openFile` to `App`, which then builds its initial state from that one file instead of
+  from `loadSession` — one tab, no expanded folders, sidebar hidden — and skips
+  `saveSession` entirely. Skipping the write is the part worth keeping: the folder's own
+  layout is not this invocation's to overwrite with a one-tab, no-sidebar session. Nothing
+  else in the app branches on it; `Ctrl+B`, the tree, search and git all work normally
+  because `rootDir` is still a real directory.
+- **One move function, because a folder move invalidates paths in bulk.** `movePath` in
+  `App.tsx` backs renaming and `x`/`p` alike: it renames on disk and then
+  remaps every tab, buffer, preview and expanded entry _at or under_ the old path. A
+  buffer left pointing at the old path saves the file back to where it used to be,
+  recreating the folder that was just moved. Anything that relocates a path goes through
+  here.
+- **A one-column drag target needs capture on its parent.** Both draggable edges — the
+  editor's scrollbar and the sidebar's divider — are one column wide, and a pointer
+  leaves that within the first few rows of a vertical drag. Each event goes to whatever
+  sits under the pointer, so the `onMouseDrag` handler lives on the enclosing row and a
+  `dragging`/`resizing` signal, set on mouse-down over the handle, decides whether to
+  act. Binding the drag to the handle itself makes the gesture die on the first stray
+  pixel, which reads as a stuck scrollbar.
+- **The watcher ignores `.git`, with two deliberate exceptions.** Reading git status
+  rewrites `.git/index`, so a recursive watch that reacted to it would feed itself
+  forever: status → index write → watcher → status. But a commit or checkout made in
+  another terminal touches no working-tree file, and macOS coalesces everything under
+  `.git` down to `.git/index.lock` — the very file to avoid. So `watchTree` adds separate
+  watchers on `.git/HEAD` and `.git/refs`, which report a commit, checkout, reset or
+  pack-refs and (verified) nothing that reading status does. The callback is told which
+  kind of change a burst held, because reacting costs different amounts: re-reading
+  ahead/behind is two subprocesses and only history moving can change it, so a plain save
+  must not trigger it.
+- **Unsupported files are refused at the door, not hidden.** `listDir` returns everything
+  a directory holds, so the tree tells the truth about the filesystem; `openFile` is the
+  only guard, and it opens no tab for anything `readFile` rejects. There used to be a
+  `showHidden` setting and a binary tab showing a "cannot be shown" placeholder — both are
+  gone, and a buffer can no longer exist for a file that is not text, which is what makes
+  "never written back" structural rather than a check someone has to remember. The single
+  exception to listing everything is `VCS_DIRS`: a `.git` store is not project content and
+  would swamp the tree, the fuzzy picker and project search. Ordinary dotfiles are not in
+  that class and must stay visible.
+- **git is read-only.** `core/git.ts` runs queries and nothing else: `diff` for the gutter
+  marks, `status` for the tree marks, `rev-parse`/`rev-list` for the branch and
+  ahead/behind. There is no commit, push, stash, checkout or discard, and adding one would
+  bring back the whole problem of a subprocess rewriting files under open buffers.
+- **git output is not capped at 1 MB.** `spawnSync` truncates there by default and
+  reports ENOBUFS, which every caller in `core/git.ts` reads as "no output" — `status` in a
+  repository with thousands of changed files would silently become "nothing changed" and
+  the tree would show no marks. The helper raises `maxBuffer`.
+- **Destroyed natives outlive the ref.** Closing the last tab swaps the textarea for the
+  placeholder and destroys the native buffer while `editor` still points at it. Both
+  pending timers touch it, so they are cleared from the ref's own `onCleanup` — the pane's
+  `onCleanup` fires far too late and the timer throws from outside any handler.
+- **Network.** The only request dune makes is one npm registry lookup at startup to
+  check for a newer version. It is best-effort (2.5s timeout, failures ignored) and
+  disabled by `checkUpdates: false` in the config. dune runs no git command that talks to
+  a remote, which is also what keeps a credential prompt from ever opening `/dev/tty`
+  behind the alt-screen and freezing the single render thread.
+- **Session restore.** Tabs and their buffers are seeded synchronously in the component
+  body, not in an effect — mounting the editor before its buffer exists renders an empty
+  document and marks the file modified.
+- **Focused colors.** Inputs and the editor render focused, and OpenTUI then uses the
+  `focused*` colors — setting only `textColor` leaves text in the renderable's default,
+  which is invisible on most themes. `ui/TextInput.tsx` exists so no panel forgets.
+- **Focus is synchronous.** Solid applies state during the keypress, so a key that moves
+  focus into the editor also reaches the textarea unless the handler calls
+  `preventDefault()`.
+- **Conflicts.** Each buffer records the disk mtime it was last in sync with; saving over
+  a file that changed underneath prompts instead of clobbering.

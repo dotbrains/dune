@@ -1,0 +1,33 @@
+repos:
+  - repo: local
+    hooks:
+      - id: check-types
+        name: TypeScript type check
+        entry: flox activate -- bun run check-types
+        language: system
+        pass_filenames: false
+      - id: lint
+        name: oxlint
+        entry: flox activate -- bun run lint
+        language: system
+        pass_filenames: false
+      - id: format-check
+        name: oxfmt check
+        entry: flox activate -- bun run format:check
+        language: system
+        pass_filenames: false
+      - id: file-size-budget
+        name: file size budget
+        entry: flox activate -- bun run budget:file-sizes
+        language: system
+        pass_filenames: false
+      - id: flat-directory-budget
+        name: flat directory budget
+        entry: flox activate -- bun run budget:flat-dirs
+        language: system
+        pass_filenames: false
+      - id: test
+        name: Bun test suite
+        entry: flox activate -- bun run test:ci
+        language: system
+        pass_filenames: false

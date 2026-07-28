@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  hygiene:
+    name: Hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: flox/install-flox-action@v2
+      - run: flox activate -- bun install --frozen-lockfile
+      - run: flox activate -- bun run check-types
+      - run: flox activate -- bun run lint
+      - run: flox activate -- bun run budget
+
+  tests:
+    name: Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: flox/install-flox-action@v2
+      - run: flox activate -- bun install --frozen-lockfile
+      - run: flox activate -- bun run test:ci
+
+  build:
+    name: Build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-x64
+            os: ubuntu-latest
+          - target: darwin-arm64
+            os: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: flox/install-flox-action@v2
+      - run: flox activate -- bun install --frozen-lockfile
+      - run: flox activate -- bun run build ${{ matrix.target }}
+
+  docs:
+    name: Docs and Metadata
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: flox/install-flox-action@v2
+      - run: test -s README.md
+      - run: test -s LICENSE
+      - run: test -s docs/architecture.md
+      - run: test -s docs/ci.md
+      - run: test -s docs/development.md
+      - run: test -s docs/releasing.md
+      - run: test -s docs/testing.md

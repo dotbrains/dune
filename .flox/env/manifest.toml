@@ -1,0 +1,19 @@
+schema-version = "1.13.0"
+
+[install]
+bun.pkg-path = "bun"
+nodejs.pkg-path = "nodejs"
+git.pkg-path = "git"
+git.outputs = "all"
+gh.pkg-path = "gh"
+pre-commit.pkg-path = "pre-commit"
+pre-commit.outputs = "all"
+
+[vars]
+DUNE_ENV = "development"
+
+[hook]
+on-activate = '''
+  export PATH="$PWD/node_modules/.bin:$PATH"
+  echo "dune dev environment active: bun $(bun --version)"
+'''
