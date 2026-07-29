@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { buildCommands } from '../src/app/commands';
 import type { CommandActions } from '../src/app/commands';
-import { fixture, launch, press } from './helpers';
+import { fixture, launch, press, pressEscape, runCommand } from './helpers';
 import type { Harness } from './helpers';
 
 /** Row index of a top-level command, so tests survive new commands. */
@@ -26,6 +26,7 @@ const PROJECT = {
 	'src/main.ts': 'const a = 1\nconst b = 2\n',
 	'notes.md': '# hi\n',
 };
+const SETTINGS_PROJECT = { 'main.ts': 'const value = 1\n', '.env': 'A=1\n' };
 
 /** Expand src/ and open src/main.ts from the tree. */
 async function openMain(t: Harness) {
@@ -85,6 +86,22 @@ describe('command palette', () => {
 		await press(t, (i) => i.pressKey('p', { ctrl: true }));
 		await press(t, (i) => void i.typeText('light'));
 		expect(t.captureCharFrame()).toContain('Themes ›   GitHub Light');
+	});
+
+	test('opens settings and applies rows immediately', async () => {
+		const t = await launch(fixture(SETTINGS_PROJECT), { tabSize: 4, showDotfiles: false });
+		expect(t.captureCharFrame()).not.toContain('.env');
+
+		await runCommand(t, 'Settings');
+		expect(t.captureCharFrame()).toContain('Tab size');
+		expect(t.captureCharFrame()).toContain('4');
+
+		for (let i = 0; i < 5; i++) await press(t, (input) => input.pressArrow('down'));
+		await press(t, (input) => input.pressArrow('right'));
+		expect(t.captureCharFrame()).toContain('.env');
+
+		await pressEscape(t);
+		expect(t.captureCharFrame()).not.toContain('Settings');
 	});
 });
 

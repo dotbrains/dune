@@ -43,6 +43,14 @@ export function createAppControls(deps: {
 		deps.patchConfig({ respectGitignore: !deps.config.respectGitignore });
 		deps.say(`Gitignored files ${deps.config.respectGitignore ? 'hidden' : 'shown'}`);
 	};
+	const toggleTrim = () => {
+		deps.patchConfig({ trimOnSave: !deps.config.trimOnSave });
+		deps.say(`Trim on save ${deps.config.trimOnSave ? 'on' : 'off'}`);
+	};
+	const toggleAutoSave = () => {
+		deps.patchConfig({ autoSaveOnBlur: !deps.config.autoSaveOnBlur });
+		deps.say(`Auto-save on blur ${deps.config.autoSaveOnBlur ? 'on' : 'off'}`);
+	};
 	const withNode = (run: (node: TreeNode) => void) => () => {
 		const node = deps.selectedNode();
 		if (node) run(node);
@@ -63,6 +71,8 @@ export function createAppControls(deps: {
 		promptValue,
 		toggleDotfiles,
 		toggleGitignored,
+		toggleTrim,
+		toggleAutoSave,
 		withNode,
 	};
 }

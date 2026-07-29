@@ -3,7 +3,11 @@ import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { launch, press, settle } from './helpers';
+import { encode } from 'fast-png';
+
+import { decodeImage, imageCells, isImagePath } from '../src/core/image';
+import type { RawImage } from '../src/core/image';
+import { fixture, launch, press, settle } from './helpers';
 
 /** A project with a real binary file next to a text one. */
 function project() {
@@ -11,6 +15,30 @@ function project() {
 	writeFileSync(join(dir, '.DS_Store'), Buffer.from([0, 1, 2, 0, 3, 4]));
 	writeFileSync(join(dir, 'main.ts'), 'const a = 1\n');
 	return dir;
+}
+
+function pngFixture(width: number, height: number, pixels: number[]): string {
+	const dir = mkdtempSync(join(tmpdir(), 'dune-image-'));
+	const path = join(dir, 'image.png');
+	writeFileSync(path, encode({ width, height, data: new Uint8Array(pixels), channels: 4 }));
+	return path;
+}
+
+const rawImage = (width: number, height: number, pixels: number[]): RawImage => ({
+	width,
+	height,
+	pixels: new Uint8Array(pixels),
+	bytes: pixels.length,
+});
+
+function imageProject(): { dir: string; png: string } {
+	const dir = fixture({ 'main.ts': 'const answer = 42\n' });
+	const png = join(dir, 'logo.png');
+	const pixels = Array.from({ length: 4 * 8 }, (_, index) =>
+		index % 2 === 0 ? [255, 0, 0, 255] : [0, 0, 255, 255],
+	).flat();
+	writeFileSync(png, encode({ width: 4, height: 8, data: new Uint8Array(pixels), channels: 4 }));
+	return { dir, png };
 }
 
 test('a binary file is listed but does not open', async () => {
@@ -81,4 +109,62 @@ test('text files still open normally afterwards', async () => {
 	expect(frame).not.toContain('cannot be shown');
 	expect(frame.split('\n')[0]).toContain('main.ts');
 	expect(frame.split('\n')[0]).not.toContain('.DS_Store');
+});
+
+test('image helpers decode still images and pack terminal cells', () => {
+	expect(isImagePath('/tmp/logo.png')).toBe(true);
+	expect(isImagePath('/tmp/photo.JPG')).toBe(true);
+	expect(isImagePath('/tmp/anim.gif')).toBe(false);
+
+	const path = pngFixture(2, 1, [255, 0, 0, 255, 0, 0, 255, 128]);
+	const image = decodeImage(path);
+	expect(image).toMatchObject({ width: 2, height: 1 });
+	expect([...image.pixels]).toEqual([255, 0, 0, 255, 0, 0, 255, 128]);
+
+	const packed = imageCells(rawImage(1, 2, [255, 0, 0, 255, 0, 0, 255, 255]), 10, 10);
+	const odd = imageCells(rawImage(1, 1, [10, 20, 30, 255]), 10, 10);
+	expect([...packed.cells]).toEqual([255, 0, 0, 255, 0, 0, 255, 255]);
+	expect([...odd.cells]).toEqual([10, 20, 30, 255, 0, 0, 0, 0]);
+});
+
+test('image files open as read-only viewer tabs', async () => {
+	const { dir, png } = imageProject();
+	const t = await launch(dir, {}, { width: 80, height: 24 }, { openFile: png });
+
+	expect(t.captureCharFrame()).toContain('logo.png - 4x8 - 1 KB');
+	expect(t.captureCharFrame()).toContain('▀');
+	expect(t.captureCharFrame()).not.toContain('binary');
+});
+
+test('the file picker opens image tabs without creating editable buffers', async () => {
+	const { dir, png } = imageProject();
+	const t = await launch(dir, {}, { width: 80, height: 24 });
+
+	await press(t, (input) => input.pressKey('o', { ctrl: true }));
+	await press(t, (input) => void input.typeText('logo'));
+	await press(t, (input) => input.pressEnter());
+	await settle(t);
+
+	expect(t.captureCharFrame()).toContain('logo.png - 4x8 - 1 KB');
+	expect(t.captureCharFrame()).toContain('image');
+
+	const before = [...(await Bun.file(png).bytes())];
+	await press(t, (input) => input.pressKey('s', { ctrl: true }));
+	expect([...(await Bun.file(png).bytes())]).toEqual(before);
+
+	await press(t, (input) => input.pressKey('w', { ctrl: true }));
+	expect(t.captureCharFrame()).not.toContain('logo.png - 4x8');
+});
+
+test('image tabs survive session restore', async () => {
+	const { dir } = imageProject();
+	const first = await launch(dir, {}, { width: 80, height: 24 });
+
+	await press(first, (input) => input.pressKey('o', { ctrl: true }));
+	await press(first, (input) => void input.typeText('logo'));
+	await press(first, (input) => input.pressEnter());
+	await settle(first);
+
+	const second = await launch(dir, {}, { width: 80, height: 24 });
+	expect(second.captureCharFrame()).toContain('logo.png - 4x8 - 1 KB');
 });

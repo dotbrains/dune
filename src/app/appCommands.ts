@@ -39,6 +39,9 @@ export function createAppCommands(deps: {
 	applyTheme: (name: ThemeName) => void;
 	toggleDotfiles: () => void;
 	toggleGitignored: () => void;
+	toggleTrim: () => void;
+	toggleAutoSave: () => void;
+	openSettings: () => void;
 	setLineOp: (
 		update: (prev: { op: 'comment' | 'up' | 'down' | 'duplicate'; key: number } | null) => {
 			op: 'comment' | 'up' | 'down' | 'duplicate';
@@ -97,18 +100,13 @@ export function createAppCommands(deps: {
 				toggleSidebar: deps.toggleSidebar,
 				toggleDotfiles: deps.toggleDotfiles,
 				toggleGitignored: deps.toggleGitignored,
+				openSettings: deps.openSettings,
 				setVim: deps.applyVim,
 				setTabSize: deps.applyTabSize,
 				setTheme: deps.applyTheme,
 				lineOp: (op) => deps.setLineOp((prev) => ({ op, key: (prev?.key ?? 0) + 1 })),
-				toggleTrim: () => {
-					deps.patchConfig({ trimOnSave: !deps.config.trimOnSave });
-					deps.say(`Trim on save ${deps.config.trimOnSave ? 'on' : 'off'}`);
-				},
-				toggleAutoSave: () => {
-					deps.patchConfig({ autoSaveOnBlur: !deps.config.autoSaveOnBlur });
-					deps.say(`Auto-save on blur ${deps.config.autoSaveOnBlur ? 'on' : 'off'}`);
-				},
+				toggleTrim: deps.toggleTrim,
+				toggleAutoSave: deps.toggleAutoSave,
 				commit: deps.gitCommands.openCommitPicker,
 				undoCommit: deps.gitCommands.confirmUndoCommit,
 				stash: deps.gitCommands.stash,

@@ -20,10 +20,11 @@ import { createGitCommands } from './gitCommands';
 import { useAppKeyboard } from './keyboard';
 import { useAppLifecycle } from './lifecycle';
 import { createFileOpener } from './openFile';
-import { isOverlayOpen } from './overlayState';
+import { createOverlayOpen } from './overlayState';
 import { restoreAppState } from './restore';
 import { createAppRuntime, selectedSingleLineText } from './runtime';
 import { createReplacementHandlers } from './searchReplace';
+import { createSettingsRows } from './settingsRows';
 import { createSidebarSizing } from './sidebarSizing';
 import { createTreeSelection } from './treeSelection';
 import { hiddenTreeNodes } from './treeVisibility';
@@ -50,6 +51,7 @@ export function App(props: AppTypes.AppProps) {
 	const [help, setHelp] = createSignal(false);
 	const [peek, setPeek] = createSignal(false);
 	const [palette, setPalette] = createSignal(false);
+	const [settingsPage, setSettingsPage] = createSignal(false);
 	const [vimMode, setVimMode] = createSignal<VimMode | null>(
 		props.initialConfig.vim ? 'normal' : null,
 	);
@@ -85,10 +87,7 @@ export function App(props: AppTypes.AppProps) {
 	const nodes = createMemo(() =>
 		flattenVisible(rootDir, expanded(), hiddenTreeNodes(rootDir, config)),
 	);
-	const activeBuffer = () => {
-		const path = activePath();
-		return path ? buffers[path] : undefined;
-	};
+	const activeBuffer = () => (activePath() ? buffers[activePath()!] : undefined);
 	const { patchConfig, quit, say, whileFree } = createAppRuntime({
 		buffers,
 		busy,
@@ -249,34 +248,40 @@ export function App(props: AppTypes.AppProps) {
 		confirmPrompt,
 		syncFromDisk,
 	} = documentActions;
-	const overlay = createMemo(() =>
-		isOverlayOpen({
-			prompt,
-			palette,
-			conflict,
-			help,
-			search,
-			update,
-			picker,
-			commitFiles: gitCommands.commitFiles,
-		}),
-	);
+	const overlay = createOverlayOpen({
+		prompt,
+		palette,
+		conflict,
+		help,
+		search,
+		settingsPage,
+		update,
+		picker,
+		commitFiles: gitCommands.commitFiles,
+	});
 	const { nudgeSidebar, resizeSidebar, treeWidth } = createSidebarSizing({
 		config,
 		width: () => dimensions().width,
 		patchConfig,
 	});
-	const {
-		applyTabSize,
-		applyTheme,
-		applyVim,
-		confirmation,
-		promptTitle,
-		promptValue,
-		toggleDotfiles,
-		toggleGitignored,
-		withNode,
-	} = createAppControls({ config, prompt, selectedNode, setVimMode, patchConfig, say });
+	const controls = createAppControls({
+		config,
+		prompt,
+		selectedNode,
+		setVimMode,
+		patchConfig,
+		say,
+	});
+	const settingRows = createSettingsRows({
+		config,
+		applyTheme: controls.applyTheme,
+		applyTabSize: controls.applyTabSize,
+		applyVim: controls.applyVim,
+		toggleAutoSave: controls.toggleAutoSave,
+		toggleDotfiles: controls.toggleDotfiles,
+		toggleGitignored: controls.toggleGitignored,
+		toggleTrim: controls.toggleTrim,
+	});
 	const commands = createAppCommands({
 		config,
 		saveActive,
@@ -288,7 +293,7 @@ export function App(props: AppTypes.AppProps) {
 		setHistory,
 		setSearch,
 		targetDir,
-		withNode,
+		withNode: controls.withNode,
 		actionTargets,
 		say,
 		takeForPaste,
@@ -300,11 +305,14 @@ export function App(props: AppTypes.AppProps) {
 		setFocus,
 		focusTree,
 		toggleSidebar,
-		applyVim,
-		applyTabSize,
-		applyTheme,
-		toggleDotfiles,
-		toggleGitignored,
+		applyVim: controls.applyVim,
+		applyTabSize: controls.applyTabSize,
+		applyTheme: controls.applyTheme,
+		toggleDotfiles: controls.toggleDotfiles,
+		toggleGitignored: controls.toggleGitignored,
+		toggleTrim: controls.toggleTrim,
+		toggleAutoSave: controls.toggleAutoSave,
+		openSettings: () => setSettingsPage(true),
 		setLineOp,
 		patchConfig,
 		gitCommands,
@@ -428,13 +436,15 @@ export function App(props: AppTypes.AppProps) {
 			branch={branch()}
 			upstream={upstream()}
 			busy={busy()}
-			promptTitle={promptTitle()}
-			promptValue={promptValue()}
-			confirmation={confirmation()}
+			promptTitle={controls.promptTitle()}
+			promptValue={controls.promptValue()}
+			confirmation={controls.confirmation()}
 			search={search()}
 			picker={picker()}
 			palette={palette()}
+			settingsPage={settingsPage()}
 			commands={commands()}
+			settingRows={settingRows()}
 			commitFiles={gitCommands.commitFiles()}
 			conflict={conflict()}
 			update={update()}
@@ -473,6 +483,7 @@ export function App(props: AppTypes.AppProps) {
 			}}
 			onClosePicker={() => setPicker(null)}
 			onClosePalette={() => setPalette(false)}
+			onCloseSettings={() => setSettingsPage(false)}
 			onCommitFiles={gitCommands.startCommit}
 			onCancelCommit={gitCommands.cancelCommit}
 			onResolveConflict={resolveConflict}
