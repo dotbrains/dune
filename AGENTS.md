@@ -74,6 +74,9 @@ to break:
   `@dotbrains/dune`, and it holds no binary: `bin/binary.mjs` fetches the archive for the
   machine from the release. Publishing the package first would leave a window where an
   install finds no asset.
+- **Install-time binary downloads are bounded.** The package is allowed to fail silently
+  when GitHub or a mirror is slow, but it must not hang `npm install`; keep the
+  `fetchBinary()` timeout and `test/postinstall.test.ts` together.
 - **There is deliberately no package per platform.** That is the usual arrangement, and
   it is what dune used to do, but creating many packages makes release permissions harder
   to reason about. One scoped package keeps `GITHUB_TOKEN` publication tied to this

@@ -59,6 +59,8 @@ const url = `${base}/${asset}`;
 const inPackage = join(here, exe);
 const inCache = join(homedir(), '.cache', 'dune', version, exe);
 
+export const DOWNLOAD_TIMEOUT_MS = 60_000;
+
 export function findBinary() {
 	if (existsSync(inPackage)) return inPackage;
 	if (existsSync(inCache)) return inCache;
@@ -67,12 +69,18 @@ export function findBinary() {
 	return existsSync(local) ? local : null;
 }
 
-/** Download and unpack the release asset. Returns the path, or null if it could not. */
-export async function fetchBinary() {
+/**
+ * Download and unpack the release asset. Returns the path, or null if it could not.
+ * The timeout covers both the initial response and the body stream.
+ */
+export async function fetchBinary({ timeout = DOWNLOAD_TIMEOUT_MS } = {}) {
 	if (!supported) return null;
 	const temp = join(tmpdir(), `dune-${version}-${process.pid}`);
 	try {
-		const response = await fetch(url, { redirect: 'follow' });
+		const response = await fetch(url, {
+			redirect: 'follow',
+			signal: timeout ? AbortSignal.timeout(timeout) : undefined,
+		});
 		if (!response.ok) return null;
 		mkdirSync(temp, { recursive: true });
 		const archive = join(temp, asset);
