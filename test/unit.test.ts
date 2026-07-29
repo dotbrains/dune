@@ -79,6 +79,8 @@ describe('registries', () => {
 			tabSize: 2,
 			trimOnSave: false,
 			autoSaveOnBlur: false,
+			showDotfiles: true,
+			respectGitignore: false,
 		});
 		const leaves = flattenCommands(tree);
 

@@ -245,14 +245,13 @@ vim mode).
   ahead/behind is two subprocesses and only history moving can change it, so a plain save
   must not trigger it.
 - **Unsupported files are refused at the door, not hidden.** `listDir` returns everything
-  a directory holds, so the tree tells the truth about the filesystem; `openFile` is the
-  only guard, and it opens no tab for anything `readFile` rejects. There used to be a
-  `showHidden` setting and a binary tab showing a "cannot be shown" placeholder — both are
-  gone, and a buffer can no longer exist for a file that is not text, which is what makes
-  "never written back" structural rather than a check someone has to remember. The single
-  exception to listing everything is `VCS_DIRS`: a `.git` store is not project content and
-  would swamp the tree, the fuzzy picker and project search. Ordinary dotfiles are not in
-  that class and must stay visible.
+  a directory holds, so the filesystem layer tells the truth; `openFile` is the only
+  content guard, and it opens no tab for anything `readFile` rejects. The visible tree may
+  opt into hiding dotfiles or gitignored rows through config, but those filters sit above
+  `listDir` in `treeVisibility.ts`, so file pickers, search, and direct opens still have a
+  filesystem-level source of truth. The single unconditional exception is `VCS_DIRS`: a
+  `.git` store is not project content and would swamp the tree, the fuzzy picker and
+  project search.
 - **git is read-only.** `core/git.ts` runs queries and nothing else: `diff` for the gutter
   marks, `status` for the tree marks, `rev-parse`/`rev-list` for the branch and
   ahead/behind. There is no commit, push, stash, checkout or discard, and adding one would

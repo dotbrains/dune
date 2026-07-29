@@ -1,12 +1,13 @@
 import { describe, expect, test } from 'bun:test';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { listDir } from '../src/core/fs';
+import { ignoredPaths } from '../src/core/git';
 import { listFiles } from '../src/core/search';
-import { fixture, launch } from './helpers';
+import { fixture, launch, runCommand } from './helpers';
 
 const PROJECT = { 'src/main.ts': 'const a = 1\n', '.DS_Store': 'junk\n', '.gitignore': 'dist\n' };
 function repo() {
@@ -17,16 +18,85 @@ function repo() {
 	return dir;
 }
 
-/**
- * There is no show/hide setting. The tree lists what is on disk, and the guard sits
- * at the point of opening instead — hiding a file the user can see in their shell
- * only makes dune look broken when they go looking for it.
- */
+function ignoredRepo() {
+	const dir = mkdtempSync(join(tmpdir(), 'dune-ignored-'));
+	execFileSync('git', ['init', '-q', '-b', 'main'], { cwd: dir });
+	writeFileSync(join(dir, '.gitignore'), 'dist\n*.log\n');
+	writeFileSync(join(dir, 'a.ts'), 'const a = 1\n');
+	writeFileSync(join(dir, 'debug.log'), 'noise\n');
+	mkdirSync(join(dir, 'dist'));
+	writeFileSync(join(dir, 'dist/bundle.js'), 'var a=1\n');
+	return dir;
+}
+
 describe('the tree lists everything', () => {
 	test('dotfiles included', async () => {
 		const frame = (await launch(fixture(PROJECT))).captureCharFrame();
 		expect(frame).toContain('.gitignore');
 		expect(frame).toContain('.DS_Store');
+	});
+});
+
+describe('showDotfiles: false', () => {
+	test('dotfiles leave the tree, ordinary files stay', async () => {
+		const frame = (await launch(fixture(PROJECT), { showDotfiles: false })).captureCharFrame();
+
+		expect(frame).toContain('src');
+		expect(frame).not.toContain('.gitignore');
+		expect(frame).not.toContain('.DS_Store');
+	});
+
+	test('the command palette toggles dotfiles back on', async () => {
+		const t = await launch(fixture(PROJECT), { showDotfiles: false });
+		expect(t.captureCharFrame()).not.toContain('.DS_Store');
+
+		await runCommand(t, 'Show dotfiles');
+
+		expect(t.captureCharFrame()).toContain('.DS_Store');
+	});
+});
+
+describe('respectGitignore: true', () => {
+	test('ignoredPaths reports files and collapsed directories as absolute paths', () => {
+		const dir = ignoredRepo();
+
+		expect(ignoredPaths(dir)).toEqual(new Set([join(dir, 'dist'), join(dir, 'debug.log')]));
+	});
+
+	test('ignoredPaths is empty outside a repository', () => {
+		expect(ignoredPaths(fixture(PROJECT)).size).toBe(0);
+	});
+
+	test('ignored entries leave the tree, tracked and clean ones stay', async () => {
+		const frame = (await launch(ignoredRepo(), { respectGitignore: true })).captureCharFrame();
+
+		expect(frame).toContain('a.ts');
+		expect(frame).toContain('.gitignore');
+		expect(frame).not.toContain('dist');
+		expect(frame).not.toContain('debug.log');
+	});
+
+	test('off by default: ignored entries are listed', async () => {
+		const frame = (await launch(ignoredRepo())).captureCharFrame();
+
+		expect(frame).toContain('dist');
+		expect(frame).toContain('debug.log');
+	});
+
+	test('outside a repository nothing is hidden', async () => {
+		const frame = (await launch(fixture(PROJECT), { respectGitignore: true })).captureCharFrame();
+
+		expect(frame).toContain('.DS_Store');
+		expect(frame).toContain('.gitignore');
+	});
+
+	test('the command palette toggles ignored-file hiding', async () => {
+		const t = await launch(ignoredRepo());
+		expect(t.captureCharFrame()).toContain('dist');
+
+		await runCommand(t, 'Hide gitignored');
+
+		expect(t.captureCharFrame()).not.toContain('dist');
 	});
 });
 

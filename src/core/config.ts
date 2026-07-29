@@ -57,6 +57,10 @@ export interface Config {
 	trimOnSave: boolean;
 	/** Save every dirty buffer when the terminal window loses focus. */
 	autoSaveOnBlur: boolean;
+	/** Whether the tree lists dotfiles. Defaults to the filesystem's truth. */
+	showDotfiles: boolean;
+	/** Hide gitignored files from the tree; dimming still happens when they are shown. */
+	respectGitignore: boolean;
 }
 
 export const DEFAULTS: Config = {
@@ -67,6 +71,8 @@ export const DEFAULTS: Config = {
 	skipUpdate: '',
 	trimOnSave: false,
 	autoSaveOnBlur: false,
+	showDotfiles: true,
+	respectGitignore: false,
 };
 
 function parse(raw: unknown): Config {
@@ -82,6 +88,9 @@ function parse(raw: unknown): Config {
 		trimOnSave: typeof obj.trimOnSave === 'boolean' ? obj.trimOnSave : DEFAULTS.trimOnSave,
 		autoSaveOnBlur:
 			typeof obj.autoSaveOnBlur === 'boolean' ? obj.autoSaveOnBlur : DEFAULTS.autoSaveOnBlur,
+		showDotfiles: typeof obj.showDotfiles === 'boolean' ? obj.showDotfiles : DEFAULTS.showDotfiles,
+		respectGitignore:
+			typeof obj.respectGitignore === 'boolean' ? obj.respectGitignore : DEFAULTS.respectGitignore,
 		sidebarWidth:
 			typeof obj.sidebarWidth === 'number' &&
 			obj.sidebarWidth >= SIDEBAR_MIN &&

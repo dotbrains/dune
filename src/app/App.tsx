@@ -1,11 +1,10 @@
-import { basename } from 'node:path';
 import type { MouseEvent } from '@opentui/core';
 import { useRenderer, useTerminalDimensions } from '@opentui/solid';
 import { createMemo, createSignal } from 'solid-js';
 import { createStore, produce } from 'solid-js/store';
 import type { Config } from '../core/config';
 import type { TreeNode } from '../core/fs';
-import { BinaryFileError, flattenVisible, mtimeOf, readFile } from '../core/fs';
+import { flattenVisible } from '../core/fs';
 import { currentBranch } from '../core/git';
 import type { FileStatus, LineChange, Upstream } from '../core/git';
 import type { Match } from '../core/search';
@@ -20,12 +19,14 @@ import { createFileActions } from './fileActions';
 import { createGitCommands } from './gitCommands';
 import { useAppKeyboard } from './keyboard';
 import { useAppLifecycle } from './lifecycle';
+import { createFileOpener } from './openFile';
 import { isOverlayOpen } from './overlayState';
 import { restoreAppState } from './restore';
 import { createAppRuntime, selectedSingleLineText } from './runtime';
 import { createReplacementHandlers } from './searchReplace';
 import { createSidebarSizing } from './sidebarSizing';
 import { createTreeSelection } from './treeSelection';
+import { hiddenTreeNodes } from './treeVisibility';
 import type * as AppTypes from './types';
 export function App(props: AppTypes.AppProps) {
 	const renderer = useRenderer();
@@ -81,7 +82,9 @@ export function App(props: AppTypes.AppProps) {
 		msg: READY,
 		tone: 'info',
 	});
-	const nodes = createMemo(() => flattenVisible(rootDir, expanded()));
+	const nodes = createMemo(() =>
+		flattenVisible(rootDir, expanded(), hiddenTreeNodes(rootDir, config)),
+	);
 	const activeBuffer = () => {
 		const path = activePath();
 		return path ? buffers[path] : undefined;
@@ -118,47 +121,22 @@ export function App(props: AppTypes.AppProps) {
 		setSidebar,
 		setFocus,
 	});
-	const openFile = (path: string, preview = false) => {
-		const leaving = activePath();
-		setNotice(null);
-		if (!buffers[path]) {
-			try {
-				setBuffers(path, { content: readFile(path), dirty: false, mtime: mtimeOf(path) });
-			} catch (e) {
-				setNotice({
-					name: basename(path),
-					reason:
-						e instanceof BinaryFileError
-							? 'It is binary, or uses an encoding dune cannot read.'
-							: (e as Error).message,
-				});
-				return;
-			}
-		}
-		setTabs((prev) => {
-			if (prev.includes(path)) return prev;
-			const slot = previewPath() ? prev.indexOf(previewPath()!) : -1;
-			if (preview && slot >= 0) return prev.map((p, i) => (i === slot ? path : p));
-			return [...prev, path];
-		});
-		if (preview) {
-			const previous = previewPath();
-			if (previous && previous !== path) discardBuffer(previous);
-			setPreviewPath(path);
-		} else if (previewPath() === path) {
-			setPreviewPath(null);
-		}
-		reveal(path);
-		setSelectedPath(path);
-		setActivePath(path);
-		if (config.autoSaveOnBlur && leaving && leaving !== path && buffers[leaving]?.dirty) {
-			saveDirtyPathsRef.run([leaving]);
-		}
-		setFocus('editor');
-	};
-	const pinTab = (path: string) => {
-		if (previewPath() === path) setPreviewPath(null);
-	};
+	const { openFile, pinTab } = createFileOpener({
+		activePath,
+		buffers,
+		config,
+		discardBuffer,
+		previewPath,
+		reveal,
+		saveDirtyPathsRef,
+		setActivePath,
+		setBuffers,
+		setFocus,
+		setNotice,
+		setPreviewPath,
+		setSelectedPath,
+		setTabs,
+	});
 	const fileActions = createFileActions({
 		rootDir,
 		buffers,
@@ -288,8 +266,17 @@ export function App(props: AppTypes.AppProps) {
 		width: () => dimensions().width,
 		patchConfig,
 	});
-	const { applyTabSize, applyTheme, applyVim, confirmation, promptTitle, promptValue, withNode } =
-		createAppControls({ config, prompt, selectedNode, setVimMode, patchConfig, say });
+	const {
+		applyTabSize,
+		applyTheme,
+		applyVim,
+		confirmation,
+		promptTitle,
+		promptValue,
+		toggleDotfiles,
+		toggleGitignored,
+		withNode,
+	} = createAppControls({ config, prompt, selectedNode, setVimMode, patchConfig, say });
 	const commands = createAppCommands({
 		config,
 		saveActive,
@@ -316,6 +303,8 @@ export function App(props: AppTypes.AppProps) {
 		applyVim,
 		applyTabSize,
 		applyTheme,
+		toggleDotfiles,
+		toggleGitignored,
 		setLineOp,
 		patchConfig,
 		gitCommands,

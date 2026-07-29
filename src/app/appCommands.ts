@@ -37,6 +37,8 @@ export function createAppCommands(deps: {
 	applyVim: (enabled: boolean) => void;
 	applyTabSize: (size: number) => void;
 	applyTheme: (name: ThemeName) => void;
+	toggleDotfiles: () => void;
+	toggleGitignored: () => void;
 	setLineOp: (
 		update: (prev: { op: 'comment' | 'up' | 'down' | 'duplicate'; key: number } | null) => {
 			op: 'comment' | 'up' | 'down' | 'duplicate';
@@ -93,6 +95,8 @@ export function createAppCommands(deps: {
 				prevTab: () => deps.switchTab(-1),
 				toggleFocus: () => (deps.focus() === 'tree' ? deps.setFocus('editor') : deps.focusTree()),
 				toggleSidebar: deps.toggleSidebar,
+				toggleDotfiles: deps.toggleDotfiles,
+				toggleGitignored: deps.toggleGitignored,
 				setVim: deps.applyVim,
 				setTabSize: deps.applyTabSize,
 				setTheme: deps.applyTheme,
@@ -120,6 +124,8 @@ export function createAppCommands(deps: {
 				tabSize: deps.config.tabSize,
 				trimOnSave: deps.config.trimOnSave,
 				autoSaveOnBlur: deps.config.autoSaveOnBlur,
+				showDotfiles: deps.config.showDotfiles,
+				respectGitignore: deps.config.respectGitignore,
 			},
 		),
 	);

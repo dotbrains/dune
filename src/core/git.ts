@@ -125,6 +125,27 @@ export function ignoredAmong(cwd: string, paths: string[]): Set<string> {
 	return ignored;
 }
 
+/** Absolute paths gitignore excludes, with ignored directories collapsed to their row. */
+export function ignoredPaths(cwd: string): Set<string> {
+	const ignored = new Set<string>();
+	const base = keyBase(cwd);
+	if (base === null) return ignored;
+	const run = git(cwd, [
+		'ls-files',
+		'--others',
+		'--ignored',
+		'--exclude-standard',
+		'--directory',
+		'-z',
+	]);
+	if (run.status !== 0) return ignored;
+	for (const rel of run.stdout.split('\0')) {
+		if (rel.length === 0) continue;
+		ignored.add(join(base, rel.endsWith('/') ? rel.slice(0, -1) : rel));
+	}
+	return ignored;
+}
+
 export interface Upstream {
 	/** `origin/main`, or null when the branch was never pushed. */
 	name: string | null;

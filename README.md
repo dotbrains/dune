@@ -95,7 +95,8 @@ dune update           # upgrade this installation
 The file tree supports keyboard and mouse navigation, preview tabs, bulk moves and
 copies, guarded deletes, git status marks, and dimming for gitignored paths. `Ctrl+C`
 copies when text is selected and quits when it is not, so unsaved work is not thrown
-away.
+away. By default the tree lists dotfiles and gitignored files; use the View commands
+`Show dotfiles` and `Hide gitignored files` to change that per user config.
 
 The command palette includes Git actions for committing selected files, undoing the
 last commit, stashing, popping a stash, fetching, and pushing. If files are already

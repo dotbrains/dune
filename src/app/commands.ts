@@ -47,6 +47,8 @@ export interface CommandActions {
 	prevTab: () => void;
 	toggleFocus: () => void;
 	toggleSidebar: () => void;
+	toggleDotfiles: () => void;
+	toggleGitignored: () => void;
 	setVim: (enabled: boolean) => void;
 	setTabSize: (size: number) => void;
 	setTheme: (name: ThemeName) => void;
@@ -69,6 +71,8 @@ export interface CommandContext {
 	tabSize: number;
 	trimOnSave: boolean;
 	autoSaveOnBlur: boolean;
+	showDotfiles: boolean;
+	respectGitignore: boolean;
 }
 
 const TAB_SIZES = [2, 4, 8];
@@ -148,6 +152,16 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 					label: 'Focus tree / editor',
 					hint: 'Tab in · Esc out',
 					run: actions.toggleFocus,
+				},
+				{
+					id: 'view.dotfiles',
+					label: `${check(ctx.showDotfiles)}Show dotfiles`,
+					run: actions.toggleDotfiles,
+				},
+				{
+					id: 'view.gitignored',
+					label: `${check(ctx.respectGitignore)}Hide gitignored files`,
+					run: actions.toggleGitignored,
 				},
 			],
 		},

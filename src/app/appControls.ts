@@ -35,6 +35,14 @@ export function createAppControls(deps: {
 		deps.patchConfig({ vim: enabled });
 		deps.say(`Vim mode ${enabled ? 'on' : 'off'}`);
 	};
+	const toggleDotfiles = () => {
+		deps.patchConfig({ showDotfiles: !deps.config.showDotfiles });
+		deps.say(`Dotfiles ${deps.config.showDotfiles ? 'shown' : 'hidden'}`);
+	};
+	const toggleGitignored = () => {
+		deps.patchConfig({ respectGitignore: !deps.config.respectGitignore });
+		deps.say(`Gitignored files ${deps.config.respectGitignore ? 'hidden' : 'shown'}`);
+	};
 	const withNode = (run: (node: TreeNode) => void) => () => {
 		const node = deps.selectedNode();
 		if (node) run(node);
@@ -46,7 +54,17 @@ export function createAppControls(deps: {
 		return p?.kind === 'rename' ? basename(p.target) : '';
 	};
 	const confirmation = createMemo(() => confirmationForPrompt(deps.prompt()));
-	return { applyTheme, applyTabSize, applyVim, confirmation, promptTitle, promptValue, withNode };
+	return {
+		applyTheme,
+		applyTabSize,
+		applyVim,
+		confirmation,
+		promptTitle,
+		promptValue,
+		toggleDotfiles,
+		toggleGitignored,
+		withNode,
+	};
 }
 
 export type AppCommandDeps = {
