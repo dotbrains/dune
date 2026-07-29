@@ -71,6 +71,7 @@ export function useAppKeyboard(deps: {
 		if (key.ctrl && k === 'q') return claim(deps.quit);
 		if (key.ctrl && k === 'c' && deps.focus() !== 'editor') return claim(deps.quit);
 		if (key.ctrl && k === 'p') return claim(() => deps.setPalette(true));
+		if (k === 'f1') return claim(() => deps.setPalette(true));
 		if (key.ctrl && k === 'o') return claim(() => deps.setPicker('files'));
 		if (key.ctrl && chord(key) && k === 't') return claim(deps.reopenTab);
 		if (key.ctrl && (k === 't' || k === 'up')) return claim(() => deps.setPicker('tabs'));

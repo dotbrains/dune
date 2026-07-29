@@ -10,6 +10,8 @@ import type { Config } from '../src/core/config';
 
 export type Harness = Awaited<ReturnType<typeof launch>>;
 
+export const F1 = '\u001BOP';
+
 /** Temp project used by a test. `files` maps relative paths to contents. */
 export function fixture(files: Record<string, string>): string {
 	const dir = mkdtempSync(join(tmpdir(), 'dune-'));

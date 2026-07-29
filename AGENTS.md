@@ -117,13 +117,13 @@ formula there.
 Read [ARCHITECTURE.md](ARCHITECTURE.md) first. It has the folder map, the one-way
 dependency rule, and recipes for the extension points:
 
-| Want to add a… | Edit                                                                                                                                               |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| language       | `src/languages/grammars.ts` + a query in `src/languages/queries/`, then `src/languages/index.ts`                                                   |
-| theme          | palette file in `src/themes/`, usually via `defineTheme()` in `src/themes/builder.ts`, then register it in `src/themes/registry.ts`                |
-| setting        | `src/core/config.ts` (`Config`, `DEFAULTS`, `parse`)                                                                                               |
-| command        | `src/app/commands.ts` + wire handlers in `src/app/appCommands.ts`, `src/app/appControls.ts`, `src/app/fileActions.ts` or `src/app/gitCommands.ts`  |
-| keybinding     | handler in `src/app/keyboard.ts` or `src/ui/editorKeymap.ts`, advertised in `src/ui/keys.ts` (feeds the footer hints, help overlay and Alt+/ peek) |
+| Want to add a… | Edit                                                                                                                                                |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| language       | `src/languages/grammars.ts` + a query in `src/languages/queries/`, then `src/languages/index.ts`                                                    |
+| theme          | palette file in `src/themes/`, usually via `defineTheme()` in `src/themes/builder.ts`, then register it in `src/themes/registry.ts`                 |
+| setting        | `src/core/config.ts` (`Config`, `DEFAULTS`, `parse`)                                                                                                |
+| command        | `src/app/commands.ts` + wire handlers in `src/app/appCommands.ts`, `src/app/appControls.ts`, `src/app/fileActions.ts` or `src/app/gitCommands.ts`   |
+| keybinding     | handler in `src/app/keyboard.ts` or `src/ui/editorKeymap.ts`, advertised in `src/ui/keys.ts` (feeds the footer hints, help overlay and Ctrl+K peek) |
 
 `src/app/commands.ts` is the feature index — read it to learn what the editor can do.
 

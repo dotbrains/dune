@@ -27,11 +27,11 @@ export interface KeyInfo {
 
 export const KEYS: KeyInfo[] = [
 	{
-		key: 'Ctrl+P',
+		key: 'F1 · Ctrl+P',
 		label: 'Command palette (+ themes)',
 		section: 'General',
 		where: 'all',
-		hint: { pane: 'all', label: 'commands', rank: 0 },
+		hint: { pane: 'all', label: 'commands', rank: 0, key: 'F1' },
 	},
 	{
 		key: 'Ctrl+K',

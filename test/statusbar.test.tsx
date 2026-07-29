@@ -84,14 +84,14 @@ describe('the status bar', () => {
 
 		expect(row).not.toContain('⎇');
 		expect(row).toContain('ts');
-		expect(row.trimStart().startsWith('Ctrl+P')).toBe(true);
+		expect(row.trimStart().startsWith('F1')).toBe(true);
 	});
 });
 
 describe('the hints follow the focus', () => {
 	test('the tree advertises tree keys', async () => {
 		const row = bar(await launch(fixture({ 'a.ts': 'x\n' })));
-		expect(row).toContain('Ctrl+P');
+		expect(row).toContain('F1');
 		expect(row).toContain('Enter');
 		expect(row).toContain('new file');
 	});

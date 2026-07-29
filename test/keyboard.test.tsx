@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { fixture, launch, press, pressEscape } from './helpers';
+import { F1, fixture, launch, press, pressEscape } from './helpers';
 import type { Harness } from './helpers';
 
 type Input = Harness['mockInput'];
@@ -33,6 +33,10 @@ describe('focus after an overlay closes', () => {
 	test(
 		'after the command palette',
 		reopensTyping((i) => i.pressKey('p', { ctrl: true })),
+	);
+	test(
+		'after the command palette opened with F1',
+		reopensTyping((i) => void i.pressKeys([F1])),
 	);
 	test(
 		'after find in file',

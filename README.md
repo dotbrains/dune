@@ -78,7 +78,7 @@ dune update           # upgrade this installation
 
 | Key                 | Action                |
 | ------------------- | --------------------- |
-| `Ctrl+P`            | Command palette       |
+| `F1` / `Ctrl+P`     | Command palette       |
 | `Ctrl+K`            | Peek active shortcuts |
 | `Ctrl+O`            | Open a file           |
 | `Ctrl+T`            | Switch tabs           |
