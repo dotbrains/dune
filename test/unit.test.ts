@@ -5,6 +5,7 @@ import { join } from 'node:path';
 
 import { buildCommands, flattenCommands } from '../src/app/commands';
 import type { CommandActions } from '../src/app/commands';
+import { unifiedDiff } from '../src/core/diff';
 import { readFile } from '../src/core/fs';
 import { searchProject, searchText } from '../src/core/search';
 import { isNewer } from '../src/core/update';
@@ -45,6 +46,18 @@ describe('files', () => {
 		const dir = mkdtempSync(join(tmpdir(), 'dune-'));
 		writeFileSync(join(dir, 'bin'), Buffer.from([0x89, 0x50, 0x00, 0x01]));
 		expect(() => readFile(join(dir, 'bin'))).toThrow('binary file');
+	});
+});
+
+describe('diffs', () => {
+	test('line insertions do not turn the rest of the file into a rewrite', () => {
+		const diff = unifiedDiff('a.ts', 'one\ntwo\nthree\n', 'one\ninserted\ntwo\nthree\n');
+
+		expect(diff.adds).toBe(1);
+		expect(diff.dels).toBe(0);
+		expect(diff.patch).toContain('+inserted');
+		expect(diff.patch).toContain(' two');
+		expect(diff.patch).not.toContain('-two');
 	});
 });
 

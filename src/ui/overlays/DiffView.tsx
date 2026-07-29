@@ -2,6 +2,7 @@ import type { KeyEvent } from '@opentui/core';
 import { useKeyboard, useTerminalDimensions } from '@opentui/solid';
 import { createMemo, createSignal, For, Show } from 'solid-js';
 
+import { splitText, unifiedDiff } from '../../core/diff';
 import type { DiffFile } from '../../core/git';
 import { ui } from '../../themes';
 import { listRows, modalWidth, PAD } from '../modal';
@@ -15,54 +16,61 @@ interface DiffLine {
 type DiffMode = 'inline' | 'split';
 
 function lines(text: string): string[] {
-	if (text.length === 0) return [];
-	const out = text.split('\n');
-	if (out.at(-1) === '') out.pop();
-	return out;
+	return splitText(text);
 }
 
 function unified(file: DiffFile): DiffLine[] {
-	const oldLines = lines(file.oldText);
-	const newLines = lines(file.newText);
-	const rows: DiffLine[] = [
-		{ kind: 'meta', text: `--- ${oldLines.length === 0 ? '/dev/null' : `a/${file.rel}`}` },
-		{ kind: 'meta', text: `+++ ${newLines.length === 0 ? '/dev/null' : `b/${file.rel}`}` },
-	];
-	let oldAt = 0;
-	let newAt = 0;
-	while (oldAt < oldLines.length || newAt < newLines.length) {
-		if (oldLines[oldAt] === newLines[newAt]) {
-			rows.push({ kind: 'same', text: `  ${oldLines[oldAt++]}` });
-			newAt++;
-		} else {
-			if (oldAt < oldLines.length) rows.push({ kind: 'del', text: `- ${oldLines[oldAt++]}` });
-			if (newAt < newLines.length) rows.push({ kind: 'add', text: `+ ${newLines[newAt++]}` });
-		}
-	}
-	return rows;
+	return lines(unifiedDiff(file.rel, file.oldText, file.newText).patch).map((text) => ({
+		text: `${text[0] === '+' || text[0] === '-' ? `${text[0]} ` : text[0] === ' ' ? '  ' : ''}${text.slice(text[0] === '@' ? 0 : 1)}`,
+		kind:
+			text.startsWith('---') || text.startsWith('+++') || text[0] === '@'
+				? 'meta'
+				: text[0] === '+'
+					? 'add'
+					: text[0] === '-'
+						? 'del'
+						: 'same',
+	}));
 }
 
 function split(file: DiffFile, width: number): DiffLine[] {
-	const oldLines = lines(file.oldText);
-	const newLines = lines(file.newText);
 	const leftWidth = Math.max(16, Math.floor((width - PAD * 2 - 5) / 2));
-	const rows: DiffLine[] = [
-		{ kind: 'meta', text: `--- ${oldLines.length === 0 ? '/dev/null' : `a/${file.rel}`}` },
-		{ kind: 'meta', text: `+++ ${newLines.length === 0 ? '/dev/null' : `b/${file.rel}`}` },
-	];
-	const max = Math.max(oldLines.length, newLines.length);
-	for (let at = 0; at < max; at++) {
-		const before = oldLines[at] ?? '';
-		const after = newLines[at] ?? '';
-		const kind =
-			before === after ? 'same' : before.length === 0 ? 'add' : after.length === 0 ? 'del' : 'add';
-		rows.push({
-			kind,
-			text: `${before === after ? ' ' : '-'} ${before.slice(0, leftWidth).padEnd(leftWidth)} │ ${
-				before === after ? ' ' : '+'
-			} ${after}`,
-		});
+	const rows: DiffLine[] = [];
+	const deletes: string[] = [];
+	const additions: string[] = [];
+	const flush = () => {
+		const max = Math.max(deletes.length, additions.length);
+		for (let at = 0; at < max; at++) {
+			const before = deletes[at] ?? '';
+			const after = additions[at] ?? '';
+			rows.push({
+				kind: before && !after ? 'del' : after ? 'add' : 'same',
+				text: `${before ? '-' : ' '} ${before.slice(0, leftWidth).padEnd(leftWidth)} │ ${
+					after ? '+' : ' '
+				} ${after}`,
+			});
+		}
+		deletes.length = 0;
+		additions.length = 0;
+	};
+	for (const line of lines(unifiedDiff(file.rel, file.oldText, file.newText).patch)) {
+		if (line.startsWith('---') || line.startsWith('+++')) {
+			flush();
+			rows.push({ kind: 'meta', text: line });
+		} else if (line[0] === '-') deletes.push(line.slice(1));
+		else if (line[0] === '+') additions.push(line.slice(1));
+		else {
+			flush();
+			if (line[0] === ' ') {
+				const text = line.slice(1);
+				rows.push({
+					kind: 'same',
+					text: `  ${text.slice(0, leftWidth).padEnd(leftWidth)} │   ${text}`,
+				});
+			} else rows.push({ kind: 'meta', text: line });
+		}
 	}
+	flush();
 	return rows;
 }
 
@@ -73,12 +81,13 @@ export function DiffView(props: { files: DiffFile[]; mode: DiffMode; onClose: ()
 	const width = () => modalWidth(dimensions().width, 0.82, 76, 120);
 	const visibleRows = () => listRows(dimensions().height, 7, 24);
 	const file = () => props.files[index()] ?? props.files[0]!;
+	const diff = createMemo(() => unifiedDiff(file().rel, file().oldText, file().newText));
 	const body = createMemo(() =>
 		props.mode === 'split' ? split(file(), width()) : unified(file()),
 	);
 	const counts = () => ({
-		adds: body().filter((row) => row.kind === 'add').length,
-		dels: body().filter((row) => row.kind === 'del').length,
+		adds: diff().adds,
+		dels: diff().dels,
 	});
 	const maxTop = () => Math.max(0, body().length - visibleRows());
 	const page = (delta: number) => setTop((at) => Math.max(0, Math.min(maxTop(), at + delta)));
