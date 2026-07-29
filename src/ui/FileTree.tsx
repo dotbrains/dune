@@ -269,12 +269,12 @@ export function FileTree(props: FileTreeProps) {
 									</Show>
 								</box>
 								<Show when={status()}>
-									{(status: () => FileStatus) => (
+									{(entryStatus: () => FileStatus) => (
 										<text
-											fg={statusColor(status())}
+											fg={statusColor(entryStatus())}
 											bg={bg()}
 											flexShrink={0}
-											content={`${MARKS[status()]} `}
+											content={`${MARKS[entryStatus()]} `}
 										/>
 									)}
 								</Show>

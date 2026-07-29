@@ -1,15 +1,21 @@
 import { describe, expect, test } from 'bun:test';
-import { execFileSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { DEFAULTS, SIDEBAR_MIN } from '../src/core/config';
 import { ui } from '../src/themes';
+import { git as runGit } from './git-fixture';
 import { fixture, launch, press, settle } from './helpers';
 import type { Harness } from './helpers';
 
 const PROJECT = { 'alpha.ts': 'const a = 1\n', 'beta.ts': 'const b = 2\n' };
+const OVERFLOW_NAMES = {
+	'tests/b.ts': 'x\n',
+	'tests/config.ts': 'x\n',
+	'tests/ctrl-c-really-long-name.ts': 'x\n',
+	'tests/deeply-long-filename-here.ts': 'x\n',
+};
 
 interface Span {
 	text: string;
@@ -20,6 +26,12 @@ const hex = (bg: Span['bg']) =>
 	bg
 		? `#${Array.from(bg.buffer.slice(0, 3), (v) => v.toString(16).padStart(2, '0')).join('')}`
 		: '';
+const bulletColumns = (t: Harness) =>
+	t
+		.captureCharFrame()
+		.split('\n')
+		.map((row) => row.indexOf('·'))
+		.filter((at) => at >= 0);
 
 /**
  * Column the tree ends at, found by where the panel background stops. The drag
@@ -151,7 +163,7 @@ describe('what must not move when the sidebar does', () => {
 
 	test('git marks line up at the panel edge, and follow it on a resize', async () => {
 		const dir = mkdtempSync(join(tmpdir(), 'dune-marks-'));
-		const git = (...args: string[]) => execFileSync('git', args, { cwd: dir });
+		const git = (...args: string[]) => runGit(dir, ...args);
 		git('init', '-q', '-b', 'main');
 		git('config', 'user.email', 't@e.com');
 		git('config', 'user.name', 'T');
@@ -190,24 +202,9 @@ describe('what must not move when the sidebar does', () => {
 });
 
 describe('rows hold their shape when names overflow', () => {
-	/** Long and short names nested together, so overflow differs row to row. */
-	const NAMES = {
-		'tests/b.ts': 'x\n',
-		'tests/config.ts': 'x\n',
-		'tests/ctrl-c-really-long-name.ts': 'x\n',
-		'tests/deeply-long-filename-here.ts': 'x\n',
-	};
-
-	const bulletColumns = (t: Harness) =>
-		t
-			.captureCharFrame()
-			.split('\n')
-			.map((row) => row.indexOf('·'))
-			.filter((at) => at >= 0);
-
 	test('the bullet sits at one column whatever the names do', async () => {
 		// Narrow enough that the long names cannot fit.
-		const t = await launch(fixture(NAMES), { ...DEFAULTS, sidebarWidth: 22 });
+		const t = await launch(fixture(OVERFLOW_NAMES), { ...DEFAULTS, sidebarWidth: 22 });
 		await press(t, (input) => input.pressArrow('down'));
 		await press(t, (input) => input.pressEnter());
 		await settle(t);
@@ -218,7 +215,7 @@ describe('rows hold their shape when names overflow', () => {
 	});
 
 	test('and keeps that column across a resize', async () => {
-		const t = await launch(fixture(NAMES), { ...DEFAULTS, sidebarWidth: 22 });
+		const t = await launch(fixture(OVERFLOW_NAMES), { ...DEFAULTS, sidebarWidth: 22 });
 		await press(t, (input) => input.pressArrow('down'));
 		await press(t, (input) => input.pressEnter());
 		await settle(t);

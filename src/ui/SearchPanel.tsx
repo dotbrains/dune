@@ -44,6 +44,12 @@ const CONTEXT = 2;
  */
 const SCAN_DEBOUNCE_MS = 140;
 
+interface SlicedLine {
+	text: string;
+	col: number;
+	cut: boolean;
+}
+
 /**
  * A file heading, or one of its matches. `at` indexes into `matches()` — a heading
  * points at the first of its own, so the summary and preview read the same off both.
@@ -55,6 +61,12 @@ type Row =
 
 /** An open file's heading is scenery; a folded one stands in for its matches. */
 const selectable = (row: Row) => row.kind === 'match' || row.folded;
+
+const sliceAround = (text: string, col: number, room: number): SlicedLine => {
+	if (text.length <= room) return { text, col, cut: false };
+	const start = Math.max(0, Math.min(col - 12, text.length - room));
+	return { text: text.slice(start, start + room), col: col - start, cut: start > 0 };
+};
 
 export function SearchPanel(props: SearchPanelProps) {
 	const dimensions = useTerminalDimensions();
@@ -161,7 +173,9 @@ export function SearchPanel(props: SearchPanelProps) {
 		});
 		// The rows just moved under the selection: folding takes its matches away, so
 		// land on the heading that now stands for them, and unfolding gives them back.
-		const heading = rows().findIndex((row) => row.kind === 'file' && row.path === path);
+		const heading = rows().findIndex(
+			(candidate) => candidate.kind === 'file' && candidate.path === path,
+		);
 		if (heading >= 0) setIndex(folding ? heading : heading + 1);
 	};
 
@@ -285,17 +299,6 @@ export function SearchPanel(props: SearchPanelProps) {
 	};
 
 	const label = (path: string) => relative(props.rootDir, path) || basename(path);
-
-	/**
-	 * The line, cut to `room` around the match rather than from column 0. A hit 200
-	 * columns into a minified line was simply not in the old fixed 38-column slice, so
-	 * the row showed the query's own result without the query in it.
-	 */
-	const sliceAround = (text: string, col: number, room: number) => {
-		if (text.length <= room) return { text, col, cut: false };
-		const start = Math.max(0, Math.min(col - 12, text.length - room));
-		return { text: text.slice(start, start + room), col: col - start, cut: start > 0 };
-	};
 
 	return (
 		<Overlay zIndex={150}>

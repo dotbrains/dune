@@ -1,77 +1,22 @@
 /**
- * Theme registry — the single place to add a color scheme.
+ * Theme runtime state.
  *
- * To add one: copy `github-dark.ts`, adjust the colors, then register it in
- * `THEMES` below. It shows up in the command palette automatically.
+ * To add one: define a palette file and register it in `registry.ts`. It shows
+ * up in the command palette automatically.
  */
 import type { StyleDefinitionInput } from '@opentui/core';
 import { createStore } from 'solid-js/store';
 
-import { ayuDark } from './ayu-dark';
-import { ayuLight } from './ayu-light';
-import { ayuMirage } from './ayu-mirage';
-import { catppuccinFrappe } from './catppuccin-frappe';
-import { catppuccinLatte } from './catppuccin-latte';
-import { catppuccinMacchiato } from './catppuccin-macchiato';
-import { catppuccinMocha } from './catppuccin-mocha';
-import { dracula } from './dracula';
-import { everforestDark } from './everforest-dark';
-import { everforestLight } from './everforest-light';
-import { githubDark } from './github-dark';
-import { githubLight } from './github-light';
-import { gruvboxDark } from './gruvbox-dark';
-import { gruvboxLight } from './gruvbox-light';
-import { kanagawaDragon } from './kanagawa-dragon';
-import { kanagawaLotus } from './kanagawa-lotus';
-import { kanagawaWave } from './kanagawa-wave';
-import { nord } from './nord';
-import { oneDark } from './one-dark';
-import { rosePine } from './rose-pine';
-import { rosePineDawn } from './rose-pine-dawn';
-import { rosePineMoon } from './rose-pine-moon';
-import { solarizedDark } from './solarized-dark';
-import { solarizedLight } from './solarized-light';
-import { tokyoNight } from './tokyo-night';
+import { THEME_ENTRIES, THEMES } from './registry';
 import type { Theme, ThemeUi } from './types';
-import { vesper } from './vesper';
 
+export { THEME_ENTRIES, THEMES } from './registry';
 export type { Theme, ThemeUi };
-
-// Mocha before Macchiato: the palette matches a query in order, so the flavor
-// whose name is a prefix of the other's search hits must come first.
-export const THEMES = {
-	dark: githubDark,
-	light: githubLight,
-	'ayu-dark': ayuDark,
-	'ayu-mirage': ayuMirage,
-	'ayu-light': ayuLight,
-	'catppuccin-mocha': catppuccinMocha,
-	'catppuccin-macchiato': catppuccinMacchiato,
-	'catppuccin-frappe': catppuccinFrappe,
-	'catppuccin-latte': catppuccinLatte,
-	dracula,
-	'everforest-dark': everforestDark,
-	'everforest-light': everforestLight,
-	gruvbox: gruvboxDark,
-	'gruvbox-light': gruvboxLight,
-	'kanagawa-wave': kanagawaWave,
-	'kanagawa-dragon': kanagawaDragon,
-	'kanagawa-lotus': kanagawaLotus,
-	nord,
-	'one-dark': oneDark,
-	'rose-pine': rosePine,
-	'rose-pine-moon': rosePineMoon,
-	'rose-pine-dawn': rosePineDawn,
-	'solarized-dark': solarizedDark,
-	'solarized-light': solarizedLight,
-	'tokyo-night': tokyoNight,
-	vesper,
-};
 
 export type ThemeName = keyof typeof THEMES;
 
 export const themeLabels = Object.fromEntries(
-	Object.entries(THEMES).map(([id, theme]) => [id, theme.name]),
+	THEME_ENTRIES.map(([id, theme]) => [id, theme.name]),
 ) as Record<ThemeName, string>;
 
 const DEFAULT: ThemeName = 'dark';

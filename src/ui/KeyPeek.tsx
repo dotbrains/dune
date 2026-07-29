@@ -21,8 +21,8 @@ export function KeyPeek(props: { pane: 'tree' | 'editor' }) {
 		const keyWidth = Math.max(...entries.map((entry) => entry.key.length));
 
 		// Column-major, so the strip reads top to bottom like the help table.
-		const grid = Array.from({ length: rows }, (_, row) =>
-			Array.from({ length: cols }, (_, col) => entries[col * rows + row]).filter(
+		const grid = Array.from({ length: rows }, (_rowSlot, row) =>
+			Array.from({ length: cols }, (_colSlot, col) => entries[col * rows + row]).filter(
 				(entry) => entry !== undefined,
 			),
 		);

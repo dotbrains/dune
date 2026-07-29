@@ -14,11 +14,13 @@ type Line =
 	| { kind: 'gap' };
 
 /** The sections flattened to display lines, so one window can scroll them all. */
-const LINES: Line[] = SECTIONS.flatMap((section, index) => [
-	...(index > 0 ? [{ kind: 'gap' } as const] : []),
-	{ kind: 'header', text: section.title } as const,
-	...section.rows.map(([key, label]) => ({ kind: 'key', key, label }) as const),
-]);
+const LINES: Line[] = SECTIONS.flatMap((section, index) => {
+	const lines: Line[] = [];
+	if (index > 0) lines.push({ kind: 'gap' });
+	lines.push({ kind: 'header', text: section.title });
+	for (const [key, label] of section.rows) lines.push({ kind: 'key', key, label });
+	return lines;
+});
 
 export function HelpOverlay() {
 	const dimensions = useTerminalDimensions();

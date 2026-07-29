@@ -109,7 +109,7 @@ changed files.
 | `src/editor/`    | Text buffer, edits, history, selection, windowing, and vim logic    |
 | `src/core/`      | CLI parsing, filesystem, config, git, updates, sessions, and search |
 | `src/languages/` | Tree-sitter grammar registry, queries, and highlighting             |
-| `src/themes/`    | Theme definitions                                                   |
+| `src/themes/`    | Theme builders, palette files, registry, and runtime theme state    |
 | `bin/`           | npm launcher, install-time binary fetcher, and platform detection   |
 | `scripts/`       | Release archive and Homebrew formula generation                     |
 | `test/`          | Bun unit and off-screen TUI tests                                   |

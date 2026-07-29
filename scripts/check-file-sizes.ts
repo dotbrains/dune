@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 
 interface BudgetFile {
@@ -15,6 +15,7 @@ const suffix = /\.(ts|tsx|js|mjs|json|md|yml|yaml|toml|sh)$/;
 let failed = false;
 for (const file of tracked.stdout.trim().split('\n').filter(Boolean)) {
 	if (!suffix.test(file) || excluded.some((pattern) => pattern.test(file))) continue;
+	if (!existsSync(file)) continue;
 	const lines = readFileSync(file, 'utf8').split('\n').length - 1;
 	const limit = budget.files?.[file] ?? budget.default_lines;
 	if (lines > limit) {

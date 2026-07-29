@@ -6,6 +6,12 @@ import type { ThemeName } from '../src/themes';
 import { fixture, launch, press } from './helpers';
 import type { Harness } from './helpers';
 
+const rgb = (c: { buffer: Record<string, number> }) => [
+	c.buffer['0']!,
+	c.buffer['1']!,
+	c.buffer['2']!,
+];
+
 /** Foreground/background of the span containing `needle`, as [r,g,b] pairs. */
 function spanColors(t: Harness, needle: string) {
 	const capture = t.captureSpans() as unknown as {
@@ -20,12 +26,7 @@ function spanColors(t: Harness, needle: string) {
 	for (const line of capture.lines) {
 		for (const span of line.spans) {
 			if (span.text.includes(needle) && span.fg && span.bg) {
-				const at = (c: { buffer: Record<string, number> }) => [
-					c.buffer['0']!,
-					c.buffer['1']!,
-					c.buffer['2']!,
-				];
-				return { fg: at(span.fg), bg: at(span.bg) };
+				return { fg: rgb(span.fg), bg: rgb(span.bg) };
 			}
 		}
 	}

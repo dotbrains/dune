@@ -39,6 +39,9 @@ const TONE_COLORS: Record<Tone, () => string> = {
 
 const SEPARATOR = '  ';
 
+/** A group's columns: its text plus the two of padding every group carries. */
+const groupWidth = (text: string) => (text ? text.length + 2 : 0);
+
 export function StatusBar(props: StatusBarProps) {
 	const dimensions = useTerminalDimensions();
 
@@ -77,9 +80,6 @@ export function StatusBar(props: StatusBarProps) {
 
 	const cursorText = () =>
 		props.cursor ? `Ln ${props.cursor.line + 1}, Col ${props.cursor.col + 1}` : '';
-
-	/** A group's columns: its text plus the two of padding every group carries. */
-	const groupWidth = (text: string) => (text ? text.length + 2 : 0);
 
 	/** Everything that never gives way — the vim badge, git, and the right-hand groups. */
 	const fixedWidth = createMemo(

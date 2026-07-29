@@ -1,17 +1,17 @@
 import { describe, expect, test } from 'bun:test';
-import { execFileSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { DEFAULTS } from '../src/core/config';
+import { git as runGit } from './git-fixture';
 import { fixture, launch, press, pressEscape, settle } from './helpers';
 import type { Harness } from './helpers';
 
 /** A repo with one committed file, one edit and one untracked file. */
 function repo() {
 	const dir = mkdtempSync(join(tmpdir(), 'dune-bar-'));
-	const git = (...args: string[]) => execFileSync('git', args, { cwd: dir });
+	const git = (...args: string[]) => runGit(dir, ...args);
 	git('init', '-q', '-b', 'main');
 	git('config', 'user.email', 't@e.com');
 	git('config', 'user.name', 'T');
@@ -24,6 +24,7 @@ function repo() {
 }
 
 const bar = (t: Harness) => t.captureCharFrame().split('\n').at(-2) ?? '';
+const countHints = (row: string) => (row.match(/Ctrl\+|Enter |↑↓/g) ?? []).length;
 
 async function openFirst(t: Harness, name: string) {
 	await press(t, (input) => input.pressKey('o', { ctrl: true }));
@@ -120,8 +121,6 @@ describe('the hints follow the focus', () => {
 });
 
 describe('the hints are what gives way when space runs out', () => {
-	const countHints = (row: string) => (row.match(/Ctrl\+|Enter |↑↓/g) ?? []).length;
-
 	test('a message takes precedence over them', async () => {
 		// Narrow on purpose: at a full-width terminal every hint fits beside the
 		// message and nothing has to give way.

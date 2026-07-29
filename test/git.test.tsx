@@ -5,12 +5,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { currentBranch, diffLines, statusMap } from '../src/core/git';
+import { git as runGit } from './git-fixture';
 import { launch, press } from './helpers';
 
 /** A real repository with one committed file. */
 function repo(committed: string) {
 	const dir = mkdtempSync(join(tmpdir(), 'dune-git-'));
-	const git = (...args: string[]) => execFileSync('git', args, { cwd: dir });
+	const git = (...args: string[]) => runGit(dir, ...args);
 	git('init', '-q', '-b', 'main');
 	git('config', 'user.email', 'test@example.com');
 	git('config', 'user.name', 'Test');

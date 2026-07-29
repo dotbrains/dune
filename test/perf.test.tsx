@@ -18,6 +18,12 @@ const BIG = `settings:\n  autoInstallPeers: true\n  excludeLinksFromLockfile: fa
 
 const rgb = (hex: string) =>
 	[0, 2, 4].map((i) => Number.parseInt(hex.replace('#', '').slice(i, i + 2), 16)).join(',');
+const averageRunTime = (runs: number, fn: () => void) => {
+	fn();
+	const started = performance.now();
+	for (let n = 0; n < runs; n++) fn();
+	return (performance.now() - started) / runs;
+};
 
 test('a large file opens quickly and is highlighted', async () => {
 	const started = performance.now();
@@ -73,16 +79,9 @@ test('segmenting one line costs a fraction of segmenting the whole file', async 
 	).join('\n')}\n`;
 
 	const parsed = await parseHighlights(source, 'typescript');
-	const time = (runs: number, fn: () => void) => {
-		fn(); // warm
-		const started = performance.now();
-		for (let n = 0; n < runs; n++) fn();
-		return (performance.now() - started) / runs;
-	};
-
-	const whole = time(5, () => void segmentsIn(parsed, 0, WHOLE));
+	const whole = averageRunTime(5, () => void segmentsIn(parsed, 0, WHOLE));
 	let line = 4000;
-	const one = time(50, () => void segmentsIn(parsed, line, line++));
+	const one = averageRunTime(50, () => void segmentsIn(parsed, line, line++));
 
 	expect(`${whole.toFixed(2)}ms whole vs ${one.toFixed(3)}ms per line: ${whole / one > 20}`).toBe(
 		`${whole.toFixed(2)}ms whole vs ${one.toFixed(3)}ms per line: true`,

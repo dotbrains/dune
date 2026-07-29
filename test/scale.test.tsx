@@ -12,6 +12,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { statusMap } from '../src/core/git';
+import { git as runGit } from './git-fixture';
 import { launch, press, settle } from './helpers';
 
 /** Past the point where an unwindowed view exhausts the core's renderables. */
@@ -29,6 +30,7 @@ const nthEntry = (count: number, index: number) =>
 	Array.from({ length: count }, (_, i) => `f${i}.ts`).toSorted((a, b) => a.localeCompare(b))[
 		index
 	]!;
+const statusName = (i: number) => `f${String(i).padStart(6, '0')}-${'n'.repeat(100)}.ts`;
 
 describe('the file tree', () => {
 	// Not shared between tests: the session is keyed by project path, so a second
@@ -68,24 +70,17 @@ describe('git output size', () => {
 		execFileSync('git', ['init', '-q', '-b', 'main'], { cwd: dir });
 
 		// ~130 bytes of porcelain per entry, so this clears 1 MB comfortably.
-		const name = (i: number) => `f${String(i).padStart(6, '0')}-${'n'.repeat(100)}.ts`;
 		const count = 9000;
 		mkdirSync(join(dir, 'many'));
 		// One tracked file inside it, or git folds the whole untracked directory into a
 		// single `?? many/` line and there is nothing large to read.
 		writeFileSync(join(dir, 'many', '.keep'), '');
 		execFileSync('git', ['add', '-A'], { cwd: dir });
-		execFileSync(
-			'git',
-			['-c', 'user.email=t@e.com', '-c', 'user.name=T', 'commit', '-qm', 'init'],
-			{
-				cwd: dir,
-			},
-		);
-		for (let i = 0; i < count; i++) writeFileSync(join(dir, 'many', name(i)), 'x\n');
+		runGit(dir, '-c', 'user.email=t@e.com', '-c', 'user.name=T', 'commit', '-qm', 'init');
+		for (let i = 0; i < count; i++) writeFileSync(join(dir, 'many', statusName(i)), 'x\n');
 
 		const statuses = statusMap(dir);
 		expect(statuses.size).toBe(count);
-		expect(statuses.get(join(dir, 'many', name(count - 1)))).toBe('untracked');
+		expect(statuses.get(join(dir, 'many', statusName(count - 1)))).toBe('untracked');
 	}, 120000);
 });

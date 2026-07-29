@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'bun:test';
-import { execFileSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { watchTree } from '../src/core/fs';
+import { git as runGit } from './git-fixture';
 import { launch, settle } from './helpers';
 import type { Harness } from './helpers';
 
@@ -13,7 +13,7 @@ const watcherSettles = (t: Harness) => settle(t, 400);
 
 function repo() {
 	const dir = mkdtempSync(join(tmpdir(), 'dune-outside-'));
-	const git = (...args: string[]) => execFileSync('git', args, { cwd: dir });
+	const git = (...args: string[]) => runGit(dir, ...args);
 	git('init', '-q', '-b', 'main');
 	git('config', 'user.email', 't@e.com');
 	git('config', 'user.name', 'T');

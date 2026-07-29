@@ -36,7 +36,7 @@ The CLI parses process arguments and identifies the starting workspace. `src/ind
 | `src/editor`    | Pure or mostly pure editor operations                                                      | Prefer this folder for line math, history, typing, vim, and change-map logic.              |
 | `src/ui`        | OpenTUI/Solid components                                                                   | Components should receive data and callbacks rather than reaching up into app state.       |
 | `src/languages` | Tree-sitter grammar and query integration                                                  | Changes here affect highlight behavior and parser cost.                                    |
-| `src/themes`    | Theme palettes and theme registry                                                          | Each theme should remain a small standalone palette file.                                  |
+| `src/themes`    | Theme palettes, shared theme builders, runtime theme state, and the registry               | Use `builder.ts` for semantic palettes; keep one-off ports as small standalone files.      |
 | `test`          | Behavior and integration tests                                                             | Tests are intentionally flat so individual behavior surfaces are easy to run.              |
 | `scripts`       | Repository automation                                                                      | Budget, release, and packaging scripts live here.                                          |
 
@@ -57,6 +57,31 @@ flowchart LR
   Editor -. forbidden .-> App
   UI -. forbidden .-> App
 ```
+
+## Theme System
+
+Themes have three layers:
+
+```mermaid
+flowchart TD
+  Palette[theme palette file] --> Registry[src/themes/registry.ts]
+  Builder[src/themes/builder.ts] --> Palette
+  Registry --> Runtime[src/themes/index.ts]
+  Runtime --> Chrome[ui store]
+  Runtime --> Syntax[syntaxTheme table]
+  Chrome --> Components[src/ui + src/app/AppView.tsx]
+  Syntax --> Highlight[src/languages/highlight.ts]
+```
+
+`registry.ts` is the catalog. Adding an entry there makes the theme available to config
+validation and to the command palette. `index.ts` owns mutable runtime state: `ui` is a
+Solid store for chrome colors, while `syntaxTheme` is an imperative table rebuilt when
+the active theme changes.
+
+Prefer `defineTheme()` from `builder.ts` when a palette can be described with semantic
+roles such as `bg`, `accent`, `keyword`, `string`, and `gitAdded`. It fills every chrome
+key and syntax group consistently. Keep hand-written theme objects only when a port needs
+capture-specific choices that the semantic roles would hide.
 
 The rule is simple: lower-level modules must not import from `src/app`. If a component needs a new behavior, add a callback prop from the app layer or move the reusable operation into `src/core`, `src/editor`, or a local helper module. This keeps app state visible at the top while preserving testable lower-level functions.
 
@@ -190,7 +215,7 @@ Prefer returning structured results from lower-level modules over throwing throu
 
 ## LOC Budget Boundaries
 
-The enforced source budget is 999 lines per tracked source, docs, script, workflow, JSON, TOML, or shell file. This is a hard maintenance constraint, not just a CI preference.
+The enforced source budget is 500 lines per tracked source, docs, script, workflow, JSON, TOML, or shell file. This is a hard maintenance constraint, not just a CI preference.
 
 | Responsibility                      | Module                                                             |
 | ----------------------------------- | ------------------------------------------------------------------ |

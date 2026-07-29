@@ -1,11 +1,15 @@
 import { afterAll, expect, test } from 'bun:test';
 
 import { getSyntaxStyle, invalidateSyntaxStyle } from '../src/languages/highlight';
-import { setTheme, syntaxTheme, THEMES } from '../src/themes';
+import { setTheme, syntaxTheme, THEME_ENTRIES, THEMES } from '../src/themes';
 import type { ThemeName } from '../src/themes';
+import type { ThemeUi } from '../src/themes/types';
 import { fixture, launch, press } from './helpers';
 import type { Harness } from './helpers';
 import { allSegments } from './syntax';
+
+const spanRgb = (c?: { buffer: Record<string, number> }) =>
+	c ? `${c.buffer['0']},${c.buffer['1']},${c.buffer['2']}` : '';
 
 /** Every distinct background/foreground currently on screen, as "r,g,b". */
 function colors(t: Harness) {
@@ -18,13 +22,11 @@ function colors(t: Harness) {
 			}[];
 		}[];
 	};
-	const rgb = (c?: { buffer: Record<string, number> }) =>
-		c ? `${c.buffer['0']},${c.buffer['1']},${c.buffer['2']}` : '';
 	const seen = new Set<string>();
 	for (const line of capture.lines) {
 		for (const span of line.spans) {
-			if (span.bg) seen.add(rgb(span.bg));
-			if (span.fg && span.text.trim()) seen.add(rgb(span.fg));
+			if (span.bg) seen.add(spanRgb(span.bg));
+			if (span.fg && span.text.trim()) seen.add(spanRgb(span.fg));
 		}
 	}
 	return seen;
@@ -40,6 +42,14 @@ afterAll(() => {
 const hexToRgb = (hex: string) => {
 	const h = hex.replace('#', '');
 	return `${Number.parseInt(h.slice(0, 2), 16)},${Number.parseInt(h.slice(2, 4), 16)},${Number.parseInt(h.slice(4, 6), 16)}`;
+};
+
+const themeIds = () => Object.keys(THEMES) as ThemeName[];
+
+const luminance = (hex: string) => {
+	const h = hex.replace('#', '');
+	const [r, g, b] = [0, 2, 4].map((i) => Number.parseInt(h.slice(i, i + 2), 16) / 255);
+	return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
 };
 
 async function switchTheme(t: Harness, query: string) {
@@ -67,7 +77,7 @@ test('switching theme repaints chrome and syntax', async () => {
 test("switching themes never leaves a previous theme's colors behind", async () => {
 	// A merge instead of a replace used to keep groups the new theme omits, which
 	// renders as invisible text whenever the switch flips light/dark.
-	for (const name of Object.keys(THEMES) as ThemeName[]) {
+	for (const name of themeIds()) {
 		setTheme(name);
 		invalidateSyntaxStyle();
 		expect(Object.keys(syntaxTheme).toSorted()).toEqual(
@@ -78,13 +88,8 @@ test("switching themes never leaves a previous theme's colors behind", async () 
 
 test('plain identifiers stay readable against the background in every theme', async () => {
 	const source = 'export const config = {\n  someKey: 1,\n}\n';
-	const luminance = (hex: string) => {
-		const h = hex.replace('#', '');
-		const [r, g, b] = [0, 2, 4].map((i) => Number.parseInt(h.slice(i, i + 2), 16) / 255);
-		return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
-	};
 
-	for (const name of Object.keys(THEMES) as ThemeName[]) {
+	for (const name of themeIds()) {
 		setTheme(name);
 		invalidateSyntaxStyle();
 		const segments = await allSegments(source, 'typescript', 2);
@@ -104,3 +109,42 @@ test('plain identifiers stay readable against the background in every theme', as
 		}
 	}
 }, 20000);
+
+test('theme registry exposes every palette with stable chrome keys', () => {
+	const uiKeys = Object.keys(THEMES.dark.ui).toSorted() as (keyof ThemeUi)[];
+	expect(themeIds()).toContain('iceberg-dark');
+	expect(themeIds()).toContain('iceberg-light');
+	expect(themeIds()).toContain('monokai');
+	expect(themeIds()).toContain('night-owl');
+
+	for (const name of themeIds()) {
+		expect(`${name}:${Object.keys(THEMES[name].ui).toSorted().join(',')}`).toBe(
+			`${name}:${uiKeys.join(',')}`,
+		);
+		expect(THEMES[name].name.length).toBeGreaterThan(0);
+	}
+});
+
+test('theme entries are the ordered source of truth for the theme map', () => {
+	const ids = THEME_ENTRIES.map(([id]) => id);
+	expect(new Set(ids).size).toBe(ids.length);
+	expect(ids).toEqual(themeIds());
+
+	for (const [id, theme] of THEME_ENTRIES) expect(THEMES[id]).toBe(theme);
+});
+
+test('Catppuccin flavors share one generated syntax surface', () => {
+	const flavors = [
+		'catppuccin-mocha',
+		'catppuccin-macchiato',
+		'catppuccin-frappe',
+		'catppuccin-latte',
+	] as const;
+	const syntaxKeys = Object.keys(THEMES[flavors[0]].syntax).toSorted();
+
+	for (const flavor of flavors) {
+		expect(`${flavor}:${Object.keys(THEMES[flavor].syntax).toSorted().join(',')}`).toBe(
+			`${flavor}:${syntaxKeys.join(',')}`,
+		);
+	}
+});

@@ -1,16 +1,20 @@
 import { describe, expect, test } from 'bun:test';
-import { execFileSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { ui } from '../src/themes';
+import { git as runGit } from './git-fixture';
 import { fixture, launch, press, settle } from './helpers';
 import type { Harness } from './helpers';
 
 const SOURCE = `${Array.from({ length: 400 }, (_, index) => `const value${index} = ${index}`).join(
 	'\n',
 )}\n`;
+const WRAPPED = `${Array.from(
+	{ length: 300 },
+	(_, index) => `const value${index} = ${'x'.repeat(160)} // ${index}`,
+).join('\n')}\n`;
 
 interface Frame {
 	lines: { spans: { text: string; fg?: { buffer: Uint8Array } }[] }[];
@@ -28,10 +32,16 @@ const track = (t: Harness) => {
 		line.spans.filter((span) => span.text.includes('▎')).map((span) => hex(span.fg)),
 	);
 };
+const rowsOf = (t: Harness, glyph: string) =>
+	t
+		.captureCharFrame()
+		.split('\n')
+		.filter((row) => row.length > 0)
+		.flatMap((row, index) => (row.includes(glyph) ? [index] : []));
 
 async function repoWith(edit: (lines: string[]) => void) {
 	const dir = mkdtempSync(join(tmpdir(), 'dune-track-'));
-	const git = (...args: string[]) => execFileSync('git', args, { cwd: dir });
+	const git = (...args: string[]) => runGit(dir, ...args);
 	git('init', '-q', '-b', 'main');
 	git('config', 'user.email', 'test@example.com');
 	git('config', 'user.name', 'Test');
@@ -86,15 +96,9 @@ describe('the change track', () => {
 });
 
 describe('the track agrees with the scrollbar', () => {
-	/** Long lines, so every one wraps and visual rows outnumber lines threefold. */
-	const WRAPPED = `${Array.from(
-		{ length: 300 },
-		(_, index) => `const value${index} = ${'x'.repeat(160)} // ${index}`,
-	).join('\n')}\n`;
-
 	async function wrappedRepo(changeAt: number) {
 		const dir = mkdtempSync(join(tmpdir(), 'dune-wrapped-'));
-		const git = (...args: string[]) => execFileSync('git', args, { cwd: dir });
+		const git = (...args: string[]) => runGit(dir, ...args);
 		git('init', '-q', '-b', 'main');
 		git('config', 'user.email', 'test@example.com');
 		git('config', 'user.name', 'Test');
@@ -107,13 +111,6 @@ describe('the track agrees with the scrollbar', () => {
 		writeFileSync(join(dir, 'big.ts'), lines.join('\n'));
 		return dir;
 	}
-
-	const rowsOf = (t: Harness, glyph: string) =>
-		t
-			.captureCharFrame()
-			.split('\n')
-			.filter((row) => row.length > 0)
-			.flatMap((row, index) => (row.includes(glyph) ? [index] : []));
 
 	test('scrolling to a mark puts the thumb beside it', async () => {
 		// The thumb used to be driven by the visual scroll position while the marks

@@ -7,9 +7,9 @@
  * the list short without hiding anything.
  *
  * To add a command: add an action to `CommandActions`, then an entry below. Set
- * `hint` when a keybinding also triggers it (keybindings live in App).
+ * `hint` when a keybinding also triggers it (keybindings live in keyboard.ts).
  */
-import { THEMES, themeLabels } from '../themes';
+import { THEME_ENTRIES, themeLabels } from '../themes';
 import type { ThemeName } from '../themes';
 import { ALT } from '../ui/keys';
 
@@ -154,7 +154,7 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 		{
 			id: 'themes',
 			label: 'Themes',
-			children: (Object.keys(THEMES) as ThemeName[]).map((name) => ({
+			children: THEME_ENTRIES.map(([name]) => ({
 				id: `themes.${name}`,
 				label: `${check(ctx.activeTheme === name)}${themeLabels[name]}`,
 				run: () => actions.setTheme(name),

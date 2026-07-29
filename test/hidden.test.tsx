@@ -9,6 +9,13 @@ import { listFiles } from '../src/core/search';
 import { fixture, launch } from './helpers';
 
 const PROJECT = { 'src/main.ts': 'const a = 1\n', '.DS_Store': 'junk\n', '.gitignore': 'dist\n' };
+function repo() {
+	const dir = mkdtempSync(join(tmpdir(), 'dune-vcs-'));
+	execFileSync('git', ['init', '-q', '-b', 'main'], { cwd: dir });
+	writeFileSync(join(dir, 'a.ts'), 'const a = 1\n');
+	writeFileSync(join(dir, '.gitignore'), 'dist\n');
+	return dir;
+}
 
 /**
  * There is no show/hide setting. The tree lists what is on disk, and the guard sits
@@ -24,14 +31,6 @@ describe('the tree lists everything', () => {
 });
 
 describe('the VCS store is not project content', () => {
-	function repo() {
-		const dir = mkdtempSync(join(tmpdir(), 'dune-vcs-'));
-		execFileSync('git', ['init', '-q', '-b', 'main'], { cwd: dir });
-		writeFileSync(join(dir, 'a.ts'), 'const a = 1\n');
-		writeFileSync(join(dir, '.gitignore'), 'dist\n');
-		return dir;
-	}
-
 	test('.git is left out of the tree, .gitignore is not', async () => {
 		const t = await launch(repo());
 		const frame = t.captureCharFrame();

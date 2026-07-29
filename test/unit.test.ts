@@ -10,6 +10,9 @@ import { searchProject, searchText } from '../src/core/search';
 import { isNewer } from '../src/core/update';
 import { THEMES } from '../src/themes';
 
+const hexChannels = (hex: string) =>
+	[0, 2, 4].map((i) => Number.parseInt(hex.replace('#', '').slice(i, i + 2), 16));
+
 describe('search', () => {
 	const text = 'const alpha = 1\nlet beta = 2\n// alpha again\n';
 
@@ -92,11 +95,8 @@ describe('registries', () => {
 
 	// Missing/extra ui keys are a tsc error, so only the values are worth asserting.
 	test('every theme tints the current line instead of filling it', () => {
-		const channels = (hex: string) =>
-			[0, 2, 4].map((i) => Number.parseInt(hex.replace('#', '').slice(i, i + 2), 16));
-
 		for (const [id, theme] of Object.entries(THEMES)) {
-			const [bg, line] = [channels(theme.ui.bg), channels(theme.ui.currentLine)];
+			const [bg, line] = [hexChannels(theme.ui.bg), hexChannels(theme.ui.currentLine)];
 			const delta = Math.max(...bg.map((v, i) => Math.abs(v - line[i]!)));
 			// Visible as a band, never a block that competes with the code on it.
 			expect(`${id}:${delta > 0 && delta <= 20}`).toBe(`${id}:true`);

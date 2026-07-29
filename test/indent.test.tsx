@@ -7,6 +7,8 @@ import { fixture, launch, press } from './helpers';
 import { allSegments } from './syntax';
 
 const NESTED = 'function f() {\n  if (x) {\n    return 1\n  }\n}\n';
+const rgb = (hex: string) =>
+	[0, 2, 4].map((i) => Number.parseInt(hex.replace('#', '').slice(i, i + 2), 16));
 
 /** Every (line, column) carrying the indent-guide style. */
 async function guideColumns(content: string, tabSize: number) {
@@ -42,9 +44,6 @@ test('tab size is configurable and shown in the palette', async () => {
 });
 
 test('indent guides are visible in every theme', () => {
-	const rgb = (hex: string) =>
-		[0, 2, 4].map((i) => Number.parseInt(hex.replace('#', '').slice(i, i + 2), 16));
-
 	for (const [id, theme] of Object.entries(THEMES)) {
 		const [bg, guide] = [rgb(theme.ui.bg), rgb(theme.ui.indentGuide)];
 		const delta = Math.max(...bg.map((v, i) => Math.abs(v - guide[i]!)));

@@ -32,6 +32,17 @@ async function selectNth(t: Harness, steps: number) {
 	for (let n = 0; n < steps; n++) await press(t, (input) => input.pressArrow('down'));
 	await settle(t);
 }
+const rowOf = (t: Harness, name: string) =>
+	t
+		.captureCharFrame()
+		.split('\n')
+		.findIndex(
+			(row) =>
+				row
+					.slice(0, 28)
+					.replaceAll(/[│▾▸·]/g, '')
+					.trim() === name,
+		);
 
 describe('moving a file with x and p', () => {
 	test('into a folder, with the tab following it', async () => {
@@ -193,18 +204,6 @@ describe('clicking a row', () => {
 	 * glyphs stripped, not by substring — the panel header is the temp directory's
 	 * name, and a random one happily contains any letter you search for.
 	 */
-	const rowOf = (t: Harness, name: string) =>
-		t
-			.captureCharFrame()
-			.split('\n')
-			.findIndex(
-				(row) =>
-					row
-						.slice(0, 28)
-						.replaceAll(/[│▾▸·]/g, '')
-						.trim() === name,
-			);
-
 	test('selects and opens it, and moves nothing', async () => {
 		const dir = fixture(PROJECT);
 		const t = await launch(dir);

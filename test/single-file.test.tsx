@@ -20,6 +20,15 @@ const openOne = (file: string, config = DEFAULTS) =>
 	launch(dirname(file), config, {}, { openFile: file });
 
 const tabBar = (t: Harness) => t.captureCharFrame().split('\n')[0]!;
+function runCli(args: string[]) {
+	const home = mkdtempSync(join(tmpdir(), 'dune-home-'));
+	const proc = Bun.spawnSync(['bun', 'src/index.tsx', ...args], {
+		cwd: process.cwd(),
+		env: { ...process.env, XDG_CONFIG_HOME: home },
+		stdin: 'ignore',
+	});
+	return { code: proc.exitCode, stderr: new TextDecoder().decode(proc.stderr) };
+}
 
 describe('dune <file>', () => {
 	test('opens that file with the sidebar out of the way', async () => {
@@ -122,20 +131,10 @@ describe('the CLI itself', () => {
 	 * developer's own. Run from the repo root: `bunfig.toml` lives there, and without
 	 * its preload the Solid JSX transform never happens.
 	 */
-	function run(args: string[]) {
-		const home = mkdtempSync(join(tmpdir(), 'dune-home-'));
-		const proc = Bun.spawnSync(['bun', 'src/index.tsx', ...args], {
-			cwd: process.cwd(),
-			env: { ...process.env, XDG_CONFIG_HOME: home },
-			stdin: 'ignore',
-		});
-		return { code: proc.exitCode, stderr: new TextDecoder().decode(proc.stderr) };
-	}
-
 	test('a missing path is reported, and nothing is created', () => {
 		const dir = fixture(PROJECT);
 		const missing = join(dir, 'nope.ts');
-		const { code, stderr } = run([missing]);
+		const { code, stderr } = runCli([missing]);
 
 		expect(code).toBe(1);
 		expect(stderr).toContain(`no such file or directory: ${missing}`);

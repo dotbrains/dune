@@ -1,6 +1,23 @@
 import type { Tone } from '../ui/StatusBar';
+import type { Config } from '../core/config';
 
 export type Focus = 'tree' | 'editor';
+export type PickerState = 'files' | 'tabs' | null;
+export type SearchState = { scope: 'file' | 'project'; replacing?: boolean } | null;
+export type ClipboardState = { paths: string[]; mode: 'cut' | 'copy' };
+export type HistoryRequest = { kind: 'undo' | 'redo'; key: number } | null;
+export type GotoRequest = { line: number; col: number; key: number } | null;
+export type EditRequest = { content: string; key: number } | null;
+export type LineOpRequest = { op: 'comment' | 'up' | 'down' | 'duplicate'; key: number } | null;
+export type BusyState = { label: string; done: number; total: number } | null;
+
+export interface AppProps {
+	rootDir: string;
+	openFile?: string | null;
+	openLine?: number | null;
+	initialConfig: Config;
+	checkUpdates?: boolean;
+}
 
 export interface BufferState {
 	content: string;

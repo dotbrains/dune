@@ -9,6 +9,12 @@ import type { Tone } from '../ui/StatusBar';
 import { within } from './pathRules';
 import type { BufferState, Prompt } from './types';
 
+const whyNotMove = (path: string, dir: string): string | null => {
+	if (dirname(path) === dir) return `${basename(path)} is already there`;
+	if (within(dir, path)) return `Cannot move ${basename(path)} into itself`;
+	return null;
+};
+
 export function createFileActions(deps: {
 	rootDir: string;
 	buffers: Record<string, BufferState>;
@@ -64,11 +70,6 @@ export function createFileActions(deps: {
 		const err = rename(from, to);
 		if (err) return err;
 		adoptMove(from, to);
-		return null;
-	};
-	const whyNotMove = (path: string, dir: string): string | null => {
-		if (dirname(path) === dir) return `${basename(path)} is already there`;
-		if (within(dir, path)) return `Cannot move ${basename(path)} into itself`;
 		return null;
 	};
 	const moveInto = (path: string, dir: string) => {

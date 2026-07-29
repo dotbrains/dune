@@ -1,6 +1,15 @@
 import type { KeyEvent, TextareaRenderable } from '@opentui/core';
+import {
+	lineEnd,
+	lineStart,
+	moveParagraphDown,
+	moveParagraphUp,
+	resolveTextObject,
+	TEXT_OBJECT_TARGETS,
+} from './vimObjects';
 
 export type VimMode = 'normal' | 'insert' | 'visual';
+type VisualKind = 'char' | 'line';
 
 export const MODE_LABELS: Record<VimMode, string> = {
 	normal: 'NORMAL',
@@ -17,6 +26,9 @@ export interface VimState {
 	registerLinewise: boolean;
 	/** Offset the visual selection grows from; meaningless outside visual mode. */
 	anchor: number;
+	visualKind: VisualKind;
+	pendingTextObject: 'i' | 'a' | null;
+	textObjectOp: string;
 }
 
 export function initialVimState(): VimState {
@@ -27,14 +39,12 @@ export function initialVimState(): VimState {
 		register: '',
 		registerLinewise: false,
 		anchor: 0,
+		visualKind: 'char',
+		pendingTextObject: null,
+		textObjectOp: '',
 	};
 }
 
-/**
- * Undo and redo belong to the editor pane, not the buffer: it keeps a history of
- * whole typing bursts and replaces the text wholesale, which resets the buffer's
- * own. Calling `editor.undo()` here would step a history that is always empty.
- */
 export interface VimActions {
 	undo: () => void;
 	redo: () => void;
@@ -42,15 +52,15 @@ export interface VimActions {
 
 type Editor = TextareaRenderable;
 
-/**
- * Paint the visual selection from the anchor to wherever the cursor now is.
- *
- * Vim's visual selection covers the character *under* the cursor, and works in
- * either direction — neither of which falls out of moving with `select: true`, so
- * the motions run plain and the selection is set from the two offsets afterwards.
- */
 function markVisual(editor: Editor, state: VimState): void {
 	const cursor = editor.cursorOffset;
+	if (state.visualKind === 'line') {
+		const text = editor.plainText;
+		const start = lineStart(text, Math.min(state.anchor, cursor));
+		const end = lineEnd(text, Math.max(state.anchor, cursor));
+		editor.setSelectionInclusive(start, Math.max(start, end));
+		return;
+	}
 	editor.setSelectionInclusive(Math.min(state.anchor, cursor), Math.max(state.anchor, cursor));
 }
 
@@ -68,9 +78,10 @@ const MOTION_KEYS = new Set([
 	'0',
 	'$',
 	'G',
+	'{',
+	'}',
 ]);
 
-/** Motions shared by normal and visual mode. Returns true if `k` was a motion. */
 function motion(editor: Editor, k: string, state: VimState, count: number, counted: boolean) {
 	if (!MOTION_KEYS.has(k)) return false;
 	// A cursor move with a selection live collapses it instead of moving, so in visual
@@ -110,10 +121,14 @@ function motion(editor: Editor, k: string, state: VimState, count: number, count
 			editor.gotoLineEnd();
 			return true;
 		case 'G':
-			// `5G` is line 5; a bare `G` is the end of the buffer. `gotoLine` counts rows
-			// from zero, and vim counts lines from one.
 			if (counted) editor.gotoLine(count - 1);
 			else editor.gotoBufferEnd();
+			return true;
+		case '{':
+			moveParagraphUp(editor, count);
+			return true;
+		case '}':
+			moveParagraphDown(editor, count);
 			return true;
 		default:
 			return false;
@@ -128,10 +143,6 @@ function yankSelection(editor: Editor, state: VimState): void {
 	}
 }
 
-/**
- * Copy `count` whole lines from the cursor into the register (yy, and the first
- * half of dd). The trailing newline is load-bearing — `paste` strips it back off.
- */
 function yankLines(editor: Editor, state: VimState, count: number): void {
 	const { row } = editor.logicalCursor;
 	state.register = `${editor.plainText
@@ -146,7 +157,6 @@ function deleteLine(editor: Editor, state: VimState, count: number): void {
 	for (let i = 0; i < count; i++) editor.deleteLine();
 }
 
-/** What `d` and `c` delete, by the key that follows the operator. */
 const OPERATOR_TARGETS: Record<string, (editor: Editor, count: number) => void> = {
 	w: (e, n) => {
 		for (let i = 0; i < n; i++) e.deleteWordForward();
@@ -158,20 +168,11 @@ const OPERATOR_TARGETS: Record<string, (editor: Editor, count: number) => void> 
 	0: (e) => e.deleteToLineStart(),
 };
 
-/** True when the caret sits past the last character of its line. */
 function atLineEnd(editor: Editor): boolean {
 	const { row, col } = editor.logicalCursor;
 	return col >= (editor.plainText.split('\n')[row]?.length ?? 0);
 }
 
-/**
- * Put the caret back on a character.
- *
- * The buffer's caret sits *between* characters, so it can rest past the end of a
- * line; vim's sits *on* one and cannot. Everything downstream reads better for it —
- * `$` lands on the last character, `x` there takes that character, and `p` puts the
- * register after it rather than on the next line.
- */
 function clampToLine(editor: Editor, state: VimState): void {
 	if (state.mode === 'insert') return;
 	if (atLineEnd(editor) && editor.logicalCursor.col > 0) editor.moveCursorLeft();
@@ -200,10 +201,6 @@ function paste(editor: Editor, state: VimState, before: boolean): void {
 	}
 }
 
-/**
- * Handle one key in vim mode. Returns true when the key was consumed (the
- * caller should `preventDefault()` so the textarea never sees it).
- */
 export function handleVimKey(
 	editor: Editor,
 	key: KeyEvent,
@@ -211,21 +208,14 @@ export function handleVimKey(
 	actions: VimActions,
 ): boolean {
 	const consumed = dispatch(editor, key, state, actions);
-	// Dropped first, because a cursor move with a selection live collapses it rather
-	// than moving — the clamp would land on the selection's start instead of stepping
-	// back one. The selection is derived from the anchor, so redrawing it is free.
 	const visual = state.mode === 'visual';
 	if (visual) editor.clearSelection();
 	clampToLine(editor, state);
-	// Drawn from where the cursor ended up: without the clamp `v$` reaches past the
-	// last character and takes the newline with it, joining the next line on delete.
 	if (visual) markVisual(editor, state);
 	return consumed;
 }
 
 function dispatch(editor: Editor, key: KeyEvent, state: VimState, actions: VimActions): boolean {
-	// Shifted letters arrive as the lowercase name plus `shift`, so restore the
-	// uppercase form the commands below are written against (A, O, G, …).
 	const k = key.shift && /^[a-z]$/.test(key.name) ? key.name.toUpperCase() : key.name;
 	if (state.mode === 'insert') {
 		if (k === 'escape') {
@@ -251,13 +241,10 @@ function dispatch(editor: Editor, key: KeyEvent, state: VimState, actions: VimAc
 		return false;
 	}
 
-	// A leading "0" is the line-start motion, not the start of a count.
 	if (/^\d$/.test(k) && !(k === '0' && state.count === '')) {
 		state.count += k;
 		return true;
 	}
-	// Every path below consumes the count; only the operator setter puts it back,
-	// so that `3dd` still reaches the operator with its 3.
 	const digits = state.count;
 	state.count = '';
 	const count = Math.max(1, Number.parseInt(digits || '1', 10));
@@ -265,6 +252,12 @@ function dispatch(editor: Editor, key: KeyEvent, state: VimState, actions: VimAc
 	if (state.pending) {
 		const op = state.pending;
 		state.pending = '';
+		if ((k === 'i' || k === 'a') && !state.pendingTextObject) {
+			state.textObjectOp = op;
+			state.pendingTextObject = k;
+			state.count = digits;
+			return true;
+		}
 		if (op === 'g') {
 			if (k === 'g') {
 				if (digits) editor.gotoLine(count - 1);
@@ -294,15 +287,84 @@ function dispatch(editor: Editor, key: KeyEvent, state: VimState, actions: VimAc
 		return true; // an unknown operator target is swallowed, never passed on
 	}
 
-	// Motions run before the mode switches below so visual mode extends the selection.
+	if (state.pendingTextObject) {
+		if (TEXT_OBJECT_TARGETS.has(k)) {
+			resolveTextObject(editor, k, state);
+			state.pendingTextObject = null;
+			const op = state.textObjectOp;
+			state.textObjectOp = '';
+			if (op) {
+				const start = Math.min(state.anchor, editor.cursorOffset);
+				const end = Math.max(state.anchor, editor.cursorOffset);
+				editor.setSelectionInclusive(start, end);
+				if (op === 'd' || op === 'x') {
+					yankSelection(editor, state);
+					editor.deleteSelection();
+					state.mode = 'normal';
+				} else if (op === 'y') {
+					yankSelection(editor, state);
+					editor.clearSelection();
+					state.mode = 'normal';
+				} else if (op === 'c') {
+					yankSelection(editor, state);
+					editor.deleteSelection();
+					state.mode = 'insert';
+				}
+			} else if (state.mode === 'visual') {
+				editor.clearSelection();
+				const cursor = editor.cursorOffset;
+				editor.setSelectionInclusive(
+					Math.min(state.anchor, cursor),
+					Math.max(state.anchor, cursor),
+				);
+			}
+			return true;
+		}
+		state.textObjectOp = '';
+		state.pendingTextObject = null;
+	}
+
 	if (motion(editor, k, state, count, digits !== '')) {
 		if (state.mode === 'visual') markVisual(editor, state);
 		return true;
 	}
 
 	if (state.mode === 'visual') {
-		// Where the selection began, which is where vim leaves the cursor once it ends.
+		if (k === 'i' || k === 'a') {
+			state.pendingTextObject = k;
+			return true;
+		}
+
 		const start = Math.min(state.anchor, editor.cursorOffset);
+		if (state.visualKind === 'line') {
+			const text = editor.plainText;
+			const lines = text.split('\n');
+			const cursorRow = editor.logicalCursor.row;
+			const anchorRow = text.slice(0, state.anchor).split('\n').length - 1;
+			const rowStart = Math.min(anchorRow, cursorRow);
+			const rowCount = Math.abs(anchorRow - cursorRow) + 1;
+
+			editor.clearSelection();
+			switch (k) {
+				case 'escape':
+					state.mode = 'normal';
+					break;
+				case 'd':
+				case 'x':
+				case 'c':
+					editor.gotoLine(rowStart);
+					deleteLine(editor, state, rowCount);
+					state.mode = k === 'c' ? 'insert' : 'normal';
+					break;
+				case 'y':
+					state.register = `${lines.slice(rowStart, rowStart + rowCount).join('\n')}\n`;
+					state.registerLinewise = true;
+					editor.cursorOffset = start;
+					state.mode = 'normal';
+					break;
+			}
+			return true;
+		}
 		switch (k) {
 			case 'escape':
 				editor.clearSelection();
@@ -357,15 +419,19 @@ function dispatch(editor: Editor, key: KeyEvent, state: VimState, actions: VimAc
 			state.mode = 'insert';
 			break;
 		case 'v':
+			state.visualKind = 'char';
 			state.mode = 'visual';
 			state.anchor = editor.cursorOffset;
 			markVisual(editor, state);
 			break;
+		case 'V':
+			state.visualKind = 'line';
+			state.mode = 'visual';
+			state.anchor = lineStart(editor.plainText, editor.cursorOffset);
+			markVisual(editor, state);
+			break;
 		case 'x':
 			for (let i = 0; i < count; i++) {
-				// `deleteChar` deletes forward, so past the last character of a line it eats
-				// the newline and pulls the next line up. Vim's cursor cannot be there at
-				// all: `x` takes the last character instead.
 				if (atLineEnd(editor)) {
 					if (editor.logicalCursor.col === 0) break; // empty line: nothing to take
 					editor.moveCursorLeft();

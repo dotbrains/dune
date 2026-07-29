@@ -1,0 +1,64 @@
+import type { TextareaRenderable } from '@opentui/core';
+import { Show } from 'solid-js';
+import type { LineChange } from '../core/git';
+import { ui } from '../themes';
+import { EditorEmptyState, EditorNotice } from './EditorEmptyState';
+import { EditorPaneBody } from './EditorPaneBody';
+
+export function EditorPaneContent(props: {
+	open: boolean;
+	content: string;
+	focused: boolean;
+	tabSize: number;
+	notice: { name: string; reason: string } | null;
+	editorEl: TextareaRenderable | null;
+	cursorLine: number;
+	gutterWidth: number;
+	changeTrack: (LineChange | undefined)[];
+	scrollbar: boolean[];
+	dragging: boolean;
+	onFocus: () => void;
+	onDrag: (event: { y: number }) => void;
+	onDragEnd: () => void;
+	onGutter: (el: unknown) => void;
+	onEditor: (el: TextareaRenderable) => void;
+	onContentChange: () => void;
+	onMouse: () => void;
+	onCursorChange: () => void;
+	onJumpTrack: (row: number) => void;
+	onStartScrollbarDrag: (y: number) => void;
+	onTrack: (el: { y: number }) => void;
+}) {
+	return (
+		<box flexGrow={1} flexDirection="column" backgroundColor={ui.bg}>
+			<Show when={props.notice}>
+				{(refused: () => { name: string; reason: string }) => <EditorNotice notice={refused()} />}
+			</Show>
+			<Show when={props.open} fallback={<EditorEmptyState />}>
+				{}
+				<EditorPaneBody
+					content={props.content}
+					focused={props.focused}
+					tabSize={props.tabSize}
+					editorEl={props.editorEl}
+					cursorLine={props.cursorLine}
+					gutterWidth={props.gutterWidth}
+					changeTrack={props.changeTrack}
+					scrollbar={props.scrollbar}
+					dragging={props.dragging}
+					onFocus={props.onFocus}
+					onDrag={props.onDrag}
+					onDragEnd={props.onDragEnd}
+					onGutter={props.onGutter}
+					onEditor={props.onEditor}
+					onContentChange={props.onContentChange}
+					onMouse={props.onMouse}
+					onCursorChange={props.onCursorChange}
+					onJumpTrack={props.onJumpTrack}
+					onStartScrollbarDrag={props.onStartScrollbarDrag}
+					onTrack={props.onTrack}
+				/>
+			</Show>
+		</box>
+	);
+}

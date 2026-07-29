@@ -29,6 +29,10 @@ const choose = async (t: Harness, steps: number) => {
 	for (let step = 0; step < steps; step++) await press(t, (input) => input.pressArrow('down'));
 	await press(t, (input) => input.pressEnter());
 };
+const fgHex = (fg?: { buffer: Uint8Array }) =>
+	fg
+		? `#${Array.from(fg.buffer.slice(0, 3), (v) => v.toString(16).padStart(2, '0')).join('')}`
+		: '';
 
 describe('saving a file that changed underneath', () => {
 	test('asks instead of clobbering', async () => {
@@ -114,13 +118,9 @@ describe('how the warning is coloured', () => {
 			lines: { spans: { text: string; fg?: { buffer: Uint8Array } }[] }[];
 		};
 		const message = spans.lines.at(-1)!.spans.find((span) => span.text.includes('unsaved edits'));
-		const hex = (fg?: { buffer: Uint8Array }) =>
-			fg
-				? `#${Array.from(fg.buffer.slice(0, 3), (v) => v.toString(16).padStart(2, '0')).join('')}`
-				: '';
 
 		expect(message).toBeDefined();
-		expect(hex(message!.fg)).toBe(ui.dirty.toLowerCase());
-		expect(hex(message!.fg)).not.toBe(ui.error.toLowerCase());
+		expect(fgHex(message!.fg)).toBe(ui.dirty.toLowerCase());
+		expect(fgHex(message!.fg)).not.toBe(ui.error.toLowerCase());
 	});
 });

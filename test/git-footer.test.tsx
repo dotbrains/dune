@@ -4,6 +4,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { git as runGit } from './git-fixture';
 import { launch, settle } from './helpers';
 import type { Harness } from './helpers';
 
@@ -11,7 +12,7 @@ import type { Harness } from './helpers';
  * Everything here is set up with real git; the footer assertions only care about
  * reporting, not the command-palette git mutation flow.
  */
-const git = (cwd: string, ...args: string[]) => execFileSync('git', args, { cwd });
+const git = (cwd: string, ...args: string[]) => runGit(cwd, ...args);
 
 /** A bare "remote" plus clones of it, so ahead/behind are real. */
 function remoteSetup() {

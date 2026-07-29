@@ -99,7 +99,7 @@ App-level changes usually touch `src/app/App.tsx` and one or more helpers under 
 | The behavior is tied to Solid lifecycle and effects. | The behavior has a clear name and testable input/output.                   |
 | The code decides which UI callback should run.       | The code builds prompt copy, resolves paths, or transforms search results. |
 
-If `App.tsx` approaches the 999-line budget, extract by responsibility. Do not split a block merely to satisfy the counter.
+If `App.tsx` approaches the 500-line budget, extract by responsibility. Do not split a block merely to satisfy the counter.
 
 ## Working On UI Components
 
@@ -147,6 +147,28 @@ flowchart TD
 ```
 
 Do not parse more than needed for rendering without measuring the cost. Terminal editors can feel slow from work that is invisible to the user.
+
+## Working On Themes
+
+Theme changes should preserve both chrome readability and syntax readability. The common
+path for a new color scheme is:
+
+```mermaid
+flowchart LR
+  Palette[Choose palette colors] --> Builder[defineTheme in src/themes/builder.ts]
+  Builder --> File[new src/themes/name.ts]
+  File --> Registry[register in src/themes/registry.ts]
+  Registry --> Tests[test/theme-switch.test.tsx]
+```
+
+Use `defineTheme()` for new palettes unless a theme needs unusually specific syntax
+captures. It maps semantic colors to the full `ThemeUi` surface and the common
+tree-sitter capture groups, which keeps additions small and makes contrast tests catch
+the important mistakes.
+
+Run `bun test test/theme-switch.test.tsx test/input.test.tsx test/unit.test.ts` after
+theme changes. Those tests verify runtime repainting, syntax table replacement, stable UI
+keys, current-line subtlety, and readable typed text in modal inputs.
 
 ## Budget Workflow
 

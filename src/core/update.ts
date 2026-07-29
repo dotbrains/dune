@@ -14,6 +14,7 @@ export interface UpdateInfo {
 }
 
 /** Baked in by build.ts; undefined when running from source. */
+// oxlint-disable-next-line no-underscore-dangle
 declare const __DUNE_VERSION__: string;
 
 /**

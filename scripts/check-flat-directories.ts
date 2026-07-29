@@ -23,7 +23,7 @@ for (const file of tracked.stdout.trim().split('\n').filter(Boolean)) {
 	counts.set(dir, (counts.get(dir) ?? 0) + 1);
 }
 let failed = false;
-for (const [dir, count] of [...counts].sort()) {
+for (const [dir, count] of [...counts].toSorted()) {
 	const limit = budget.directories?.[dir]?.limit ?? budget.default_files;
 	if (count > limit) {
 		console.error(`${dir}: ${count} direct files > budget ${limit}`);

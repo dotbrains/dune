@@ -5,11 +5,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { fixture, launch, press, runCommand, settle } from './helpers';
+import { git as runGit } from './git-fixture';
 import type { Harness } from './helpers';
 
 function repo(committed: string) {
 	const dir = mkdtempSync(join(tmpdir(), 'dune-git-commands-'));
-	const git = (...args: string[]) => execFileSync('git', args, { cwd: dir });
+	const git = (...args: string[]) => runGit(dir, ...args);
 	git('init', '-q', '-b', 'main');
 	git('config', 'user.email', 'test@example.com');
 	git('config', 'user.name', 'Test');

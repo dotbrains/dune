@@ -78,7 +78,7 @@ The hygiene job is designed to fail quickly on issues that do not require render
 
 | Script                              | Enforces                                                                                                               |
 | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `scripts/check-file-sizes.ts`       | Every tracked source/doc/script/workflow/config file stays at or below 999 lines, excluding generated or binary paths. |
+| `scripts/check-file-sizes.ts`       | Every tracked source/doc/script/workflow/config file stays at or below 500 lines, excluding generated or binary paths. |
 | `scripts/check-flat-directories.ts` | Direct file counts stay below the default directory budget unless a documented exception exists.                       |
 
 ## Test Gate

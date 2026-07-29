@@ -34,6 +34,8 @@ const SAMPLES: Record<string, string> = {
 	ini: '; c\n[section]\nkey = value\n',
 	dotenv: '# c\nexport PORT=3000\nURL="https://x.dev"\n',
 };
+const segmentKey = (s: { line: number; start: number; end: number; styleId: number }) =>
+	`${s.line}:${s.start}-${s.end}:${s.styleId}`;
 
 describe('languages', () => {
 	test('every registered language declares a grammar or patterns', () => {
@@ -109,9 +111,6 @@ describe('segmenting a window instead of the document', () => {
 		(_, i) => `export const value${i} = ${i} // note ${i}`,
 	).join('\n')}\n`;
 
-	const key = (s: { line: number; start: number; end: number; styleId: number }) =>
-		`${s.line}:${s.start}-${s.end}:${s.styleId}`;
-
 	test('a window matches what a full segmentation produces for those lines', async () => {
 		const parsed = await parseHighlights(source, 'typescript');
 		const whole = segmentsIn(parsed, 0, WHOLE);
@@ -121,10 +120,10 @@ describe('segmenting a window instead of the document', () => {
 			[100, 160],
 			[260, 299],
 		] as const) {
-			const windowed = segmentsIn(parsed, from, to).map(key).toSorted();
+			const windowed = segmentsIn(parsed, from, to).map(segmentKey).toSorted();
 			const expected = whole
 				.filter((s) => s.line >= from && s.line <= to)
-				.map(key)
+				.map(segmentKey)
 				.toSorted();
 			expect(`${from}-${to}: ${windowed.join('|')}`).toBe(`${from}-${to}: ${expected.join('|')}`);
 		}
@@ -132,11 +131,11 @@ describe('segmenting a window instead of the document', () => {
 
 	test('stitching every window back together reproduces the whole file', async () => {
 		const parsed = await parseHighlights(source, 'typescript');
-		const whole = segmentsIn(parsed, 0, WHOLE).map(key).toSorted();
+		const whole = segmentsIn(parsed, 0, WHOLE).map(segmentKey).toSorted();
 
 		const stitched: string[] = [];
 		for (let from = 0; from <= 300; from += 37) {
-			stitched.push(...segmentsIn(parsed, from, from + 36).map(key));
+			stitched.push(...segmentsIn(parsed, from, from + 36).map(segmentKey));
 		}
 		expect(stitched.toSorted()).toEqual(whole);
 	}, 20000);
