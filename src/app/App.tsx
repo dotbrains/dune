@@ -60,10 +60,7 @@ export function App(props: AppTypes.AppProps) {
 	const [search, setSearch] = createSignal<AppTypes.SearchState>(null);
 	const selection = () => selectedSingleLineText(renderer);
 	const [picker, setPicker] = createSignal<AppTypes.PickerState>(null);
-	const [clipboard, setClipboard] = createSignal<AppTypes.ClipboardState>({
-		paths: [],
-		mode: 'cut',
-	});
+	const [clipboard, setClipboard] = createSignal({ paths: [] as string[], mode: 'cut' as const });
 	const cut = () => (clipboard().mode === 'cut' ? clipboard().paths : []);
 	const [update, setUpdate] = createSignal(null as Awaited<ReturnType<typeof checkForUpdate>>);
 	const [gitLines, setGitLines] = createSignal<Map<number, LineChange>>(new Map());
@@ -391,6 +388,7 @@ export function App(props: AppTypes.AppProps) {
 		targetDir,
 		toggleExpand,
 		toggleSidebar,
+		toggleGitPanel: gitCommands.togglePanel,
 		expanded,
 	});
 	const { replaceOne, replaceEvery } = createReplacementHandlers({
@@ -439,6 +437,7 @@ export function App(props: AppTypes.AppProps) {
 			confirmation={controls.confirmation()}
 			search={search()}
 			picker={picker()}
+			gitPanel={gitCommands.panel()}
 			palette={palette()}
 			settingsPage={settingsPage()}
 			diff={gitCommands.diff()}
@@ -460,6 +459,7 @@ export function App(props: AppTypes.AppProps) {
 			onActivateNode={activateNode}
 			onPinNode={(node: TreeNode) => pinTab(node.path)}
 			onTreeFocus={() => setFocus('tree')}
+			onGitDiff={gitCommands.openDiff}
 			onResizeStart={(event: MouseEvent) => {
 				setResizing(true);
 				resizeSidebar(event.x);

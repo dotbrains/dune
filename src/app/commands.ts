@@ -57,6 +57,7 @@ export interface CommandActions {
 	toggleTrim: () => void;
 	toggleAutoSave: () => void;
 	commit: () => void;
+	sourceControl: () => void;
 	diffCurrent: () => void;
 	diffAll: () => void;
 	undoCommit: () => void;
@@ -244,6 +245,7 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 			label: 'Git',
 			children: [
 				{ id: 'git.commit', label: 'Commit…', run: actions.commit },
+				{ id: 'git.sourceControl', label: 'Source control panel', run: actions.sourceControl },
 				{ id: 'git.diffCurrent', label: 'Diff current file', run: actions.diffCurrent },
 				{ id: 'git.diffAll', label: 'Diff all changes', run: actions.diffAll },
 				{ id: 'git.undoCommit', label: 'Undo last commit…', run: actions.undoCommit },

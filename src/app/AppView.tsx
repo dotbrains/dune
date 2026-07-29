@@ -27,6 +27,7 @@ import { HelpOverlay } from '../ui/HelpOverlay';
 import { ImageView } from '../ui/ImageView';
 import { KeyPeek } from '../ui/KeyPeek';
 import { Overlay } from '../ui/Overlay';
+import { GitPanel } from '../ui/overlays/GitPanel';
 import { PromptModal } from '../ui/PromptModal';
 import { SearchPanel } from '../ui/SearchPanel';
 import type { SearchScope } from '../ui/SearchPanel';
@@ -81,6 +82,7 @@ interface AppViewProps {
 	confirmation: Confirmation | null;
 	search: { scope: SearchScope; replacing?: boolean } | null;
 	picker: 'files' | 'tabs' | null;
+	gitPanel: boolean;
 	palette: boolean;
 	settingsPage: boolean;
 	diff: DiffFile[] | null;
@@ -100,6 +102,7 @@ interface AppViewProps {
 	onActivateNode: (node: TreeNode) => void;
 	onPinNode: (node: TreeNode) => void;
 	onTreeFocus: () => void;
+	onGitDiff: (path: string) => void;
 	onResizeStart: (event: MouseEvent) => void;
 	onEditorChange: (text: string) => void;
 	onCursor: (pos: { line: number; col: number }) => void;
@@ -228,21 +231,36 @@ export function AppView(props: AppViewProps) {
 				onMouseUp={() => props.onResizeEnd()}
 			>
 				<Show when={props.sidebar}>
-					<FileTree
-						rootName={basename(props.rootDir) || props.rootDir}
-						nodes={props.nodes}
-						selectedPath={props.selectedPath}
-						expanded={props.expanded}
-						focused={props.focus === 'tree'}
-						width={props.treeWidth}
-						gitStatus={props.gitStatus}
-						gitIgnored={props.gitIgnored}
-						cutPaths={props.cutPaths}
-						markedPaths={props.markedPaths}
-						onActivate={props.onActivateNode}
-						onPin={(node) => props.onPinNode(node)}
-						onFocus={() => props.onTreeFocus()}
-					/>
+					<Show
+						when={props.gitPanel}
+						fallback={
+							<FileTree
+								rootName={basename(props.rootDir) || props.rootDir}
+								nodes={props.nodes}
+								selectedPath={props.selectedPath}
+								expanded={props.expanded}
+								focused={props.focus === 'tree'}
+								width={props.treeWidth}
+								gitStatus={props.gitStatus}
+								gitIgnored={props.gitIgnored}
+								cutPaths={props.cutPaths}
+								markedPaths={props.markedPaths}
+								onActivate={props.onActivateNode}
+								onPin={(node) => props.onPinNode(node)}
+								onFocus={() => props.onTreeFocus()}
+							/>
+						}
+					>
+						<GitPanel
+							rootDir={props.rootDir}
+							branch={props.branch}
+							width={props.treeWidth}
+							focused={props.focus === 'tree'}
+							status={props.gitStatus}
+							onFocus={() => props.onTreeFocus()}
+							onDiff={props.onGitDiff}
+						/>
+					</Show>
 					{/* Drag handle: the whole column is the grab target, but only a short
               grip is drawn at its middle — a full-height rule is a heavy line
               down the screen for something you touch once. The spacers centre it

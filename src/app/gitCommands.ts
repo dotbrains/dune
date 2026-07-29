@@ -34,6 +34,7 @@ export function createGitCommands(deps: {
 	const [commitFiles, setCommitFiles] = createSignal<CommitFile[] | null>(null);
 	const [commitSelection, setCommitSelection] = createSignal<string[]>([]);
 	const [diff, setDiff] = createSignal<DiffFile[] | null>(null);
+	const [panel, setPanel] = createSignal(false);
 
 	const runGit = (label: string, action: () => Promise<GitResult>, success: string) => {
 		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
@@ -96,6 +97,8 @@ export function createGitCommands(deps: {
 	return {
 		commitFiles,
 		diff,
+		panel,
+		togglePanel: () => setPanel((open) => !open),
 		closeDiff: () => setDiff(null),
 		cancelCommit: () => setCommitFiles(null),
 		startCommit,

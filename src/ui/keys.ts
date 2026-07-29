@@ -42,6 +42,7 @@ export const KEYS: KeyInfo[] = [
 	},
 	{ key: 'Ctrl+O', label: 'Open file (fuzzy)', section: 'General', where: 'all' },
 	{ key: 'Ctrl+G', label: 'Go to line', section: 'General', where: 'all' },
+	{ key: `Ctrl+${ALT}+G`, label: 'Source control', section: 'General', where: 'all' },
 	{ key: 'Ctrl+Q', label: 'Quit', section: 'General', where: 'all' },
 	{ key: 'Mouse', label: 'Click tabs, tree rows, editor', section: 'General', where: 'help' },
 

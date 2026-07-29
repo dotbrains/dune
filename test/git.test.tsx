@@ -10,6 +10,8 @@ import { git as runGit } from './git-fixture';
 import { launch, press, pressEscape, runCommand, settle } from './helpers';
 import type { Harness } from './helpers';
 
+const ESC = String.fromCharCode(27);
+
 interface Frame {
 	lines: { spans: { text: string; fg?: { buffer: Uint8Array } }[] }[];
 }
@@ -106,6 +108,20 @@ test('diff commands show current file and all changed files', async () => {
 	expect(t.captureCharFrame()).toContain('file 1/2');
 	await press(t, (i) => i.pressArrow('right'));
 	expect(t.captureCharFrame()).toContain('fresh.ts');
+});
+
+test('source control panel lists changes from Ctrl+Opt+G', async () => {
+	const dir = repo('one\n');
+	writeFileSync(join(dir, 'a.ts'), 'changed\n');
+	writeFileSync(join(dir, 'fresh.ts'), 'new\n');
+
+	const t = await launch(dir);
+	await press(t, (input) => void input.pressKeys([`${ESC}${String.fromCharCode(7)}`]));
+
+	const frame = t.captureCharFrame();
+	expect(frame).toContain('source control');
+	expect(frame).toContain('a.ts');
+	expect(frame).toContain('fresh.ts');
 });
 
 test('a folder inherits the status of its contents', async () => {

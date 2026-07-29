@@ -52,6 +52,7 @@ export function useAppKeyboard(deps: {
 	targetDir: () => string;
 	toggleExpand: (path: string) => void;
 	toggleSidebar: () => void;
+	toggleGitPanel: () => void;
 	expanded: () => Set<string>;
 }) {
 	useKeyboard((key: KeyEvent) => {
@@ -76,6 +77,7 @@ export function useAppKeyboard(deps: {
 		if (key.ctrl && k === 'o') return claim(() => deps.setPicker('files'));
 		if (key.ctrl && chord(key) && k === 't') return claim(deps.reopenTab);
 		if (key.ctrl && (k === 't' || k === 'up')) return claim(() => deps.setPicker('tabs'));
+		if (key.ctrl && chord(key) && k === 'g') return claim(deps.toggleGitPanel);
 		if (key.ctrl && k === 'g') return claim(() => deps.setPrompt({ kind: 'gotoLine' }));
 		if (key.ctrl && k === 's') return claim(deps.saveActive);
 		const vimOwnsRedo = deps.config.vim && deps.focus() === 'editor' && deps.vimMode() !== 'insert';

@@ -86,6 +86,7 @@ dune update           # upgrade this installation
 | `Ctrl+F`                       | Find in file          |
 | `Ctrl+R`                       | Search project        |
 | `Ctrl+G`                       | Go to line            |
+| `Ctrl+Opt+G`                   | Source control panel  |
 | `Ctrl+N`                       | New file              |
 | `Ctrl+W`                       | Close tab             |
 | `Ctrl+B`                       | Toggle sidebar        |
@@ -105,6 +106,9 @@ The command palette includes Git actions for viewing diffs, committing selected 
 undoing the last commit, stashing, popping a stash, fetching, and pushing. If files
 are already staged, the commit picker starts from the index selection; otherwise it
 selects all changed files.
+
+`Ctrl+Opt+G` swaps the sidebar to a compact source-control panel with changed files
+and status marks. Click a changed file there to open its diff.
 
 ## Project Map
 
