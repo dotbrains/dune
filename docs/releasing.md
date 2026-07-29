@@ -68,7 +68,7 @@ The release workflow has several invariants that should not be weakened:
 | Validate tag/version before building.                  | A mismatched tag would publish assets under one version while the package shim fetches another. |
 | Build on matching platform runners.                    | Optional OpenTUI native packages are host-specific.                                             |
 | Upload GitHub release binaries before package publish. | The package fetches binaries from the GitHub release.                                           |
-| Publish only to GitHub Packages.                       | `GITHUB_TOKEN` can publish the scoped package for this repository without npmjs secrets.        |
+| Publish only to GitHub Packages with public access.    | `GITHUB_TOKEN` can publish the scoped package for this repository without npmjs secrets.        |
 | Reuse existing tags instead of moving them.            | Re-running a release should not rewrite published version history.                              |
 
 ## Manual Release Checklist

@@ -131,6 +131,8 @@ if (publish) {
 	if (await onRegistry('@dotbrains/dune')) {
 		process.stdout.write(`@dotbrains/dune@${version} is already published — skipped\n`);
 	} else {
-		await Bun.$`npm publish --tag ${tag} --registry=https://npm.pkg.github.com`.cwd(rootDir);
+		await Bun.$`npm publish --access public --tag ${tag} --registry=https://npm.pkg.github.com`.cwd(
+			rootDir,
+		);
 	}
 }
