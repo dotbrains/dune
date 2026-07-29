@@ -70,6 +70,7 @@ export function useAppKeyboard(deps: {
 		if (deps.peek()) deps.setPeek(() => false);
 		if (key.ctrl && k === 'q') return claim(deps.quit);
 		if (key.ctrl && k === 'c' && deps.focus() !== 'editor') return claim(deps.quit);
+		// Also accepts Ctrl+Opt+P / Ctrl+Shift+P when the terminal reports the modifier.
 		if (key.ctrl && k === 'p') return claim(() => deps.setPalette(true));
 		if (k === 'f1') return claim(() => deps.setPalette(true));
 		if (key.ctrl && k === 'o') return claim(() => deps.setPicker('files'));

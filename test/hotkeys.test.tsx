@@ -38,6 +38,11 @@ test('every advertised hotkey does something', async () => {
 	await press(t, (i) => void i.pressKeys([F1]));
 	check('F1 palette', frame(t).includes('Commands'));
 
+	// Ctrl+Opt+P: Opt sends an ESC prefix ahead of Ctrl+P (0x10).
+	t = await tree();
+	await press(t, (i) => void i.pressKeys([`${ESC}${String.fromCharCode(16)}`]));
+	check('Ctrl+Opt+P palette', frame(t).includes('Commands'));
+
 	t = await tree();
 	await press(t, (i) => i.pressKey('o', { ctrl: true }));
 	check('Ctrl+O file picker', frame(t).includes('Open file'));

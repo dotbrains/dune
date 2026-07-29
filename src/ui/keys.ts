@@ -27,7 +27,7 @@ export interface KeyInfo {
 
 export const KEYS: KeyInfo[] = [
 	{
-		key: 'F1 · Ctrl+P',
+		key: `F1 · Ctrl+P · Ctrl+${ALT}+P`,
 		label: 'Command palette (+ themes)',
 		section: 'General',
 		where: 'all',
