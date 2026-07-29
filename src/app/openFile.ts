@@ -3,6 +3,7 @@ import type { Accessor, Setter } from 'solid-js';
 import type { SetStoreFunction } from 'solid-js/store';
 import type { Config } from '../core/config';
 import { BinaryFileError, mtimeOf, readFile } from '../core/fs';
+import { isImagePath } from '../core/image';
 import type { BufferState, Focus } from './types';
 
 interface FileOpenDeps {
@@ -26,7 +27,7 @@ export function createFileOpener(deps: FileOpenDeps) {
 	const openFile = (path: string, preview = false) => {
 		const leaving = deps.activePath();
 		deps.setNotice(null);
-		if (!deps.buffers[path]) {
+		if (!deps.buffers[path] && !isImagePath(path)) {
 			try {
 				deps.setBuffers(path, { content: readFile(path), dirty: false, mtime: mtimeOf(path) });
 			} catch (e) {

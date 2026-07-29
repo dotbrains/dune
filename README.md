@@ -98,6 +98,9 @@ copies when text is selected and quits when it is not, so unsaved work is not th
 away. By default the tree lists dotfiles and gitignored files; use the View commands
 `Show dotfiles` and `Hide gitignored files` to change that per user config.
 
+PNG and JPEG files open as read-only image tabs. They are rendered in the editor slot,
+restore with the rest of the session, and are never treated as editable buffers.
+
 The command palette includes Git actions for committing selected files, undoing the
 last commit, stashing, popping a stash, fetching, and pushing. If files are already
 staged, the commit picker starts from the index selection; otherwise it selects all

@@ -1,4 +1,5 @@
-import { BinaryFileError, mtimeOf, readFile } from '../core/fs';
+import { BinaryFileError, exists, mtimeOf, readFile } from '../core/fs';
+import { isImagePath } from '../core/image';
 import { loadSession } from '../core/session';
 import type { BufferState } from './types';
 
@@ -13,6 +14,15 @@ export interface RestoredAppState {
 
 export function restoreAppState(rootDir: string, single: string | null): RestoredAppState {
 	if (single) {
+		if (isImagePath(single))
+			return {
+				buffers: {},
+				tabs: [single],
+				activePath: single,
+				expanded: [],
+				sidebar: false,
+				failed: null,
+			};
 		try {
 			const buffer = { content: readFile(single), dirty: false, mtime: mtimeOf(single) };
 			return {
@@ -41,13 +51,14 @@ export function restoreAppState(rootDir: string, single: string | null): Restore
 	const saved = loadSession(rootDir);
 	const buffers: Record<string, BufferState> = {};
 	for (const path of saved.tabs) {
+		if (isImagePath(path)) continue;
 		try {
 			buffers[path] = { content: readFile(path), dirty: false, mtime: mtimeOf(path) };
 		} catch {}
 	}
-	const tabs = saved.tabs.filter((path) => buffers[path]);
+	const tabs = saved.tabs.filter((path) => buffers[path] || (isImagePath(path) && exists(path)));
 	const activePath =
-		saved.activePath && buffers[saved.activePath] ? saved.activePath : (tabs[0] ?? null);
+		saved.activePath && tabs.includes(saved.activePath) ? saved.activePath : (tabs[0] ?? null);
 	return {
 		buffers,
 		tabs,

@@ -1,11 +1,13 @@
 import { basename } from 'node:path';
 
 import type { MouseEvent } from '@opentui/core';
+import { useTerminalDimensions } from '@opentui/solid';
 import { For, Show } from 'solid-js';
 
 import type { Config } from '../core/config';
 import type { TreeNode } from '../core/fs';
 import type { FileStatus, LineChange, Upstream } from '../core/git';
+import { isImagePath } from '../core/image';
 import type { Match } from '../core/search';
 import type { VimMode } from '../editor/vim';
 import { languageLabel } from '../languages';
@@ -20,6 +22,7 @@ import { EditorPane } from '../ui/EditorPane';
 import { FilePicker } from '../ui/FilePicker';
 import { FileTree } from '../ui/FileTree';
 import { HelpOverlay } from '../ui/HelpOverlay';
+import { ImageView } from '../ui/ImageView';
 import { KeyPeek } from '../ui/KeyPeek';
 import { PromptModal } from '../ui/PromptModal';
 import { SearchPanel } from '../ui/SearchPanel';
@@ -114,6 +117,12 @@ interface AppViewProps {
 }
 
 export function AppView(props: AppViewProps) {
+	const dimensions = useTerminalDimensions();
+	const activeImage = () =>
+		props.activePath && isImagePath(props.activePath) ? props.activePath : null;
+	const editorWidth = () =>
+		Math.max(1, dimensions().width - (props.sidebar ? props.treeWidth + 1 : 0));
+	const editorHeight = () => Math.max(1, dimensions().height - 2);
 	return (
 		<box flexDirection="column" width="100%" height="100%" backgroundColor={ui.bg}>
 			<Tabs
@@ -175,40 +184,56 @@ export function AppView(props: AppViewProps) {
 						<box flexGrow={1} backgroundColor={ui.bg} />
 					</box>
 				</Show>
-				<EditorPane
-					path={props.activePath}
-					content={props.activeBuffer?.content ?? ''}
-					filetype={props.activePath ? filetypeForPath(props.activePath!) : undefined}
-					focused={props.focus === 'editor'}
-					theme={props.config.theme}
-					reloadKey={props.reloadKey}
-					goto={props.goto}
-					history={props.history}
-					edit={props.edit}
-					lineOp={props.lineOp}
-					vim={props.config.vim}
-					tabSize={props.config.tabSize}
-					gitLines={props.gitLines}
-					notice={props.notice}
-					blocked={props.blocked}
-					onChange={props.onEditorChange}
-					onCursor={props.onCursor}
-					onFocus={props.onEditorFocus}
-					onVimMode={props.onVimMode}
-					onQuit={props.onQuit}
-				/>
+				<Show
+					when={activeImage()}
+					fallback={
+						<EditorPane
+							path={props.activePath}
+							content={props.activeBuffer?.content ?? ''}
+							filetype={props.activePath ? filetypeForPath(props.activePath!) : undefined}
+							focused={props.focus === 'editor'}
+							theme={props.config.theme}
+							reloadKey={props.reloadKey}
+							goto={props.goto}
+							history={props.history}
+							edit={props.edit}
+							lineOp={props.lineOp}
+							vim={props.config.vim}
+							tabSize={props.config.tabSize}
+							gitLines={props.gitLines}
+							notice={props.notice}
+							blocked={props.blocked}
+							onChange={props.onEditorChange}
+							onCursor={props.onCursor}
+							onFocus={props.onEditorFocus}
+							onVimMode={props.onVimMode}
+							onQuit={props.onQuit}
+						/>
+					}
+				>
+					{(path: () => string) => (
+						<ImageView
+							path={path()}
+							width={editorWidth()}
+							height={editorHeight()}
+							onFocus={props.onEditorFocus}
+						/>
+					)}
+				</Show>
 			</box>
 			<StatusBar
 				message={props.status.msg}
 				tone={props.status.tone}
 				filetype={
-					props.activePath
-						? languageLabel(filetypeForPath(props.activePath!) ?? 'plain')
-						: undefined
+					activeImage()
+						? 'image'
+						: props.activePath
+							? languageLabel(filetypeForPath(props.activePath!) ?? 'plain')
+							: undefined
 				}
-				cursor={props.activePath ? props.cursor : undefined}
+				cursor={props.activePath && !activeImage() ? props.cursor : undefined}
 				dirty={props.activeBuffer?.dirty ?? false}
-				vimMode={props.activePath ? props.vimMode : null}
+				vimMode={props.activePath && !activeImage() ? props.vimMode : null}
 				branch={props.branch}
 				ahead={props.upstream?.ahead ?? 0}
 				behind={props.upstream?.behind ?? 0}
