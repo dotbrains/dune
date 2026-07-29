@@ -77,6 +77,8 @@ function split(file: DiffFile, width: number): DiffLine[] {
 export function DiffView(props: { files: DiffFile[]; mode: DiffMode; onClose: () => void }) {
 	const dimensions = useTerminalDimensions();
 	const [index, setIndex] = createSignal(0);
+	const [pickIndex, setPickIndex] = createSignal(0);
+	const [picker, setPicker] = createSignal(false);
 	const [top, setTop] = createSignal(0);
 	const width = () => modalWidth(dimensions().width, 0.82, 76, 120);
 	const visibleRows = () => listRows(dimensions().height, 7, 24);
@@ -89,16 +91,41 @@ export function DiffView(props: { files: DiffFile[]; mode: DiffMode; onClose: ()
 		adds: diff().adds,
 		dels: diff().dels,
 	});
+	const fileCounts = createMemo(() =>
+		props.files.map((changed) => ({
+			file: changed,
+			diff: unifiedDiff(changed.rel, changed.oldText, changed.newText),
+		})),
+	);
+	const totalCounts = () => ({
+		adds: fileCounts().reduce((total, row) => total + row.diff.adds, 0),
+		dels: fileCounts().reduce((total, row) => total + row.diff.dels, 0),
+	});
 	const maxTop = () => Math.max(0, body().length - visibleRows());
 	const page = (delta: number) => setTop((at) => Math.max(0, Math.min(maxTop(), at + delta)));
 	const switchFile = (delta: number) => {
 		setIndex((at) => (at + delta + props.files.length) % props.files.length);
 		setTop(0);
 	};
+	const pickFile = (at: number) => {
+		setIndex(at);
+		setTop(0);
+		setPicker(false);
+	};
 
 	useKeyboard((key: KeyEvent) => {
-		if (key.name === 'escape' || key.name === 'q') props.onClose();
-		else if (key.name === 'up') page(-1);
+		if (picker()) {
+			const count = Math.max(1, props.files.length);
+			if (key.name === 'escape' || key.name === 'q') setPicker(false);
+			else if (key.name === 'up') setPickIndex((at) => (at - 1 + count) % count);
+			else if (key.name === 'down') setPickIndex((at) => (at + 1) % count);
+			else if (key.name === 'return' || key.name === 'enter') pickFile(pickIndex());
+			else return;
+		} else if (key.name === 'escape' || key.name === 'q') props.onClose();
+		else if (key.name === 'f' && props.files.length > 1) {
+			setPickIndex(index());
+			setPicker(true);
+		} else if (key.name === 'up') page(-1);
 		else if (key.name === 'down') page(1);
 		else if (key.name === 'pageup') page(-visibleRows());
 		else if (key.name === 'pagedown') page(visibleRows());
@@ -122,37 +149,68 @@ export function DiffView(props: { files: DiffFile[]; mode: DiffMode; onClose: ()
 				paddingLeft={PAD}
 				paddingRight={PAD}
 			>
-				<box flexDirection="row" backgroundColor={ui.panelBg}>
-					<text fg={ui.text} bg={ui.panelBg} content={`${file().rel} `} />
-					<text fg={ui.gitAdded} bg={ui.panelBg} content={`+${counts().adds} `} />
-					<text fg={ui.gitDeleted} bg={ui.panelBg} content={`-${counts().dels} `} />
-					<text fg={ui.dim} bg={ui.panelBg} content={`${props.mode} `} />
-					<Show when={props.files.length > 1}>
-						<text
-							fg={ui.dim}
-							bg={ui.panelBg}
-							content={`file ${index() + 1}/${props.files.length}`}
-						/>
-					</Show>
-				</box>
-				<For each={body().slice(top(), top() + visibleRows())}>
-					{(row) => (
-						<text
-							fg={
-								row.kind === 'add'
-									? ui.gitAdded
-									: row.kind === 'del'
-										? ui.gitDeleted
-										: row.kind === 'meta'
-											? ui.faint
-											: ui.dim
-							}
-							bg={ui.panelBg}
-							content={row.text.slice(0, width() - PAD * 2 - 2)}
-						/>
-					)}
-				</For>
-				<text fg={ui.dim} bg={ui.panelBg} content="↑↓ scroll · ←→ file · Esc close" />
+				<Show
+					when={picker()}
+					fallback={
+						<>
+							<box flexDirection="row" backgroundColor={ui.panelBg}>
+								<text fg={ui.text} bg={ui.panelBg} content={`${file().rel} `} />
+								<text fg={ui.gitAdded} bg={ui.panelBg} content={`+${counts().adds} `} />
+								<text fg={ui.gitDeleted} bg={ui.panelBg} content={`-${counts().dels} `} />
+								<text fg={ui.dim} bg={ui.panelBg} content={`${props.mode} `} />
+								<Show when={props.files.length > 1}>
+									<text
+										fg={ui.dim}
+										bg={ui.panelBg}
+										content={`file ${index() + 1}/${props.files.length}`}
+									/>
+								</Show>
+							</box>
+							<For each={body().slice(top(), top() + visibleRows())}>
+								{(row) => (
+									<text
+										fg={
+											row.kind === 'add'
+												? ui.gitAdded
+												: row.kind === 'del'
+													? ui.gitDeleted
+													: row.kind === 'meta'
+														? ui.faint
+														: ui.dim
+										}
+										bg={ui.panelBg}
+										content={row.text.slice(0, width() - PAD * 2 - 2)}
+									/>
+								)}
+							</For>
+							<text
+								fg={ui.dim}
+								bg={ui.panelBg}
+								content="↑↓ scroll · ←→ file · F files · Esc close"
+							/>
+						</>
+					}
+				>
+					<box flexDirection="row" backgroundColor={ui.panelBg}>
+						<text fg={ui.text} bg={ui.panelBg} content={`Changed files — ${props.files.length} `} />
+						<text fg={ui.gitAdded} bg={ui.panelBg} content={`+${totalCounts().adds} `} />
+						<text fg={ui.gitDeleted} bg={ui.panelBg} content={`-${totalCounts().dels}`} />
+					</box>
+					<For each={fileCounts().slice(0, visibleRows())}>
+						{(row, at) => {
+							const active = () => at() === pickIndex();
+							const bg = () => (active() ? ui.treeSelectedBg : ui.panelBg);
+							const prefix = () => (active() ? '▌ ' : '  ');
+							const label = () =>
+								`${prefix()}${row.file.rel} +${row.diff.adds} -${row.diff.dels}`.slice(
+									0,
+									width() - PAD * 2 - 2,
+								);
+							return <text fg={active() ? ui.text : ui.dim} bg={bg()} content={label()} />;
+						}}
+					</For>
+					<text fg={ui.dim} bg={ui.panelBg} content="↑↓ choose · Enter jump · Esc diff" />
+				</Show>
 			</box>
 		</Overlay>
 	);

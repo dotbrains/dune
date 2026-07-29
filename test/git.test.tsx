@@ -106,8 +106,19 @@ test('diff commands show current file and all changed files', async () => {
 	await pressEscape(t);
 	await runCommand(t, 'Diff all changes');
 	expect(t.captureCharFrame()).toContain('file 1/2');
-	await press(t, (i) => i.pressArrow('right'));
+	await press(t, (i) => void i.typeText('f'));
+	expect(t.captureCharFrame()).toContain('Changed files');
+	expect(t.captureCharFrame()).toContain('fresh.ts +1 -0');
+	await press(t, (i) => i.pressArrow('down'));
+	await press(t, (i) => i.pressEnter());
 	expect(t.captureCharFrame()).toContain('fresh.ts');
+	expect(t.captureCharFrame()).toContain('file 2/2');
+	await press(t, (i) => void i.typeText('f'));
+	await pressEscape(t);
+	expect(t.captureCharFrame()).toContain('file 2/2');
+	expect(t.captureCharFrame()).not.toContain('Changed files');
+	await press(t, (i) => i.pressArrow('right'));
+	expect(t.captureCharFrame()).toContain('a.ts');
 });
 
 test('diff commands can render split layout', async () => {
