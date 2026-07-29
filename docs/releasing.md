@@ -1,6 +1,6 @@
 # Releasing
 
-Releases publish a small npm shim and GitHub release archives containing the real platform binaries. The npm package does not contain every binary. Instead, install-time launcher code downloads the matching binary from the GitHub release for the package version. That means release ordering matters: binaries must exist on GitHub before npm users can install the published version successfully.
+Releases publish a small GitHub Packages shim and GitHub release archives containing the real platform binaries. The package does not contain every binary. Instead, install-time launcher code downloads the matching binary from the GitHub release for the package version. That means release ordering matters: binaries must exist on GitHub before package users can install the published version successfully.
 
 ## Release Flow
 
@@ -11,7 +11,7 @@ sequenceDiagram
   participant Check as Version Check
   participant Build as Platform Builds
   participant Release as GitHub Release
-  participant NPM
+  participant Packages as GitHub Packages
 
   Maintainer->>Actions: push v<version> tag or run workflow_dispatch
   Actions->>Check: compare tag to package.json version
@@ -20,18 +20,18 @@ sequenceDiagram
   Build-->>Actions: upload artifacts
   Actions->>Release: create/reuse v<version> release
   Actions->>Release: upload binary archives
-  Actions->>NPM: publish shim package with provenance
+  Actions->>Packages: publish @dotbrains/dune shim
 ```
 
 `package.json` is the version source. A tag push must match `v${package.json.version}`. If it does not, the workflow fails before building.
 
 ## Release Workflow Jobs
 
-| Job       | Purpose                                                                                                                            |
-| --------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `check`   | Reads `package.json`, validates the tag when the workflow was triggered by a tag push, and exposes the version to later jobs.      |
-| `build`   | Builds native binaries on host runners that match the target platform family and uploads artifacts.                                |
-| `publish` | Downloads artifacts, normalizes the `dist/` layout, creates or reuses the GitHub release, uploads binaries, then publishes to npm. |
+| Job       | Purpose                                                                                                                                        |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `check`   | Reads `package.json`, validates the tag when the workflow was triggered by a tag push, and exposes the version to later jobs.                  |
+| `build`   | Builds native binaries on host runners that match the target platform family and uploads artifacts.                                            |
+| `publish` | Downloads artifacts, normalizes the `dist/` layout, creates or reuses the GitHub release, uploads binaries, then publishes to GitHub Packages. |
 
 ## Platform Matrix
 
@@ -63,13 +63,13 @@ flowchart TD
 
 The release workflow has several invariants that should not be weakened:
 
-| Invariant                                          | Reason                                                                                      |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| Validate tag/version before building.              | A mismatched tag would publish assets under one version while the npm shim fetches another. |
-| Build on matching platform runners.                | Optional OpenTUI native packages are host-specific.                                         |
-| Upload GitHub release binaries before npm publish. | The npm package fetches binaries from the GitHub release.                                   |
-| Use npm provenance without `NODE_AUTH_TOKEN`.      | Trusted publishing uses OIDC; an empty token can break authentication before OIDC runs.     |
-| Reuse existing tags instead of moving them.        | Re-running a release should not rewrite published version history.                          |
+| Invariant                                              | Reason                                                                                          |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| Validate tag/version before building.                  | A mismatched tag would publish assets under one version while the package shim fetches another. |
+| Build on matching platform runners.                    | Optional OpenTUI native packages are host-specific.                                             |
+| Upload GitHub release binaries before package publish. | The package fetches binaries from the GitHub release.                                           |
+| Publish only to GitHub Packages.                       | `GITHUB_TOKEN` can publish the scoped package for this repository without npmjs secrets.        |
+| Reuse existing tags instead of moving them.            | Re-running a release should not rewrite published version history.                              |
 
 ## Manual Release Checklist
 
@@ -78,7 +78,7 @@ Before starting a release:
 1. Confirm `main` is green in CI.
 2. Confirm `package.json` has the intended version.
 3. Confirm `CHANGELOG` or release notes source is ready if one is being maintained.
-4. Confirm npm trusted publishing is configured for the repository.
+4. Confirm the workflow still has `packages: write` permission.
 5. Confirm the license is still the intended PolyForm Shield license text.
 
 Trigger release by either pushing the matching tag or using `workflow_dispatch`.
@@ -102,20 +102,20 @@ bun run test:ci
 bun run build
 ```
 
-Use `bun run release` locally only when inspecting the staged release output. Publishing should happen through GitHub Actions so provenance, artifacts, and tags are handled consistently.
+Use `bun run release` locally only when inspecting the staged release output. Publishing should happen through GitHub Actions so package authentication, artifacts, and tags are handled consistently.
 
 ## Failure Recovery
 
-| Failure point                                   | Recovery                                                                                  |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Version check fails                             | Fix `package.json` version or push the correct tag. Do not publish from a mismatched tag. |
-| One platform build fails                        | Fix the target-specific build issue and re-run the workflow.                              |
-| Release upload fails                            | Re-run after confirming the tag exists and `contents: write` permission is available.     |
-| npm publish fails before a package is published | Fix authentication/provenance configuration and re-run.                                   |
-| npm version already exists                      | Treat the npm package as immutable; bump version for any content change.                  |
+| Failure point                                       | Recovery                                                                                  |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Version check fails                                 | Fix `package.json` version or push the correct tag. Do not publish from a mismatched tag. |
+| One platform build fails                            | Fix the target-specific build issue and re-run the workflow.                              |
+| Release upload fails                                | Re-run after confirming the tag exists and `contents: write` permission is available.     |
+| Package publish fails before a package is published | Fix GitHub Packages permissions and re-run.                                               |
+| Package version already exists                      | Treat the package version as immutable; bump version for any content change.              |
 
-If GitHub release assets were uploaded but npm publish failed, do not delete or move the tag unless the version was never meant to ship. Fix npm publishing and re-run the same workflow so the npm package points at the already-correct release assets.
+If GitHub release assets were uploaded but package publication failed, do not delete or move the tag unless the version was never meant to ship. Fix GitHub Packages publication and re-run the same workflow so the package points at the already-correct release assets.
 
 ## License
 
-The repository uses the same license text as `dotbrains/hab`: PolyForm Shield License 1.0.0 with copyright assigned to dotbrains. Release artifacts and npm metadata must continue to identify the package as `PolyForm-Shield-1.0.0`.
+The repository uses the same license text as `dotbrains/hab`: PolyForm Shield License 1.0.0 with copyright assigned to dotbrains. Release artifacts and package metadata must continue to identify the package as `PolyForm-Shield-1.0.0`.

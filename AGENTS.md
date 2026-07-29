@@ -7,8 +7,8 @@ Instructions for AI agents working on **dune**, a terminal code editor.
 ## What this project is
 
 A TUI code editor built on [OpenTUI](https://github.com/anomalyco/opentui) (Solid
-reconciler on a native Zig core). Shipped as a standalone binary — npm, Homebrew, a curl
-installer — and run as a CLI.
+reconciler on a native Zig core). Shipped as a standalone binary — GitHub Packages,
+Homebrew, a curl installer — and run as a CLI.
 
 Features: file tree with bulk file operations, preview/pinned tabs, tree-sitter syntax
 highlighting, search (current file and project-wide), command palette, themes, vim mode,
@@ -37,7 +37,7 @@ bun run start ./some/dir # run from source against a directory
 bun run build            # compile a binary for this machine into dist/<target>/
 ./dist/*/dune .          # run what you just built (bin/dune.js finds it too)
 bun run build linux-x64  # …or for a named target, if its native package is installed
-bun run release          # package dist/ for npm + release archives (--publish to ship)
+bun run release          # package dist/ for GitHub Packages + release archives
 bun run formula          # Homebrew formula for those archives (not published anywhere yet)
 bun run test             # unit + UI, one worker per core (~20s; 87s without --parallel)
 bun test test/foo.tsx    # a single file, where the flag buys nothing
@@ -57,7 +57,8 @@ writes to your real `~/.config/dune`.
 ## Shipping
 
 `bun run build` produces one executable; `bun run release` turns the executables in
-`dist/` into npm packages and release archives. Five things about that are easy to break:
+`dist/` into a GitHub Packages shim and release archives. Five things about that are easy
+to break:
 
 - **Assets must be static `with { type: 'file' }` imports.** Bun embeds only what it can
   see at build time, so a computed specifier or an `import.meta.resolve` call leaves the
@@ -69,20 +70,21 @@ writes to your real `~/.config/dune`.
 - **Cross-compiling needs the target's `@opentui/core-<platform>` package**, and
   `bun install` fetches the host's alone. That is why the release workflow uses one native
   runner per platform instead of five `--target` flags on one machine.
-- **The GitHub release is uploaded before npm.** One package is published, `dune`, and it
-  holds no binary: `bin/binary.mjs` fetches the archive for the machine from the release.
-  Publishing npm first would leave a window where an install finds no asset.
+- **The GitHub release is uploaded before GitHub Packages.** One package is published,
+  `@dotbrains/dune`, and it holds no binary: `bin/binary.mjs` fetches the archive for the
+  machine from the release. Publishing the package first would leave a window where an
+  install finds no asset.
 - **There is deliberately no package per platform.** That is the usual arrangement, and
-  it is what dune used to do, but creating a package needs a credential that can create
-  packages — while the release authenticates as GitHub through OIDC and may only publish
-  to `dune` itself. One package is what makes the release run unattended.
+  it is what dune used to do, but creating many packages makes release permissions harder
+  to reason about. One scoped package keeps `GITHUB_TOKEN` publication tied to this
+  repository.
 
-The repo's own `package.json` is `private`: what npm publishes is staged into
+The repo's own `package.json` is `private`: what GitHub Packages publishes is staged into
 `dist/npm/dune` by `scripts/release.ts` — the shim, the postinstall and nothing else.
 Versions come from `package.json` — bump it and `.github/workflows/release.yml` builds
-every platform, uploads the archives to the release and publishes to npm, with no manual
-step. Two ways to start it: push a tag `v<version>`, or run the workflow from the Actions
-tab, which tags the commit it runs on for you.
+every platform, uploads the archives to the release and publishes to GitHub Packages, with
+no manual publish step. Two ways to start it: push a tag `v<version>`, or run the workflow
+from the Actions tab, which tags the commit it runs on for you.
 
 **`package.json` is the version, not the ref.** The published shim fetches its binaries
 from `releases/download/v<version>`, so the release must carry exactly that tag — the
@@ -97,10 +99,10 @@ credentials first is ordinary `contents: write` and works, so a manual run tags 
 commit in its own step and `gh` only ever sees a tag that is already there.
 
 **Every run ships, and both publishing steps go together.** There is no dry run: neither
-step may be made conditional on its own, because dune 1.0.0 reached npm from a run whose
-release upload was skipped, and the published shim spent its life fetching a release that
-did not exist. Re-running a shipped version is safe — `release.ts` skips a version already
-on the registry and the upload clobbers its assets.
+step may be made conditional on its own: a package published before release assets exist
+would spend its life fetching a release that does not exist. Re-running a shipped version
+is safe — `release.ts` skips a version already on the registry and the upload clobbers its
+assets.
 
 Homebrew is not wired up yet. `scripts/formula.ts` generates a working formula from the
 archives in `dist/release/`, but nothing publishes it: that needs a `dotbrains/homebrew-tap`

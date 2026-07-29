@@ -6,18 +6,17 @@ import type { TargetName } from '../build';
 
 /**
  * Packages the binaries built by build.ts:
- *   dist/npm/dune/              the one package published, a shim holding no binary
+ *   dist/npm/dune/              the GitHub Packages package, a shim holding no binary
  *   dist/release/dune-<target>.{zip,tar.gz}   the binaries themselves
  *
  * The archives are the only place a binary is distributed: both the install script and
- * the npm shim pull them from the GitHub release. There used to be an npm package per
- * platform, listed as optional dependencies, which is the usual arrangement — but
- * publishing those needs a credential that can create new packages, while the release
- * workflow authenticates as GitHub and may only publish to `dune`. One package means
- * the whole release runs unattended.
+ * the package shim pull them from the GitHub release. There used to be a package per
+ * platform, listed as optional dependencies, which is the usual arrangement. One
+ * scoped package keeps release permissions simple: GITHUB_TOKEN can publish to
+ * GitHub Packages for this repository and upload the matching release assets.
  *
- * So the release must be uploaded *before* npm is published: an install landing in the
- * gap would find no asset to fetch.
+ * So the release must be uploaded *before* the package is published: an install
+ * landing in the gap would find no asset to fetch.
  *
  * Run after `bun run build <targets>`; only targets with a built binary are packaged.
  */
@@ -80,8 +79,8 @@ await Bun.write(
 	`${JSON.stringify(
 		{
 			...rootPkg,
-			// The repo itself is private so a stray `npm publish` at the root cannot ship a
-			// shim with no binaries behind it; the staged copy is the publishable one.
+			// The repo itself is private so a stray publish at the root cannot ship a shim
+			// with no binaries behind it; the staged copy is the publishable one.
 			'//private': undefined,
 			private: undefined,
 			bin: { dune: './bin/dune.js' },
@@ -113,21 +112,25 @@ if (publish) {
 		process.exit(1);
 	}
 	// npm refuses a prerelease without an explicit tag, and rightly so: `1.0.0-beta.1`
-	// on `latest` would become what every plain `npm install -g dune` gets. The
+	// on `latest` would become what every plain install gets. The
 	// identifier is the tag, so a beta lands on `beta` and is installed on purpose.
 	const tag = /-([a-z][\da-z]*)/i.exec(version)?.[1] ?? 'latest';
 
 	/**
-	 * A version already on the registry is skipped rather than retried: npm forbids
-	 * republishing, so without this a rerun of a release that got as far as npm — to
-	 * fix a later step — could never succeed.
+	 * A version already on the registry is skipped rather than retried: npm registries
+	 * forbid republishing, so without this a rerun of a release that got as far as
+	 * package publication — to fix a later step — could never succeed.
 	 */
 	const onRegistry = async (name: string) =>
-		(await Bun.$`npm view ${name}@${version} version`.quiet().nothrow()).exitCode === 0;
+		(
+			await Bun.$`npm view ${name}@${version} version --registry=https://npm.pkg.github.com`
+				.quiet()
+				.nothrow()
+		).exitCode === 0;
 
-	if (await onRegistry('dune')) {
-		process.stdout.write(`dune@${version} is already published — skipped\n`);
+	if (await onRegistry('@dotbrains/dune')) {
+		process.stdout.write(`@dotbrains/dune@${version} is already published — skipped\n`);
 	} else {
-		await Bun.$`npm publish --access public --tag ${tag}`.cwd(rootDir);
+		await Bun.$`npm publish --tag ${tag} --registry=https://npm.pkg.github.com`.cwd(rootDir);
 	}
 }

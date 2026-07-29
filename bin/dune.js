@@ -4,7 +4,7 @@
  *
  * This shim is the only JavaScript dune ships: the editor is a self-contained
  * executable that needs neither Bun nor node_modules. See binary.mjs for why the
- * executable arrives from the GitHub release rather than from npm.
+ * executable arrives from the GitHub release rather than from the package registry.
  */
 import { spawnSync } from 'node:child_process';
 

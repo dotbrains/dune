@@ -51,11 +51,12 @@ Install from a release script:
 curl -fsSL https://raw.githubusercontent.com/dotbrains/dune/main/install | bash
 ```
 
-Or install the npm shim once releases are configured:
+Or install the GitHub Packages shim after configuring npm for the GitHub registry:
 
 ```bash
-npm install -g dune
-bun add -g dune
+npm config set @dotbrains:registry https://npm.pkg.github.com
+npm install -g @dotbrains/dune
+bun add -g @dotbrains/dune
 ```
 
 The shim downloads the matching binary from the GitHub release. Set `DUNE_DOWNLOAD_BASE`
@@ -71,7 +72,7 @@ dune src/main.ts:42   # open at line 42
 dune update           # upgrade this installation
 ```
 
-`npx dune` and `bunx dune` work once the package is published.
+`npx @dotbrains/dune` and `bunx @dotbrains/dune` work once the package is published.
 
 ## Shortcuts
 
@@ -102,17 +103,17 @@ changed files.
 
 ## Project Map
 
-| Path             | Purpose                                                             |
-| ---------------- | ------------------------------------------------------------------- |
-| `src/app/`       | Application state, command dispatch, and root TUI composition       |
-| `src/ui/`        | Reusable terminal UI components                                     |
-| `src/editor/`    | Text buffer, edits, history, selection, windowing, and vim logic    |
-| `src/core/`      | CLI parsing, filesystem, config, git, updates, sessions, and search |
-| `src/languages/` | Tree-sitter grammar registry, queries, and highlighting             |
-| `src/themes/`    | Theme builders, palette files, registry, and runtime theme state    |
-| `bin/`           | npm launcher, install-time binary fetcher, and platform detection   |
-| `scripts/`       | Release archive and Homebrew formula generation                     |
-| `test/`          | Bun unit and off-screen TUI tests                                   |
+| Path             | Purpose                                                               |
+| ---------------- | --------------------------------------------------------------------- |
+| `src/app/`       | Application state, command dispatch, and root TUI composition         |
+| `src/ui/`        | Reusable terminal UI components                                       |
+| `src/editor/`    | Text buffer, edits, history, selection, windowing, and vim logic      |
+| `src/core/`      | CLI parsing, filesystem, config, git, updates, sessions, and search   |
+| `src/languages/` | Tree-sitter grammar registry, queries, and highlighting               |
+| `src/themes/`    | Theme builders, palette files, registry, and runtime theme state      |
+| `bin/`           | Package launcher, install-time binary fetcher, and platform detection |
+| `scripts/`       | Release archive and Homebrew formula generation                       |
+| `test/`          | Bun unit and off-screen TUI tests                                     |
 
 ## Development
 

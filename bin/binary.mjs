@@ -1,12 +1,10 @@
 /**
  * Finding — and if need be fetching — the executable for this machine.
  *
- * dune ships one npm package holding no binary at all. The usual arrangement is a
- * package per platform listed as optional dependencies, but publishing those needs a
- * credential that can create packages, and the release runs on GitHub's OIDC identity,
- * which may only publish to `dune` itself. The binaries live on the GitHub release the
- * same workflow produces, so this fetches from there instead: one npm package, one
- * credential, nothing to publish by hand.
+ * dune ships one GitHub Packages package holding no binary at all. The usual
+ * arrangement is a package per platform listed as optional dependencies, but one scoped
+ * package keeps publication tied to this repository's GITHUB_TOKEN. The binaries live
+ * on the GitHub release the same workflow produces, so this fetches from there instead.
  *
  * The cost is that installing needs the network — which is why the fetch is attempted
  * twice, once from postinstall and again on first run, so `--ignore-scripts` and a

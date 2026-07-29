@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  id-token: write
   contents: write
+  packages: write
 
 jobs:
   # package.json is the single source of the version: the published shim fetches its
@@ -66,19 +66,20 @@ jobs:
     needs: [check, build]
     runs-on: ubuntu-latest
     # Every run of this job ships, by a tag push or by hand. Nothing here may be made
-    # conditional on its own: the npm publish once carried no guard while the release
-    # upload did, so a run published a package whose binaries were never uploaded
-    # anywhere and every `npm i dune` fetched a 404. Both steps go together.
+    # conditional on its own: package publication once carried no guard while the
+    # release upload did, so a run published a package whose binaries were never
+    # uploaded anywhere. Both steps go together.
     env:
       VERSION: ${{ needs.check.outputs.version }}
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
-      # Node is here for `npm publish` alone — provenance is an npm feature.
+      # Node is here for GitHub Packages publication.
       - uses: actions/setup-node@v4
         with:
           node-version: latest
-          registry-url: 'https://registry.npmjs.org'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@dotbrains'
       - run: bun install --frozen-lockfile
       - uses: actions/download-artifact@v4
         with:
@@ -99,7 +100,7 @@ jobs:
       #
       # A tag push arrives with it already on the remote, and re-running a shipped
       # version reuses the tag it finds rather than moving it — the assets are
-      # replaced below, and npm skips a version already on the registry.
+      # replaced below, and release.ts skips a version already on the registry.
       - name: Tag this commit
         run: |
           if git ls-remote --exit-code --tags origin "refs/tags/$VERSION" >/dev/null 2>&1; then
@@ -108,8 +109,9 @@ jobs:
             git tag "$VERSION"
             git push origin "$VERSION"
           fi
-      # Before npm, not after: the published package holds no binary and fetches one
-      # from this release, so an install landing between the two would find nothing.
+      # Before package publication, not after: the published package holds no binary
+      # and fetches one from this release, so an install landing between the two would
+      # find nothing.
       - name: Publish the release with the binaries
         run: |
           gh release view "$VERSION" >/dev/null 2>&1 \
@@ -117,12 +119,7 @@ jobs:
           gh release upload "$VERSION" dist/release/* --clobber
         env:
           GH_TOKEN: ${{ github.token }}
-      # No NODE_AUTH_TOKEN: npm authenticates through OIDC, using the trusted publisher
-      # configured for `dune`. An empty token would be worse than none — setup-node
-      # writes it into .npmrc and npm then fails with ENEEDAUTH before it ever reaches
-      # the OIDC exchange. A version already on the registry is skipped by release.ts,
-      # so re-running a shipped version is not an error.
-      - name: Publish to npm
+      - name: Publish to GitHub Packages
         run: bun run release --publish
         env:
-          NPM_CONFIG_PROVENANCE: true
+          NODE_AUTH_TOKEN: ${{ github.token }}
