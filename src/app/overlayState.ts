@@ -9,6 +9,7 @@ export function isOverlayOpen(deps: {
 	help: Accessor<boolean>;
 	search: Accessor<SearchState>;
 	settingsPage: Accessor<boolean>;
+	diff: Accessor<unknown>;
 	update: Accessor<unknown>;
 	picker: Accessor<PickerState>;
 	commitFiles: Accessor<unknown>;
@@ -20,6 +21,7 @@ export function isOverlayOpen(deps: {
 		deps.help() ||
 		deps.search() ||
 		deps.settingsPage() ||
+		deps.diff() ||
 		deps.update() ||
 		deps.picker() ||
 		deps.commitFiles()

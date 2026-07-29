@@ -4,10 +4,10 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { currentBranch, diffLines, ignoredAmong, statusMap } from '../src/core/git';
+import { currentBranch, diffFiles, diffLines, ignoredAmong, statusMap } from '../src/core/git';
 import { THEMES } from '../src/themes';
 import { git as runGit } from './git-fixture';
-import { launch, press, settle } from './helpers';
+import { launch, press, pressEscape, runCommand, settle } from './helpers';
 import type { Harness } from './helpers';
 
 interface Frame {
@@ -76,6 +76,36 @@ test('status marks reach the file tree', async () => {
 
 	expect(row('a.ts')).toContain('M');
 	expect(row('fresh.ts')).toContain('U');
+});
+
+test('diffFiles returns text snapshots for changed files', () => {
+	const dir = repo('one\ntwo\n');
+	writeFileSync(join(dir, 'a.ts'), 'one\nTWO\nthree\n');
+	writeFileSync(join(dir, 'fresh.ts'), 'new\n');
+
+	const files = diffFiles(dir);
+	expect(files.map((file) => file.rel)).toEqual(['a.ts', 'fresh.ts']);
+	expect(files[0]).toMatchObject({ oldText: 'one\ntwo\n', newText: 'one\nTWO\nthree\n' });
+	expect(files[1]).toMatchObject({ oldText: '', newText: 'new\n', status: 'untracked' });
+});
+
+test('diff commands show current file and all changed files', async () => {
+	const dir = repo('one\ntwo\n');
+	writeFileSync(join(dir, 'a.ts'), 'one\nTWO\nthree\n');
+	writeFileSync(join(dir, 'fresh.ts'), 'new\n');
+
+	const t = await launch(dir);
+	await press(t, (i) => i.pressArrow('down'));
+	await press(t, (i) => i.pressEnter());
+	await runCommand(t, 'Diff current file');
+	expect(t.captureCharFrame()).toContain('+ THREE'.replace('THREE', 'three'));
+	expect(t.captureCharFrame()).toContain('- two');
+
+	await pressEscape(t);
+	await runCommand(t, 'Diff all changes');
+	expect(t.captureCharFrame()).toContain('file 1/2');
+	await press(t, (i) => i.pressArrow('right'));
+	expect(t.captureCharFrame()).toContain('fresh.ts');
 });
 
 test('a folder inherits the status of its contents', async () => {

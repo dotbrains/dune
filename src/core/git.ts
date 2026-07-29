@@ -1,9 +1,17 @@
 import { spawn, spawnSync } from 'node:child_process';
-import { realpathSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
+import { dirname, join, relative } from 'node:path';
 
 export type LineChange = 'added' | 'modified' | 'deleted';
 export type FileStatus = 'untracked' | 'added' | 'modified' | 'deleted';
+
+export interface DiffFile {
+	path: string;
+	rel: string;
+	status: FileStatus;
+	oldText: string;
+	newText: string;
+}
 
 /**
  * Queries run synchronously because they sit behind gutter marks, tree marks and
@@ -111,6 +119,38 @@ export function statusMap(cwd: string): Map<string, FileStatus> {
 		if (status) statuses.set(join(base, entry.slice(3)), status);
 	}
 	return statuses;
+}
+
+export function textAtHead(cwd: string, path: string): string {
+	const base = keyBase(cwd);
+	if (base === null) return '';
+	const rel = relative(base, path);
+	const run = git(cwd, ['show', `HEAD:${rel}`], 5000);
+	return run.status === 0 ? run.stdout : '';
+}
+
+export function diffFiles(cwd: string, only?: string): DiffFile[] {
+	const statuses = statusMap(cwd);
+	const files: DiffFile[] = [];
+	const base = keyBase(cwd) ?? cwd;
+	for (const [path, status] of statuses) {
+		if (only && path !== only) continue;
+		if (!existsSync(path) && status !== 'deleted') continue;
+		let newText = '';
+		try {
+			newText = status === 'deleted' ? '' : readFileSync(path, 'utf8');
+		} catch {
+			continue;
+		}
+		files.push({
+			path,
+			rel: relative(base, path),
+			status,
+			oldText: status === 'untracked' ? '' : textAtHead(cwd, path),
+			newText,
+		});
+	}
+	return files.toSorted((a, b) => a.rel.localeCompare(b.rel));
 }
 
 /** Which visible tree paths are excluded by gitignore. Empty outside a repository. */

@@ -80,10 +80,7 @@ export function App(props: AppTypes.AppProps) {
 	const [recentlyClosed, setRecentlyClosed] = createSignal<string[]>([]);
 	const [cursor, setCursor] = createSignal({ line: 0, col: 0 });
 	const [busy, setBusy] = createSignal<AppTypes.BusyState>(null);
-	const [status, setStatus] = createSignal<AppTypes.StatusMessage>({
-		msg: READY,
-		tone: 'info',
-	});
+	const [status, setStatus] = createSignal<AppTypes.StatusMessage>({ msg: READY, tone: 'info' });
 	const nodes = createMemo(() =>
 		flattenVisible(rootDir, expanded(), hiddenTreeNodes(rootDir, config)),
 	);
@@ -255,6 +252,7 @@ export function App(props: AppTypes.AppProps) {
 		help,
 		search,
 		settingsPage,
+		diff: gitCommands.diff,
 		update,
 		picker,
 		commitFiles: gitCommands.commitFiles,
@@ -443,6 +441,7 @@ export function App(props: AppTypes.AppProps) {
 			picker={picker()}
 			palette={palette()}
 			settingsPage={settingsPage()}
+			diff={gitCommands.diff()}
 			commands={commands()}
 			settingRows={settingRows()}
 			commitFiles={gitCommands.commitFiles()}
@@ -484,6 +483,7 @@ export function App(props: AppTypes.AppProps) {
 			onClosePicker={() => setPicker(null)}
 			onClosePalette={() => setPalette(false)}
 			onCloseSettings={() => setSettingsPage(false)}
+			onCloseDiff={gitCommands.closeDiff}
 			onCommitFiles={gitCommands.startCommit}
 			onCancelCommit={gitCommands.cancelCommit}
 			onResolveConflict={resolveConflict}

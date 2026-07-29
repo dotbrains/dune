@@ -7,6 +7,7 @@ import { createSignal, For, Show } from 'solid-js';
 import type { Config } from '../core/config';
 import type { TreeNode } from '../core/fs';
 import type { FileStatus, LineChange, Upstream } from '../core/git';
+import type { DiffFile } from '../core/git';
 import { isImagePath } from '../core/image';
 import type { Match } from '../core/search';
 import type { VimMode } from '../editor/vim';
@@ -18,6 +19,7 @@ import { CommandPalette } from '../ui/CommandPalette';
 import { CommitModal } from '../ui/CommitModal';
 import type { CommitFile } from '../ui/CommitModal';
 import { ConfirmModal } from '../ui/ConfirmModal';
+import { DiffView } from '../ui/overlays/DiffView';
 import { EditorPane } from '../ui/EditorPane';
 import { FilePicker } from '../ui/FilePicker';
 import { FileTree } from '../ui/FileTree';
@@ -81,6 +83,7 @@ interface AppViewProps {
 	picker: 'files' | 'tabs' | null;
 	palette: boolean;
 	settingsPage: boolean;
+	diff: DiffFile[] | null;
 	commands: Command[];
 	settingRows: SettingRow[];
 	commitFiles: CommitFile[] | null;
@@ -114,6 +117,7 @@ interface AppViewProps {
 	onClosePicker: () => void;
 	onClosePalette: () => void;
 	onCloseSettings: () => void;
+	onCloseDiff: () => void;
 	onCommitFiles: (paths: string[]) => void;
 	onCancelCommit: () => void;
 	onResolveConflict: (choice: string) => void;
@@ -378,6 +382,9 @@ export function AppView(props: AppViewProps) {
 			</Show>
 			<Show when={props.settingsPage}>
 				<SettingsView rows={props.settingRows} onClose={() => props.onCloseSettings()} />
+			</Show>
+			<Show when={props.diff}>
+				{(files: () => DiffFile[]) => <DiffView files={files()} onClose={props.onCloseDiff} />}
 			</Show>
 			<Show when={props.commitFiles}>
 				{(files: () => CommitFile[]) => (

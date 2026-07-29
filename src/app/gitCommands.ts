@@ -3,6 +3,7 @@ import { createSignal } from 'solid-js';
 
 import {
 	commitPaths,
+	diffFiles,
 	fetch as gitFetch,
 	inRepository,
 	lastCommitSubject,
@@ -14,6 +15,7 @@ import {
 	undoLastCommit,
 } from '../core/git';
 import type { GitResult, Upstream } from '../core/git';
+import type { DiffFile } from '../core/git';
 import type { CommitFile } from '../ui/CommitModal';
 import type { Tone } from '../ui/StatusBar';
 import type { Prompt } from './types';
@@ -31,6 +33,7 @@ export function createGitCommands(deps: {
 }) {
 	const [commitFiles, setCommitFiles] = createSignal<CommitFile[] | null>(null);
 	const [commitSelection, setCommitSelection] = createSignal<string[]>([]);
+	const [diff, setDiff] = createSignal<DiffFile[] | null>(null);
 
 	const runGit = (label: string, action: () => Promise<GitResult>, success: string) => {
 		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
@@ -62,6 +65,14 @@ export function createGitCommands(deps: {
 		);
 	};
 
+	const openDiff = (path?: string | null) => {
+		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
+		const files = diffFiles(deps.rootDir, path ?? undefined);
+		if (files.length === 0)
+			return deps.say(path ? 'No changes in current file' : 'No changes', 'warn');
+		setDiff(files);
+	};
+
 	const startCommit = (paths: string[]) => {
 		setCommitFiles(null);
 		setCommitSelection(paths);
@@ -84,6 +95,8 @@ export function createGitCommands(deps: {
 
 	return {
 		commitFiles,
+		diff,
+		closeDiff: () => setDiff(null),
 		cancelCommit: () => setCommitFiles(null),
 		startCommit,
 		submitCommit,
@@ -93,6 +106,7 @@ export function createGitCommands(deps: {
 		stash: () => runGit('Stashing', () => stashPush(deps.rootDir), 'Stashed changes'),
 		stashPop: () => runGit('Applying stash', () => stashPop(deps.rootDir), 'Applied stash'),
 		fetch: () => runGit('Fetching', () => gitFetch(deps.rootDir), 'Fetched'),
+		openDiff,
 		push: () =>
 			runGit(
 				'Pushing',

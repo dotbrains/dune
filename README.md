@@ -101,10 +101,10 @@ away. By default the tree lists dotfiles and gitignored files; use the View comm
 PNG and JPEG files open as read-only image tabs. They are rendered in the editor slot,
 restore with the rest of the session, and are never treated as editable buffers.
 
-The command palette includes Git actions for committing selected files, undoing the
-last commit, stashing, popping a stash, fetching, and pushing. If files are already
-staged, the commit picker starts from the index selection; otherwise it selects all
-changed files.
+The command palette includes Git actions for viewing diffs, committing selected files,
+undoing the last commit, stashing, popping a stash, fetching, and pushing. If files
+are already staged, the commit picker starts from the index selection; otherwise it
+selects all changed files.
 
 ## Project Map
 

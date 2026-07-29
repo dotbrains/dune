@@ -51,6 +51,7 @@ export function createAppCommands(deps: {
 	patchConfig: (patch: Partial<Config>) => void;
 	gitCommands: {
 		openCommitPicker: () => void;
+		openDiff: (path?: string | null) => void;
 		confirmUndoCommit: () => void;
 		stash: () => void;
 		stashPop: () => void;
@@ -108,6 +109,8 @@ export function createAppCommands(deps: {
 				toggleTrim: deps.toggleTrim,
 				toggleAutoSave: deps.toggleAutoSave,
 				commit: deps.gitCommands.openCommitPicker,
+				diffCurrent: () => deps.gitCommands.openDiff(deps.activePath()),
+				diffAll: () => deps.gitCommands.openDiff(),
 				undoCommit: deps.gitCommands.confirmUndoCommit,
 				stash: deps.gitCommands.stash,
 				stashPop: deps.gitCommands.stashPop,

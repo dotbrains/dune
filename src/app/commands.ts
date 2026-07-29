@@ -57,6 +57,8 @@ export interface CommandActions {
 	toggleTrim: () => void;
 	toggleAutoSave: () => void;
 	commit: () => void;
+	diffCurrent: () => void;
+	diffAll: () => void;
 	undoCommit: () => void;
 	stash: () => void;
 	stashPop: () => void;
@@ -242,6 +244,8 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 			label: 'Git',
 			children: [
 				{ id: 'git.commit', label: 'Commit…', run: actions.commit },
+				{ id: 'git.diffCurrent', label: 'Diff current file', run: actions.diffCurrent },
+				{ id: 'git.diffAll', label: 'Diff all changes', run: actions.diffAll },
 				{ id: 'git.undoCommit', label: 'Undo last commit…', run: actions.undoCommit },
 				{ id: 'git.stash', label: 'Stash changes', run: actions.stash },
 				{ id: 'git.stashPop', label: 'Stash pop', run: actions.stashPop },
