@@ -105,7 +105,10 @@ export function useAppKeyboard(deps: {
 		if (key.ctrl || key.meta || key.option) return;
 		key.preventDefault();
 		const node = deps.selectedNode();
-		switch (k) {
+		const treeKey = deps.config.vim
+			? (({ h: 'left', j: 'down', k: 'up', l: 'right' } as Record<string, string>)[k] ?? k)
+			: k;
+		switch (treeKey) {
 			case 'tab':
 				if (deps.activePath()) deps.setFocus('editor');
 				break;

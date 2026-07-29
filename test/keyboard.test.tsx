@@ -8,6 +8,11 @@ import type { Harness } from './helpers';
 type Input = Harness['mockInput'];
 
 const PROJECT = { 'a.ts': 'const a = 1\n' };
+const TREE_PROJECT = {
+	'dir/inside.ts': 'const inside = 1\n',
+	'a.ts': 'const a = 1\n',
+	'b.ts': 'const b = 2\n',
+};
 
 async function openedFile(dir: string) {
 	const t = await launch(dir);
@@ -69,6 +74,34 @@ describe('chords while the tree has focus', () => {
 	test('Ctrl+D does not offer to delete the selected file', leavesTreeAlone('d'));
 	test('Ctrl+R does not open rename', leavesTreeAlone('r'));
 	test('Ctrl+A does not open new file', leavesTreeAlone('a'));
+});
+
+describe('vim keys while the tree has focus', () => {
+	test('j/k move and h/l collapse or expand only when vim is enabled', async () => {
+		const t = await launch(fixture(TREE_PROJECT), { vim: true });
+		await press(t, (i) => i.pressArrow('down'));
+		await press(t, (i) => i.pressArrow('up'));
+
+		await press(t, (i) => i.pressKey('l'));
+		expect(t.captureCharFrame()).toContain('inside.ts');
+
+		await press(t, (i) => i.pressKey('h'));
+		expect(t.captureCharFrame()).not.toContain('inside.ts');
+
+		await press(t, (i) => i.pressKey('j'));
+		await press(t, (i) => i.pressEnter());
+		expect(t.captureCharFrame()).toContain('const a = 1');
+	});
+
+	test('plain j does not move the tree selection without vim', async () => {
+		const t = await launch(fixture(TREE_PROJECT));
+		await press(t, (i) => i.pressArrow('down'));
+		await press(t, (i) => i.pressArrow('up'));
+
+		await press(t, (i) => i.pressKey('j'));
+		await press(t, (i) => i.pressEnter());
+		expect(t.captureCharFrame()).not.toContain('const a = 1');
+	});
 });
 
 describe('closing a tab with unsaved edits', () => {
