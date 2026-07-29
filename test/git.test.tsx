@@ -149,6 +149,12 @@ test('source control panel lists changes from Ctrl+Opt+G', async () => {
 	expect(frame).toContain('source control');
 	expect(frame).toContain('a.ts');
 	expect(frame).toContain('fresh.ts');
+
+	await press(t, (input) => input.pressEnter());
+	expect(t.captureCharFrame()).toContain('+ changed');
+	await pressEscape(t);
+	await press(t, (input) => void input.typeText('c'));
+	expect(t.captureCharFrame()).toContain('Commit');
 });
 
 test('a folder inherits the status of its contents', async () => {

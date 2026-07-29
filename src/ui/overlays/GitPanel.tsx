@@ -1,6 +1,8 @@
 import { relative } from 'node:path';
 
-import { For, Show } from 'solid-js';
+import type { KeyEvent } from '@opentui/core';
+import { useKeyboard } from '@opentui/solid';
+import { createSignal, For, Show } from 'solid-js';
 
 import type { FileStatus } from '../../core/git';
 import { ui } from '../../themes';
@@ -14,11 +16,30 @@ export function GitPanel(props: {
 	status: Map<string, FileStatus>;
 	onFocus: () => void;
 	onDiff: (path: string) => void;
+	onCommit: () => void;
+	onPush: () => void;
 }) {
+	const [index, setIndex] = createSignal(0);
 	const changes = () =>
 		[...props.status]
 			.map(([path, status]) => ({ path, status, rel: relative(props.rootDir, path) }))
 			.toSorted((a, b) => a.rel.localeCompare(b.rel));
+	const selected = () => Math.min(index(), Math.max(0, changes().length - 1));
+
+	useKeyboard((key: KeyEvent) => {
+		if (!props.focused) return;
+		const rows = Math.max(1, changes().length);
+		if (key.name === 'up') setIndex((at) => (at - 1 + rows) % rows);
+		else if (key.name === 'down') setIndex((at) => (at + 1) % rows);
+		else if (key.name === 'return' || key.name === 'enter') {
+			const change = changes()[selected()];
+			if (change) props.onDiff(change.path);
+		} else if (key.name === 'c') props.onCommit();
+		else if (key.name === 'p') props.onPush();
+		else return;
+		key.preventDefault();
+	});
+
 	return (
 		<box
 			width={props.width}
@@ -45,24 +66,28 @@ export function GitPanel(props: {
 			>
 				<box flexGrow={1} flexDirection="column" backgroundColor={ui.panelBg}>
 					<For each={changes()}>
-						{(change) => (
-							<box
-								height={1}
-								flexDirection="row"
-								backgroundColor={ui.panelBg}
-								onMouseDown={() => props.onDiff(change.path)}
-							>
-								<box flexGrow={1} backgroundColor={ui.panelBg}>
-									<text fg={ui.text} bg={ui.panelBg} content={` ${change.rel}`} />
+						{(change, at) => {
+							const active = () => at() === selected();
+							const bg = () => (active() ? ui.treeSelectedBg : ui.panelBg);
+							return (
+								<box
+									height={1}
+									flexDirection="row"
+									backgroundColor={bg()}
+									onMouseDown={() => props.onDiff(change.path)}
+								>
+									<box flexGrow={1} backgroundColor={bg()}>
+										<text fg={active() ? ui.text : ui.dim} bg={bg()} content={` ${change.rel}`} />
+									</box>
+									<text
+										fg={statusColor(change.status)}
+										bg={bg()}
+										flexShrink={0}
+										content={`${MARKS[change.status]} `}
+									/>
 								</box>
-								<text
-									fg={statusColor(change.status)}
-									bg={ui.panelBg}
-									flexShrink={0}
-									content={`${MARKS[change.status]} `}
-								/>
-							</box>
-						)}
+							);
+						}}
 					</For>
 				</box>
 			</Show>

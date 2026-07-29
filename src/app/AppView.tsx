@@ -103,6 +103,8 @@ interface AppViewProps {
 	onPinNode: (node: TreeNode) => void;
 	onTreeFocus: () => void;
 	onGitDiff: (path: string) => void;
+	onGitCommit: () => void;
+	onGitPush: () => void;
 	onResizeStart: (event: MouseEvent) => void;
 	onEditorChange: (text: string) => void;
 	onCursor: (pos: { line: number; col: number }) => void;
@@ -259,6 +261,8 @@ export function AppView(props: AppViewProps) {
 							status={props.gitStatus}
 							onFocus={() => props.onTreeFocus()}
 							onDiff={props.onGitDiff}
+							onCommit={props.onGitCommit}
+							onPush={props.onGitPush}
 						/>
 					</Show>
 					{/* Drag handle: the whole column is the grab target, but only a short

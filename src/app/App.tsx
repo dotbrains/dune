@@ -461,6 +461,8 @@ export function App(props: AppTypes.AppProps) {
 			onPinNode={(node: TreeNode) => pinTab(node.path)}
 			onTreeFocus={() => setFocus('tree')}
 			onGitDiff={gitCommands.openDiff}
+			onGitCommit={gitCommands.openCommitPicker}
+			onGitPush={gitCommands.push}
 			onResizeStart={(event: MouseEvent) => {
 				setResizing(true);
 				resizeSidebar(event.x);
@@ -477,10 +479,7 @@ export function App(props: AppTypes.AppProps) {
 			onReplaceOne={replaceOne}
 			onReplaceAll={replaceEvery}
 			onCloseSearch={() => setSearch(null)}
-			onPickFile={(path: string) => {
-				setPicker(null);
-				openFile(path);
-			}}
+			onPickFile={(path: string) => void (setPicker(null), openFile(path))}
 			onClosePicker={() => setPicker(null)}
 			onClosePalette={() => setPalette(false)}
 			onCloseSettings={() => setSettingsPage(false)}
