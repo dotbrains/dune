@@ -3,8 +3,9 @@ import { basename } from 'node:path';
 import { on, onCleanup, onMount, createEffect } from 'solid-js';
 
 import type { Config } from '../core/config';
+import type { TreeNode } from '../core/fs';
 import type { FileStatus, LineChange, Upstream } from '../core/git';
-import { currentBranch, diffLines, statusMap, upstreamOf } from '../core/git';
+import { currentBranch, diffLines, ignoredAmong, statusMap, upstreamOf } from '../core/git';
 import { saveSession } from '../core/session';
 import { checkForUpdate } from '../core/update';
 import { watchTree } from '../core/fs';
@@ -22,6 +23,7 @@ export function useAppLifecycle(deps: {
 	activeBuffer: () => BufferState | undefined;
 	activePath: () => string | null;
 	expanded: () => Set<string>;
+	nodes: () => TreeNode[];
 	gitRevision: () => number;
 	reloadKey: () => number;
 	sidebar: () => boolean;
@@ -40,6 +42,7 @@ export function useAppLifecycle(deps: {
 	setGitRevision: (update: (n: number) => number) => void;
 	setGitLines: (lines: Map<number, LineChange>) => void;
 	setGitStatus: (status: Map<string, FileStatus>) => void;
+	setGitIgnored: (ignored: Set<string>) => void;
 	setBranch: (branch: string | null) => void;
 	setUpstream: (upstream: Upstream | null) => void;
 	setGoto: (goto: { line: number; col: number; key: number }) => void;
@@ -107,9 +110,15 @@ export function useAppLifecycle(deps: {
 	);
 	createEffect(
 		on(
-			() => [deps.expanded(), deps.gitRevision(), deps.reloadKey()] as const,
+			() => [deps.nodes(), deps.gitRevision(), deps.reloadKey()] as const,
 			() => {
 				deps.setGitStatus(statusMap(deps.rootDir));
+				deps.setGitIgnored(
+					ignoredAmong(
+						deps.rootDir,
+						deps.nodes().map((node) => node.path),
+					),
+				);
 				deps.setBranch(currentBranch(deps.rootDir));
 			},
 		),

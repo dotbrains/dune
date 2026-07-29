@@ -15,8 +15,8 @@ export type FileStatus = 'untracked' | 'added' | 'modified' | 'deleted';
  */
 const MAX_OUTPUT = 128 * 1024 * 1024;
 
-function git(cwd: string, args: string[], timeout = 5000) {
-	return spawnSync('git', args, { cwd, encoding: 'utf8', timeout, maxBuffer: MAX_OUTPUT });
+function git(cwd: string, args: string[], timeout = 5000, input?: string) {
+	return spawnSync('git', args, { cwd, encoding: 'utf8', timeout, maxBuffer: MAX_OUTPUT, input });
 }
 
 function keyBase(cwd: string): string | null {
@@ -111,6 +111,18 @@ export function statusMap(cwd: string): Map<string, FileStatus> {
 		if (status) statuses.set(join(base, entry.slice(3)), status);
 	}
 	return statuses;
+}
+
+/** Which visible tree paths are excluded by gitignore. Empty outside a repository. */
+export function ignoredAmong(cwd: string, paths: string[]): Set<string> {
+	const ignored = new Set<string>();
+	if (paths.length === 0) return ignored;
+	const run = git(cwd, ['check-ignore', '--stdin', '-z'], 5000, `${paths.join('\0')}\0`);
+	if (run.status !== 0) return ignored;
+	for (const path of run.stdout.split('\0')) {
+		if (path.length > 0) ignored.add(path);
+	}
+	return ignored;
 }
 
 export interface Upstream {

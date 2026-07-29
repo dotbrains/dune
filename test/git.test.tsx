@@ -4,9 +4,15 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { currentBranch, diffLines, statusMap } from '../src/core/git';
+import { currentBranch, diffLines, ignoredAmong, statusMap } from '../src/core/git';
+import { THEMES } from '../src/themes';
 import { git as runGit } from './git-fixture';
-import { launch, press } from './helpers';
+import { launch, press, settle } from './helpers';
+import type { Harness } from './helpers';
+
+interface Frame {
+	lines: { spans: { text: string; fg?: { buffer: Uint8Array } }[] }[];
+}
 
 /** A real repository with one committed file. */
 function repo(committed: string) {
@@ -110,6 +116,36 @@ test('a rename is keyed by the path that exists on disk', () => {
 	expect(statuses.has(join(dir, 'a.ts'))).toBe(false);
 });
 
+test('ignoredAmong reports only the gitignored paths asked about', () => {
+	const dir = repo('one\n');
+	writeFileSync(join(dir, '.gitignore'), 'dist\n*.log\n');
+	mkdirSync(join(dir, 'dist'));
+	writeFileSync(join(dir, 'dist/out.js'), 'bundle\n');
+	writeFileSync(join(dir, 'debug.log'), 'noise\n');
+
+	const paths = [
+		join(dir, 'dist'),
+		join(dir, 'dist/out.js'),
+		join(dir, 'debug.log'),
+		join(dir, '.gitignore'),
+		join(dir, 'a.ts'),
+	];
+	const ignored = ignoredAmong(dir, paths);
+
+	expect(ignored.has(join(dir, 'dist'))).toBe(true);
+	expect(ignored.has(join(dir, 'dist/out.js'))).toBe(true);
+	expect(ignored.has(join(dir, 'debug.log'))).toBe(true);
+	expect(ignored.has(join(dir, '.gitignore'))).toBe(false);
+	expect(ignored.has(join(dir, 'a.ts'))).toBe(false);
+});
+
+test('ignoredAmong is empty outside a repository', () => {
+	const dir = mkdtempSync(join(tmpdir(), 'dune-ignore-'));
+	writeFileSync(join(dir, 'debug.log'), 'noise\n');
+
+	expect(ignoredAmong(dir, [join(dir, 'debug.log')]).size).toBe(0);
+});
+
 test('every file inside a brand-new directory is marked, not just the directory', async () => {
 	// `git status --porcelain` collapses an untracked directory to one `?? dir/`
 	// entry, which left every file inside it with no mark at all.
@@ -130,4 +166,36 @@ test('every file inside a brand-new directory is marked, not just the directory'
 	expect(frame).toContain('newdir');
 	expect(frame).toContain('a.ts');
 	expect(frame.split('\n').find((row) => row.includes('a.ts'))).toContain('U');
+});
+
+function rgb(hex: string) {
+	const h = hex.replace('#', '');
+	return [0, 2, 4].map((i) => Number.parseInt(h.slice(i, i + 2), 16)).join(',');
+}
+
+function foregroundOf(t: Harness, name: string): string | null {
+	for (const line of (t.captureSpans() as unknown as Frame).lines) {
+		for (const span of line.spans) {
+			if (!span.fg || !span.text.endsWith(name)) continue;
+			const b = span.fg.buffer;
+			return `${b['0']},${b['1']},${b['2']}`;
+		}
+	}
+	return null;
+}
+
+test('a gitignored entry is dimmed without inventing a status mark', async () => {
+	const dir = repo('one\n');
+	writeFileSync(join(dir, '.gitignore'), 'dist\n');
+	mkdirSync(join(dir, 'dist'));
+	writeFileSync(join(dir, 'dist/out.js'), 'bundle\n');
+
+	const t = await launch(dir);
+	await settle(t);
+	const frame = t.captureCharFrame();
+
+	expect(frame).toContain('dist');
+	expect(frame.split('\n').find((row) => /\bdist\b/.test(row))!).not.toMatch(/[UMAD]/);
+	expect(foregroundOf(t, 'dist')).toBe(rgb(THEMES.dark.ui.dim));
+	expect(foregroundOf(t, 'a.ts')).toBe(rgb(THEMES.dark.ui.text));
 });

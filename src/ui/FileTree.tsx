@@ -16,6 +16,8 @@ export interface FileTreeProps {
 	width: number;
 	/** Working-tree status per absolute path. */
 	gitStatus: Map<string, FileStatus>;
+	/** Visible paths matched by gitignore, drawn dim when otherwise clean. */
+	gitIgnored: Set<string>;
 	/** Taken with `x` and waiting for a destination; drawn as in flight. */
 	cutPaths: string[];
 	/** Picked out with Shift+↑/↓, and what delete and move act on. */
@@ -221,14 +223,17 @@ export function FileTree(props: FileTreeProps) {
 						const leaving = () => props.cutPaths.includes(node.path);
 						const arrow = () => (node.isDir ? (props.expanded.has(node.path) ? '▾' : '▸') : '·');
 						const status = () => statusOf(node);
+						const ignored = () => props.gitIgnored.has(node.path);
 						const nameColor = () =>
 							leaving()
 								? ui.faint
 								: status()
 									? statusColor(status()!)
-									: node.isDir
-										? ui.folder
-										: ui.text;
+									: ignored()
+										? ui.dim
+										: node.isDir
+											? ui.folder
+											: ui.text;
 						return (
 							<box
 								height={1}
@@ -260,7 +265,7 @@ export function FileTree(props: FileTreeProps) {
 										fg={nameColor()}
 										bg={bg()}
 										content={node.name}
-										attributes={node.isDir ? TextAttributes.BOLD : undefined}
+										attributes={node.isDir && !ignored() ? TextAttributes.BOLD : undefined}
 									/>
 									{/* Beside the name, not in the mark column: a symlink is a
                       property of the entry, and the marks there are git's. */}

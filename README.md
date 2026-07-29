@@ -93,8 +93,9 @@ dune update           # upgrade this installation
 | `Ctrl+Z` / `Ctrl+Y` | Undo / redo           |
 
 The file tree supports keyboard and mouse navigation, preview tabs, bulk moves and
-copies, and guarded deletes. `Ctrl+C` copies when text is selected and quits when it is
-not, so unsaved work is not thrown away.
+copies, guarded deletes, git status marks, and dimming for gitignored paths. `Ctrl+C`
+copies when text is selected and quits when it is not, so unsaved work is not thrown
+away.
 
 The command palette includes Git actions for committing selected files, undoing the
 last commit, stashing, popping a stash, fetching, and pushing. If files are already

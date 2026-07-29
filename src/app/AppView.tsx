@@ -50,6 +50,7 @@ interface AppViewProps {
 	focus: Focus;
 	treeWidth: number;
 	gitStatus: Map<string, FileStatus>;
+	gitIgnored: Set<string>;
 	cutPaths: string[];
 	markedPaths: string[];
 	resizing: boolean;
@@ -146,6 +147,7 @@ export function AppView(props: AppViewProps) {
 						focused={props.focus === 'tree'}
 						width={props.treeWidth}
 						gitStatus={props.gitStatus}
+						gitIgnored={props.gitIgnored}
 						cutPaths={props.cutPaths}
 						markedPaths={props.markedPaths}
 						onActivate={props.onActivateNode}

@@ -66,6 +66,7 @@ export function App(props: AppTypes.AppProps) {
 	const [gitLines, setGitLines] = createSignal<Map<number, LineChange>>(new Map());
 	const [gitRevision, setGitRevision] = createSignal(0);
 	const [gitStatus, setGitStatus] = createSignal<Map<string, FileStatus>>(new Map());
+	const [gitIgnored, setGitIgnored] = createSignal<Set<string>>(new Set());
 	const [branch, setBranch] = createSignal(currentBranch(rootDir));
 	const [upstream, setUpstream] = createSignal<Upstream | null>(null);
 	const [resizing, setResizing] = createSignal(false);
@@ -331,6 +332,7 @@ export function App(props: AppTypes.AppProps) {
 		activeBuffer,
 		activePath,
 		expanded,
+		nodes,
 		gitRevision,
 		reloadKey,
 		sidebar,
@@ -344,6 +346,7 @@ export function App(props: AppTypes.AppProps) {
 		setGitRevision,
 		setGitLines,
 		setGitStatus,
+		setGitIgnored,
 		setBranch,
 		setUpstream,
 		setGoto,
@@ -418,6 +421,7 @@ export function App(props: AppTypes.AppProps) {
 			focus={focus()}
 			treeWidth={treeWidth()}
 			gitStatus={gitStatus()}
+			gitIgnored={gitIgnored()}
 			cutPaths={cut()}
 			markedPaths={marked()}
 			resizing={resizing()}
