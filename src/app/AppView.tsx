@@ -402,7 +402,9 @@ export function AppView(props: AppViewProps) {
 				<SettingsView rows={props.settingRows} onClose={() => props.onCloseSettings()} />
 			</Show>
 			<Show when={props.diff}>
-				{(files: () => DiffFile[]) => <DiffView files={files()} onClose={props.onCloseDiff} />}
+				{(files: () => DiffFile[]) => (
+					<DiffView files={files()} mode={props.config.diffView} onClose={props.onCloseDiff} />
+				)}
 			</Show>
 			<Show when={props.commitFiles}>
 				{(files: () => CommitFile[]) => (

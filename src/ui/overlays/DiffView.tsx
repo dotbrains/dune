@@ -12,6 +12,8 @@ interface DiffLine {
 	kind: 'meta' | 'same' | 'add' | 'del';
 }
 
+type DiffMode = 'inline' | 'split';
+
 function lines(text: string): string[] {
 	if (text.length === 0) return [];
 	const out = text.split('\n');
@@ -40,14 +42,40 @@ function unified(file: DiffFile): DiffLine[] {
 	return rows;
 }
 
-export function DiffView(props: { files: DiffFile[]; onClose: () => void }) {
+function split(file: DiffFile, width: number): DiffLine[] {
+	const oldLines = lines(file.oldText);
+	const newLines = lines(file.newText);
+	const leftWidth = Math.max(16, Math.floor((width - PAD * 2 - 5) / 2));
+	const rows: DiffLine[] = [
+		{ kind: 'meta', text: `--- ${oldLines.length === 0 ? '/dev/null' : `a/${file.rel}`}` },
+		{ kind: 'meta', text: `+++ ${newLines.length === 0 ? '/dev/null' : `b/${file.rel}`}` },
+	];
+	const max = Math.max(oldLines.length, newLines.length);
+	for (let at = 0; at < max; at++) {
+		const before = oldLines[at] ?? '';
+		const after = newLines[at] ?? '';
+		const kind =
+			before === after ? 'same' : before.length === 0 ? 'add' : after.length === 0 ? 'del' : 'add';
+		rows.push({
+			kind,
+			text: `${before === after ? ' ' : '-'} ${before.slice(0, leftWidth).padEnd(leftWidth)} │ ${
+				before === after ? ' ' : '+'
+			} ${after}`,
+		});
+	}
+	return rows;
+}
+
+export function DiffView(props: { files: DiffFile[]; mode: DiffMode; onClose: () => void }) {
 	const dimensions = useTerminalDimensions();
 	const [index, setIndex] = createSignal(0);
 	const [top, setTop] = createSignal(0);
 	const width = () => modalWidth(dimensions().width, 0.82, 76, 120);
 	const visibleRows = () => listRows(dimensions().height, 7, 24);
 	const file = () => props.files[index()] ?? props.files[0]!;
-	const body = createMemo(() => unified(file()));
+	const body = createMemo(() =>
+		props.mode === 'split' ? split(file(), width()) : unified(file()),
+	);
 	const counts = () => ({
 		adds: body().filter((row) => row.kind === 'add').length,
 		dels: body().filter((row) => row.kind === 'del').length,
@@ -89,6 +117,7 @@ export function DiffView(props: { files: DiffFile[]; onClose: () => void }) {
 					<text fg={ui.text} bg={ui.panelBg} content={`${file().rel} `} />
 					<text fg={ui.gitAdded} bg={ui.panelBg} content={`+${counts().adds} `} />
 					<text fg={ui.gitDeleted} bg={ui.panelBg} content={`-${counts().dels} `} />
+					<text fg={ui.dim} bg={ui.panelBg} content={`${props.mode} `} />
 					<Show when={props.files.length > 1}>
 						<text
 							fg={ui.dim}

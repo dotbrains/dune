@@ -11,6 +11,7 @@ export interface SettingRow {
 }
 
 const TAB_SIZES = [2, 4, 8];
+const DIFF_VIEWS = ['inline', 'split'] as const;
 
 const onOff = (value: boolean) => (value ? 'on' : 'off');
 
@@ -29,6 +30,7 @@ export function settingsRows(
 		toggleDotfiles: () => void;
 		toggleGitignored: () => void;
 		toggleTrim: () => void;
+		patchConfig: (patch: Partial<Config>) => void;
 	},
 ): SettingRow[] {
 	const themes = Object.keys(themeLabels) as ThemeName[];
@@ -74,6 +76,12 @@ export function settingsRows(
 			label: 'Hide gitignored files',
 			value: onOff(config.respectGitignore),
 			change: actions.toggleGitignored,
+		},
+		{
+			section: 'Git',
+			label: 'Diff layout',
+			value: config.diffView,
+			change: (dir) => actions.patchConfig({ diffView: cycle(DIFF_VIEWS, config.diffView, dir) }),
 		},
 	];
 }

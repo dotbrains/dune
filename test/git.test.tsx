@@ -110,6 +110,22 @@ test('diff commands show current file and all changed files', async () => {
 	expect(t.captureCharFrame()).toContain('fresh.ts');
 });
 
+test('diff commands can render split layout', async () => {
+	const dir = repo('one\ntwo\n');
+	writeFileSync(join(dir, 'a.ts'), 'one\nTWO\nthree\n');
+
+	const t = await launch(dir, { diffView: 'split' });
+	await press(t, (i) => i.pressArrow('down'));
+	await press(t, (i) => i.pressEnter());
+	await runCommand(t, 'Diff current file');
+
+	const frame = t.captureCharFrame();
+	expect(frame).toContain('split');
+	expect(frame).toContain('│');
+	expect(frame).toContain('- two');
+	expect(frame).toContain('+ TWO');
+});
+
 test('source control panel lists changes from Ctrl+Opt+G', async () => {
 	const dir = repo('one\n');
 	writeFileSync(join(dir, 'a.ts'), 'changed\n');

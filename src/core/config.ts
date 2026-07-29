@@ -61,6 +61,8 @@ export interface Config {
 	showDotfiles: boolean;
 	/** Hide gitignored files from the tree; dimming still happens when they are shown. */
 	respectGitignore: boolean;
+	/** Diff presentation in Git overlays. */
+	diffView: 'inline' | 'split';
 }
 
 export const DEFAULTS: Config = {
@@ -73,6 +75,7 @@ export const DEFAULTS: Config = {
 	autoSaveOnBlur: false,
 	showDotfiles: true,
 	respectGitignore: false,
+	diffView: 'inline',
 };
 
 function parse(raw: unknown): Config {
@@ -91,6 +94,8 @@ function parse(raw: unknown): Config {
 		showDotfiles: typeof obj.showDotfiles === 'boolean' ? obj.showDotfiles : DEFAULTS.showDotfiles,
 		respectGitignore:
 			typeof obj.respectGitignore === 'boolean' ? obj.respectGitignore : DEFAULTS.respectGitignore,
+		diffView:
+			obj.diffView === 'split' || obj.diffView === 'inline' ? obj.diffView : DEFAULTS.diffView,
 		sidebarWidth:
 			typeof obj.sidebarWidth === 'number' &&
 			obj.sidebarWidth >= SIDEBAR_MIN &&

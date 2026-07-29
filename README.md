@@ -105,7 +105,7 @@ restore with the rest of the session, and are never treated as editable buffers.
 The command palette includes Git actions for viewing diffs, committing selected files,
 undoing the last commit, stashing, popping a stash, fetching, and pushing. If files
 are already staged, the commit picker starts from the index selection; otherwise it
-selects all changed files.
+selects all changed files. Diff overlays can be shown inline or split from Settings.
 
 `Ctrl+Opt+G` swaps the sidebar to a compact source-control panel with changed files
 and status marks. Click a changed file there to open its diff.

@@ -276,6 +276,7 @@ export function App(props: AppTypes.AppProps) {
 		toggleDotfiles: controls.toggleDotfiles,
 		toggleGitignored: controls.toggleGitignored,
 		toggleTrim: controls.toggleTrim,
+		patchConfig,
 	});
 	const commands = createAppCommands({
 		config,
