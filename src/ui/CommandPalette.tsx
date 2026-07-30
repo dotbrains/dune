@@ -45,6 +45,10 @@ export function CommandPalette(props: CommandPaletteProps) {
 		const start = Math.max(0, Math.min(selected() - size + 1, rows().length - size));
 		return { start, rows: rows().slice(start, start + size) };
 	});
+	const fillRows = createMemo(() => {
+		const drawn = rows().length > 0 ? windowed().rows.length : 1;
+		return Array.from({ length: Math.max(0, visibleRows() - drawn) });
+	});
 
 	const enter = (row: FlatCommand) => {
 		if (row.command.children) {
@@ -146,6 +150,7 @@ export function CommandPalette(props: CommandPaletteProps) {
 						}}
 					</For>
 				</Show>
+				<For each={fillRows()}>{() => <text fg={ui.panelBg} bg={ui.panelBg} content="" />}</For>
 				<text
 					fg={ui.dim}
 					bg={ui.panelBg}

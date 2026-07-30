@@ -44,6 +44,10 @@ export function FilePicker(props: FilePickerProps) {
 	});
 
 	const selected = () => Math.min(index(), Math.max(0, matches().length - 1));
+	const fillRows = createMemo(() => {
+		const drawn = matches().length > 0 ? matches().length : 1;
+		return Array.from({ length: Math.max(0, visibleRows() - drawn) });
+	});
 
 	useKeyboard((key: KeyEvent) => {
 		const k = key.name;
@@ -114,6 +118,7 @@ export function FilePicker(props: FilePickerProps) {
 						}}
 					</For>
 				</Show>
+				<For each={fillRows()}>{() => <text fg={ui.panelBg} bg={ui.panelBg} content="" />}</For>
 				<text fg={ui.dim} bg={ui.panelBg} content="↑↓ move · Enter open · Esc close" />
 			</box>
 		</Overlay>

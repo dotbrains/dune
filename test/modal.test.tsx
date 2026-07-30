@@ -32,6 +32,14 @@ const bordered = (t: Harness) =>
 		.split('\n')
 		.filter((row) => row.includes('╭') || row.includes('╰') || (row.match(/│/g)?.length ?? 0) >= 2);
 
+const modalFrame = (t: Harness) => {
+	const rows = t.captureCharFrame().split('\n');
+	return {
+		top: rows.findIndex((row) => row.includes('╭')),
+		bottom: rows.findIndex((row) => row.includes('╰')),
+	};
+};
+
 describe('modalWidth', () => {
 	test('follows the terminal between its bounds', () => {
 		expect(modalWidth(200, 0.5, 60, 120)).toBe(100);
@@ -113,5 +121,33 @@ describe('an open modal', () => {
 
 		const width = (t: Harness) => bordered(t)[0]!.trim().length;
 		expect(width(wide)).toBeGreaterThan(width(narrow));
+	});
+
+	test('the command palette keeps its frame while filtering', async () => {
+		const t = await launch(fixture(PROJECT), {}, { width: 100, height: 30 });
+		await press(t, (input) => input.pressKey('p', { ctrl: true }));
+		await settle(t);
+
+		const before = modalFrame(t);
+		await press(t, (input) => void input.typeText('theme'));
+		expect(modalFrame(t)).toEqual(before);
+
+		await press(t, (input) => void input.typeText('zzzz'));
+		expect(t.captureCharFrame()).toContain('No matching commands');
+		expect(modalFrame(t)).toEqual(before);
+	});
+
+	test('the file picker keeps its frame while filtering', async () => {
+		const t = await launch(fixture(PROJECT), {}, { width: 100, height: 30 });
+		await press(t, (input) => input.pressKey('o', { ctrl: true }));
+		await settle(t);
+
+		const before = modalFrame(t);
+		await press(t, (input) => void input.typeText('alpha'));
+		expect(modalFrame(t)).toEqual(before);
+
+		await press(t, (input) => void input.typeText('zz'));
+		expect(t.captureCharFrame()).toContain('No matches');
+		expect(modalFrame(t)).toEqual(before);
 	});
 });
