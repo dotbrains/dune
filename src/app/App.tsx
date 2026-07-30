@@ -8,6 +8,7 @@ import type { TreeNode } from '../core/fs';
 import { flattenVisible } from '../core/fs';
 import { currentBranch } from '../core/git';
 import type { FileStatus, LineChange, Upstream } from '../core/git';
+import { isMarkdownPath } from '../core/markdown';
 import type { Match } from '../core/search';
 import { checkForUpdate } from '../core/update';
 import type { VimMode } from '../editor/vim';
@@ -52,6 +53,7 @@ export function App(props: AppTypes.AppProps) {
 	const [tabs, setTabs] = createSignal<string[]>(restored.tabs);
 	const [activePath, setActivePath] = createSignal<string | null>(restored.activePath);
 	const [previewPath, setPreviewPath] = createSignal<string | null>(null);
+	const [renderedMarkdown, setRenderedMarkdown] = createSignal<string[]>([]);
 	const [sidebar, setSidebar] = createSignal(restored.sidebar);
 	const [focus, setFocus] = createSignal<AppTypes.Focus>(restored.sidebar ? 'tree' : 'editor');
 	const [prompt, setPrompt] = createSignal<AppTypes.Prompt>(null);
@@ -87,6 +89,18 @@ export function App(props: AppTypes.AppProps) {
 		flattenVisible(rootDir, expanded(), hiddenTreeNodes(rootDir, config)),
 	);
 	const activeBuffer = () => (activePath() ? buffers[activePath()!] : undefined);
+	const renderedMarkdownPath = () => {
+		const path = activePath();
+		return path && renderedMarkdown().includes(path) && isMarkdownPath(path) ? path : null;
+	};
+	const toggleMarkdown = () => {
+		const path = activePath();
+		if (!path || !isMarkdownPath(path)) return say('Not a markdown file', 'warn');
+		const rendered = !renderedMarkdown().includes(path);
+		setRenderedMarkdown((prev) => (rendered ? [...prev, path] : prev.filter((p) => p !== path)));
+		setFocus('editor');
+		say(rendered ? `Rendering ${path.slice(path.lastIndexOf('/') + 1)}` : 'Markdown source');
+	};
 	const { patchConfig, quit, say, whileFree } = createAppRuntime({
 		buffers,
 		busy,
@@ -313,6 +327,7 @@ export function App(props: AppTypes.AppProps) {
 		setFocus,
 		focusTree,
 		toggleSidebar,
+		toggleMarkdown,
 		applyVim: controls.applyVim,
 		applyTabSize: controls.applyTabSize,
 		applyTheme: controls.applyTheme,
@@ -403,6 +418,7 @@ export function App(props: AppTypes.AppProps) {
 		toggleExpand,
 		toggleSidebar,
 		toggleGitPanel: gitCommands.togglePanel,
+		toggleMarkdown,
 		expanded,
 	});
 	const { replaceOne, replaceEvery } = createReplacementHandlers({
@@ -418,6 +434,7 @@ export function App(props: AppTypes.AppProps) {
 			config={config}
 			tabs={tabs()}
 			activePath={activePath()}
+			renderedMarkdownPath={renderedMarkdownPath()}
 			activeBuffer={activeBuffer()}
 			buffers={buffers}
 			previewPath={previewPath()}
@@ -485,6 +502,7 @@ export function App(props: AppTypes.AppProps) {
 			onCursor={setCursor}
 			onEditorFocus={() => setFocus('editor')}
 			onVimMode={setVimMode}
+			onToggleMarkdown={toggleMarkdown}
 			onQuit={quit}
 			onSubmitPrompt={submitPrompt}
 			onCancelPrompt={() => setPrompt(null)}

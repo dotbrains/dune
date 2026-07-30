@@ -147,6 +147,12 @@ export const KEYS: KeyInfo[] = [
 		where: 'all',
 	},
 	{
+		key: `Ctrl+${ALT}+M`,
+		label: 'Markdown: rendered / source',
+		section: 'View',
+		where: 'all',
+	},
+	{
 		key: 'Tab',
 		label: 'Tree → editor · indent in editor',
 		section: 'View',

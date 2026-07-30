@@ -11,7 +11,7 @@ reconciler on a native Zig core). Shipped as a standalone binary — GitHub Pack
 Homebrew, a curl installer — and run as a CLI.
 
 Features: file tree with bulk file operations, preview/pinned tabs, git status marks and
-gitignored dimming, tree-sitter syntax highlighting, search (current file and
+gitignored dimming, tree-sitter syntax highlighting, rendered markdown tabs, search (current file and
 project-wide), command palette, themes, vim mode, git marks in tree/gutter/status bar,
 file watching with conflict prompts, per-project session restore, and a startup update
 check.

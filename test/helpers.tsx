@@ -91,3 +91,15 @@ export async function runCommand(t: Harness, label: string) {
 	await press(t, (input) => void input.typeText(label));
 	await press(t, (input) => input.pressEnter());
 }
+
+export async function openFile(t: Harness, label: string) {
+	await press(t, (input) => input.pressKey('o', { ctrl: true }));
+	await press(t, (input) => void input.typeText(label));
+	await press(t, (input) => input.pressEnter());
+}
+
+export async function until(t: Harness, done: () => boolean, attempts = 20) {
+	if (done() || attempts <= 0) return;
+	await settle(t, 25);
+	return until(t, done, attempts - 1);
+}

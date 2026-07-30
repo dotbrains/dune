@@ -49,6 +49,7 @@ export interface CommandActions {
 	toggleSidebar: () => void;
 	toggleDotfiles: () => void;
 	toggleGitignored: () => void;
+	toggleMarkdown: () => void;
 	openSettings: () => void;
 	openProjectSettings: () => void;
 	setVim: (enabled: boolean) => void;
@@ -159,6 +160,12 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 					label: 'Focus tree / editor',
 					hint: 'Tab in · Esc out',
 					run: actions.toggleFocus,
+				},
+				{
+					id: 'view.markdown',
+					label: 'Markdown: rendered / source',
+					hint: `Ctrl+${ALT}+M`,
+					run: actions.toggleMarkdown,
 				},
 				{
 					id: 'view.dotfiles',

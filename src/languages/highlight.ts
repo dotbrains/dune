@@ -85,6 +85,10 @@ async function ensureClient(): Promise<TreeSitterClient | null> {
 	return initPromise;
 }
 
+export function highlightClient(): Promise<TreeSitterClient | null> {
+	return ensureClient();
+}
+
 /**
  * Resolve a capture group to a style id, walking from the most specific scope
  * ("type.builtin") to the least ("type").

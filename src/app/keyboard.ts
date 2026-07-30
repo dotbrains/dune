@@ -53,6 +53,7 @@ export function useAppKeyboard(deps: {
 	toggleExpand: (path: string) => void;
 	toggleSidebar: () => void;
 	toggleGitPanel: () => void;
+	toggleMarkdown: () => void;
 	expanded: () => Set<string>;
 }) {
 	useKeyboard((key: KeyEvent) => {
@@ -95,6 +96,7 @@ export function useAppKeyboard(deps: {
 		if (key.ctrl && k === 'n')
 			return claim(() => deps.setPrompt({ kind: 'newFile', dir: deps.targetDir() }));
 		if (key.ctrl && k === 'b') return claim(deps.toggleSidebar);
+		if (key.ctrl && chord(key) && k === 'm') return claim(deps.toggleMarkdown);
 		if (key.ctrl && (k === 'pageup' || k === 'left')) return claim(() => deps.switchTab(-1));
 		if (key.ctrl && (k === 'pagedown' || k === 'right')) return claim(() => deps.switchTab(1));
 		if (deps.focus() === 'editor') {

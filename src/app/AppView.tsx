@@ -26,6 +26,7 @@ import { FileTree } from '../ui/FileTree';
 import { HelpOverlay } from '../ui/HelpOverlay';
 import { ImageView } from '../ui/ImageView';
 import { KeyPeek } from '../ui/KeyPeek';
+import { MarkdownView } from '../ui/MarkdownView';
 import { Overlay } from '../ui/Overlay';
 import { GitPanel } from '../ui/overlays/GitPanel';
 import { PromptModal } from '../ui/PromptModal';
@@ -49,6 +50,7 @@ interface AppViewProps {
 	config: Config;
 	tabs: string[];
 	activePath: string | null;
+	renderedMarkdownPath: string | null;
 	activeBuffer: BufferState | undefined;
 	buffers: Record<string, BufferState>;
 	previewPath: string | null;
@@ -111,6 +113,7 @@ interface AppViewProps {
 	onCursor: (pos: { line: number; col: number }) => void;
 	onEditorFocus: () => void;
 	onVimMode: (mode: VimMode | null) => void;
+	onToggleMarkdown: () => void;
 	onQuit: () => void;
 	onSubmitPrompt: (value: string) => void;
 	onCancelPrompt: () => void;
@@ -210,6 +213,7 @@ export function AppView(props: AppViewProps) {
 	const dimensions = useTerminalDimensions();
 	const activeImage = () =>
 		props.activePath && isImagePath(props.activePath) ? props.activePath : null;
+	const editorSlotFocused = () => props.focus === 'editor' || props.renderedMarkdownPath !== null;
 	const editorWidth = () =>
 		Math.max(1, dimensions().width - (props.sidebar ? props.treeWidth + 1 : 0));
 	const editorHeight = () => Math.max(1, dimensions().height - 2);
@@ -218,7 +222,7 @@ export function AppView(props: AppViewProps) {
 			<Tabs
 				tabs={props.tabs.map((p) => ({
 					path: p,
-					name: basename(p),
+					name: p === props.renderedMarkdownPath ? `¶ ${basename(p)}` : basename(p),
 					dirty: props.buffers[p]?.dirty ?? false,
 					preview: p === props.previewPath,
 				}))}
@@ -294,28 +298,47 @@ export function AppView(props: AppViewProps) {
 				<Show
 					when={activeImage()}
 					fallback={
-						<EditorPane
-							path={props.activePath}
-							content={props.activeBuffer?.content ?? ''}
-							filetype={props.activePath ? filetypeForPath(props.activePath!) : undefined}
-							focused={props.focus === 'editor'}
-							theme={props.config.theme}
-							reloadKey={props.reloadKey}
-							goto={props.goto}
-							history={props.history}
-							edit={props.edit}
-							lineOp={props.lineOp}
-							vim={props.config.vim}
-							tabSize={props.config.tabSize}
-							gitLines={props.gitLines}
-							notice={props.notice}
-							blocked={props.blocked}
-							onChange={props.onEditorChange}
-							onCursor={props.onCursor}
-							onFocus={props.onEditorFocus}
-							onVimMode={props.onVimMode}
-							onQuit={props.onQuit}
-						/>
+						<Show
+							when={props.renderedMarkdownPath}
+							fallback={
+								<EditorPane
+									path={props.activePath}
+									content={props.activeBuffer?.content ?? ''}
+									filetype={props.activePath ? filetypeForPath(props.activePath!) : undefined}
+									focused={props.focus === 'editor'}
+									theme={props.config.theme}
+									reloadKey={props.reloadKey}
+									goto={props.goto}
+									history={props.history}
+									edit={props.edit}
+									lineOp={props.lineOp}
+									vim={props.config.vim}
+									tabSize={props.config.tabSize}
+									gitLines={props.gitLines}
+									notice={props.notice}
+									blocked={props.blocked}
+									onChange={props.onEditorChange}
+									onCursor={props.onCursor}
+									onFocus={props.onEditorFocus}
+									onVimMode={props.onVimMode}
+									onQuit={props.onQuit}
+								/>
+							}
+						>
+							{(path: () => string) => (
+								<MarkdownView
+									path={path()}
+									name={basename(path())}
+									content={props.activeBuffer?.content ?? ''}
+									width={editorWidth()}
+									theme={props.config.theme}
+									focused={editorSlotFocused()}
+									blocked={props.blocked}
+									onFocus={props.onEditorFocus}
+									onShowSource={props.onToggleMarkdown}
+								/>
+							)}
+						</Show>
 					}
 				>
 					{(path: () => string) => (
@@ -334,18 +357,26 @@ export function AppView(props: AppViewProps) {
 				filetype={
 					activeImage()
 						? 'image'
-						: props.activePath
-							? languageLabel(filetypeForPath(props.activePath!) ?? 'plain')
-							: undefined
+						: props.renderedMarkdownPath
+							? 'md'
+							: props.activePath
+								? languageLabel(filetypeForPath(props.activePath!) ?? 'plain')
+								: undefined
 				}
-				cursor={props.activePath && !activeImage() ? props.cursor : undefined}
+				cursor={
+					props.activePath && !activeImage() && !props.renderedMarkdownPath
+						? props.cursor
+						: undefined
+				}
 				dirty={props.activeBuffer?.dirty ?? false}
-				vimMode={props.activePath && !activeImage() ? props.vimMode : null}
+				vimMode={
+					props.activePath && !activeImage() && !props.renderedMarkdownPath ? props.vimMode : null
+				}
 				branch={props.branch}
 				ahead={props.upstream?.ahead ?? 0}
 				behind={props.upstream?.behind ?? 0}
 				changed={props.gitStatus.size}
-				focus={props.focus}
+				focus={props.renderedMarkdownPath ? 'editor' : props.focus}
 				busy={props.busy}
 			/>
 

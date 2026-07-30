@@ -76,22 +76,23 @@ dune update           # upgrade this installation
 
 ## Shortcuts
 
-| Key                            | Action                |
-| ------------------------------ | --------------------- |
-| `F1` / `Ctrl+P` / `Ctrl+Opt+P` | Command palette       |
-| `Ctrl+K`                       | Peek active shortcuts |
-| `Ctrl+O`                       | Open a file           |
-| `Ctrl+T`                       | Switch tabs           |
-| `Ctrl+S`                       | Save                  |
-| `Ctrl+F`                       | Find in file          |
-| `Ctrl+R`                       | Search project        |
-| `Ctrl+G`                       | Go to line            |
-| `Ctrl+Opt+G`                   | Source control panel  |
-| `Ctrl+N`                       | New file              |
-| `Ctrl+W`                       | Close tab             |
-| `Ctrl+B`                       | Toggle sidebar        |
-| `Ctrl+Q`                       | Quit                  |
-| `Ctrl+Z` / `Ctrl+Y`            | Undo / redo           |
+| Key                            | Action                 |
+| ------------------------------ | ---------------------- |
+| `F1` / `Ctrl+P` / `Ctrl+Opt+P` | Command palette        |
+| `Ctrl+K`                       | Peek active shortcuts  |
+| `Ctrl+O`                       | Open a file            |
+| `Ctrl+T`                       | Switch tabs            |
+| `Ctrl+S`                       | Save                   |
+| `Ctrl+F`                       | Find in file           |
+| `Ctrl+R`                       | Search project         |
+| `Ctrl+G`                       | Go to line             |
+| `Ctrl+Opt+G`                   | Source control panel   |
+| `Ctrl+Opt+M`                   | Markdown render/source |
+| `Ctrl+N`                       | New file               |
+| `Ctrl+W`                       | Close tab              |
+| `Ctrl+B`                       | Toggle sidebar         |
+| `Ctrl+Q`                       | Quit                   |
+| `Ctrl+Z` / `Ctrl+Y`            | Undo / redo            |
 
 The file tree supports keyboard and mouse navigation, preview tabs, bulk moves and
 copies, guarded deletes, git status marks, and dimming for gitignored paths. `Ctrl+C`
@@ -104,6 +105,10 @@ Auto-save on blur and tab switch is on by default and can be disabled from Setti
 
 PNG and JPEG files open as read-only image tabs. They are rendered in the editor slot,
 restore with the rest of the session, and are never treated as editable buffers.
+
+Markdown files can be read as rendered documents with `Ctrl+Opt+M` or
+`Markdown: rendered / source` from the command palette. The same tab toggles between the
+rendered page and editable source, and unsaved edits are reflected in the rendered view.
 
 The command palette includes Git actions for viewing diffs, committing selected files,
 undoing the last commit, stashing, popping a stash, fetching, and pushing. If files
