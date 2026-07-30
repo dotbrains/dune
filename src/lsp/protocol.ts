@@ -17,6 +17,23 @@ export interface Range {
 	end: Position;
 }
 
+export type DiagnosticSeverity = 1 | 2 | 3 | 4;
+export type ProblemSeverity = 'error' | 'warning' | 'info' | 'hint';
+
+export const SEVERITY_RANK: Record<ProblemSeverity, number> = {
+	error: 1,
+	warning: 2,
+	info: 3,
+	hint: 4,
+};
+
+export interface Diagnostic {
+	range: Range;
+	message: string;
+	severity?: DiagnosticSeverity;
+	tags?: number[];
+}
+
 export interface TextEdit {
 	range: Range;
 	newText: string;
@@ -43,4 +60,15 @@ export interface CompletionItem {
 export interface CompletionList {
 	isIncomplete?: boolean;
 	items: CompletionItem[];
+}
+
+export function severityOf(diagnostic: Diagnostic): ProblemSeverity {
+	if (diagnostic.severity === 2) return 'warning';
+	if (diagnostic.severity === 3) return 'info';
+	if (diagnostic.severity === 4) return 'hint';
+	return 'error';
+}
+
+export function isUnnecessary(diagnostic: Diagnostic): boolean {
+	return diagnostic.tags?.includes(1) ?? false;
 }

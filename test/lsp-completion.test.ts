@@ -10,6 +10,7 @@ import {
 	wordStart,
 } from '../src/lsp/completion';
 import type { CompletionItem } from '../src/lsp/protocol';
+import { isUnnecessary, severityOf } from '../src/lsp/protocol';
 
 describe('normalizeCompletion', () => {
 	test('normalizes arrays and completion lists', () => {
@@ -23,6 +24,22 @@ describe('normalizeCompletion', () => {
 			isIncomplete: true,
 		});
 		expect(normalizeCompletion({ items: 'nope' })).toBeNull();
+	});
+});
+
+describe('diagnostic protocol mapping', () => {
+	test('maps severities and unnecessary tags', () => {
+		const diagnostic = {
+			range: { start: { line: 0, character: 0 }, end: { line: 0, character: 1 } },
+			message: 'x',
+		};
+
+		expect(severityOf(diagnostic)).toBe('error');
+		expect(severityOf({ ...diagnostic, severity: 2 })).toBe('warning');
+		expect(severityOf({ ...diagnostic, severity: 3 })).toBe('info');
+		expect(severityOf({ ...diagnostic, severity: 4 })).toBe('hint');
+		expect(isUnnecessary(diagnostic)).toBe(false);
+		expect(isUnnecessary({ ...diagnostic, tags: [2, 1] })).toBe(true);
 	});
 });
 
