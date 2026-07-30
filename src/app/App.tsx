@@ -310,6 +310,7 @@ export function App(props: AppTypes.AppProps) {
 		applyTabSize: controls.applyTabSize,
 		applyVim: controls.applyVim,
 		editFormatter: controls.editFormatter,
+		editKeybinding: controls.editKeybinding,
 		toggleAutoSave: controls.toggleAutoSave,
 		toggleFormat: controls.toggleFormat,
 		toggleThemeSync: controls.toggleThemeSync,

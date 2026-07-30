@@ -22,6 +22,24 @@ export interface Command {
 	children?: Command[];
 }
 
+export const KEYBINDABLE_COMMANDS: ReadonlyArray<{ id: string; label: string }> = [
+	{ id: 'open', label: 'Open file…' },
+	{ id: 'save', label: 'Save file' },
+	{ id: 'tabs.switch', label: 'Switch to…' },
+	{ id: 'tabs.reopen', label: 'Reopen closed tab' },
+	{ id: 'goto', label: 'Go to line…' },
+	{ id: 'find.file', label: 'In current file' },
+	{ id: 'find.project', label: 'In project' },
+	{ id: 'file.new', label: 'New file' },
+	{ id: 'file.newDir', label: 'New folder' },
+	{ id: 'tabs.close', label: 'Close tab' },
+	{ id: 'view.sidebar', label: 'Toggle sidebar' },
+	{ id: 'view.markdown', label: 'Markdown: rendered / source' },
+	{ id: 'git.sourceControl', label: 'Source control panel' },
+	{ id: 'help', label: 'Keyboard shortcuts' },
+	{ id: 'quit', label: 'Quit' },
+];
+
 export interface CommandActions {
 	save: () => void;
 	openFile: () => void;

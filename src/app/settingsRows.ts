@@ -27,6 +27,7 @@ export function settingsRows(
 		applyTabSize: (size: number) => void;
 		applyVim: (enabled: boolean) => void;
 		editFormatter: () => void;
+		editKeybinding: () => void;
 		toggleThemeSync: () => void;
 		toggleAutoSave: () => void;
 		toggleTransparent: () => void;
@@ -93,6 +94,12 @@ export function settingsRows(
 			label: 'Auto-save on blur and tab switch',
 			value: onOff(config.autoSaveOnBlur),
 			change: actions.toggleAutoSave,
+		},
+		{
+			section: 'Editor',
+			label: 'Add/update shortcut…',
+			value: `${Object.keys(config.keybindings).length} custom`,
+			change: actions.editKeybinding,
 		},
 		{
 			section: 'Tree',

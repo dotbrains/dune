@@ -6,17 +6,22 @@ import { removeAll } from '../core/bulk';
 import { formatterFor, parseFormatterEdit, runFormatter } from '../core/format';
 import type { Config } from '../core/config';
 import { createDir, createFile, exists, mtimeOf, readFile, writeFile } from '../core/fs';
+import {
+	bindingProblem,
+	chordId,
+	formatChord,
+	parseChord,
+	parseKeybindingEdit,
+} from '../core/keybindings';
 import { trimTrailing } from '../editor/lines';
+import { ALT } from '../ui/keys';
+import { KEYBINDABLE_COMMANDS } from './commands';
 import { CLASH_CHANGED } from './constants';
 import { isTextPrompt } from './prompts';
 import type { BufferState, Conflict, DiskSync, Prompt } from './types';
 
 export function createDocumentActions(deps: {
-	config: {
-		trimOnSave: boolean;
-		formatOnSave: boolean;
-		formatters: Record<string, string[]>;
-	};
+	config: Config;
 	buffers: Record<string, BufferState>;
 	activePath: () => string | null;
 	activeBuffer: () => BufferState | undefined;
@@ -191,6 +196,36 @@ export function createDocumentActions(deps: {
 			delete formatters[edit.key];
 			deps.patchConfig({ formatters });
 			return deps.say(`Formatter for "${edit.key}" removed`);
+		}
+		if (p.kind === 'keybindingCommand') {
+			const edit = parseKeybindingEdit(name);
+			if (!edit.ok) return deps.say(edit.error, 'error');
+			const command = KEYBINDABLE_COMMANDS.find(
+				(item) =>
+					item.id === edit.command || item.label.toLowerCase() === edit.command.toLowerCase(),
+			);
+			if (!command) return deps.say(`Unknown shortcut command: ${edit.command}`, 'error');
+			const keybindings = { ...deps.config.keybindings };
+			if (!edit.shortcut) {
+				delete keybindings[command.id];
+				deps.patchConfig({ keybindings });
+				return deps.say(`Shortcut removed for ${command.label}`);
+			}
+			const parsed = parseChord(edit.shortcut);
+			if (!parsed) return deps.say(`Shortcut "${edit.shortcut}" is not valid`, 'error');
+			const problem = bindingProblem(parsed);
+			if (problem) return deps.say(problem, 'error');
+			const id = chordId(parsed);
+			const taken = Object.entries(keybindings).find(([otherCommand, otherShortcut]) => {
+				if (otherCommand === command.id) return false;
+				const other = parseChord(otherShortcut);
+				return other ? chordId(other) === id : false;
+			});
+			if (taken) return deps.say(`${formatChord(parsed, ALT)} is already bound`, 'error');
+			const shortcut = formatChord(parsed, ALT);
+			keybindings[command.id] = shortcut;
+			deps.patchConfig({ keybindings });
+			return deps.say(`${shortcut} → ${command.label}`);
 		}
 		if (p.kind === 'gotoLine') {
 			const asked = Number.parseInt(name, 10);

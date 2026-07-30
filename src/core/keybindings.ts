@@ -6,6 +6,10 @@ export interface Chord {
 	key: string;
 }
 
+export type KeybindingEdit =
+	| { ok: true; command: string; shortcut: string | null }
+	| { ok: false; error: string };
+
 const MODIFIERS: Record<string, 'ctrl' | 'alt'> = {
 	ctrl: 'ctrl',
 	control: 'ctrl',
@@ -40,6 +44,23 @@ const ALIASES: Record<string, string> = {
 };
 
 const FUNCTION_KEY = /^f([1-9]|1[0-2])$/;
+const DISPLAY: Record<string, string> = {
+	left: '←',
+	right: '→',
+	up: '↑',
+	down: '↓',
+	pageup: 'PgUp',
+	pagedown: 'PgDn',
+	home: 'Home',
+	end: 'End',
+	tab: 'Tab',
+	space: 'Space',
+	return: 'Enter',
+	escape: 'Esc',
+	backspace: 'Bksp',
+	delete: 'Del',
+	insert: 'Ins',
+};
 const NAMED = new Set([
 	'left',
 	'right',
@@ -91,6 +112,29 @@ export function bindingProblem(chord: Chord): string | null {
 		return 'A shortcut needs Ctrl or a function key';
 	if (chord.ctrl && !chord.alt && RESERVED_CTRL.has(chord.key)) return 'Reserved terminal chord';
 	return null;
+}
+
+export function formatChord(chord: Chord, altLabel: string): string {
+	const key =
+		DISPLAY[chord.key] ?? (FUNCTION_KEY.test(chord.key) ? chord.key.toUpperCase() : chord.key);
+	return [
+		...(chord.ctrl ? ['Ctrl'] : []),
+		...(chord.alt ? [altLabel] : []),
+		key.length === 1 ? key.toUpperCase() : key,
+	].join('+');
+}
+
+export function chordId(chord: Chord): string {
+	return `${chord.ctrl ? 'c' : ''}${chord.alt ? 'a' : ''}:${chord.key}`;
+}
+
+export function parseKeybindingEdit(input: string): KeybindingEdit {
+	const at = input.indexOf('=');
+	if (at < 0) return { ok: false, error: 'Shortcut syntax: command = key' };
+	const command = input.slice(0, at).trim();
+	if (!command) return { ok: false, error: 'Shortcut needs a command' };
+	const shortcut = input.slice(at + 1).trim();
+	return { ok: true, command, shortcut: shortcut || null };
 }
 
 const secondary = (key: KeyEvent) => Boolean(key.option || key.meta || key.shift);

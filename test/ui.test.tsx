@@ -97,7 +97,7 @@ describe('command palette', () => {
 		expect(t.captureCharFrame()).toContain('Tab size');
 		expect(t.captureCharFrame()).toContain('4');
 
-		for (let i = 0; i < 9; i++) await press(t, (input) => input.pressArrow('down'));
+		for (let i = 0; i < 10; i++) await press(t, (input) => input.pressArrow('down'));
 		await press(t, (input) => input.pressArrow('right'));
 		expect(t.captureCharFrame()).toContain('.env');
 
