@@ -23,6 +23,8 @@ export interface KeyInfo {
 	/** Footer advertisement: which pane shows it, as what, in what order.
 	 * `key` overrides the display key where the full spelling is too wide. */
 	hint?: { pane: Pane | 'all'; label: string; rank: number; key?: string };
+	/** Empty editor prompt, ordered by usefulness. */
+	welcome?: { rank: number; label?: string; key?: string };
 }
 
 export const KEYS: KeyInfo[] = [
@@ -32,6 +34,7 @@ export const KEYS: KeyInfo[] = [
 		section: 'General',
 		where: 'all',
 		hint: { pane: 'all', label: 'commands', rank: 0, key: 'F1' },
+		welcome: { rank: 1, key: 'F1', label: 'command palette' },
 	},
 	{
 		key: 'Ctrl+K',
@@ -39,8 +42,15 @@ export const KEYS: KeyInfo[] = [
 		section: 'General',
 		where: 'all',
 		hint: { pane: 'all', label: 'keys', rank: 1 },
+		welcome: { rank: 2, label: 'peek shortcuts' },
 	},
-	{ key: 'Ctrl+O', label: 'Open file (fuzzy)', section: 'General', where: 'all' },
+	{
+		key: 'Ctrl+O',
+		label: 'Open file (fuzzy)',
+		section: 'General',
+		where: 'all',
+		welcome: { rank: 0, label: 'open file' },
+	},
 	{ key: 'Ctrl+G', label: 'Go to line', section: 'General', where: 'all' },
 	{ key: `Ctrl+${ALT}+G`, label: 'Source control', section: 'General', where: 'all' },
 	{ key: 'Ctrl+Q', label: 'Quit', section: 'General', where: 'all' },
@@ -79,6 +89,7 @@ export const KEYS: KeyInfo[] = [
 		section: 'Search & replace',
 		where: 'editor',
 		hint: { pane: 'editor', label: 'find', rank: 3 },
+		welcome: { rank: 3, label: 'find in file' },
 	},
 	{ key: 'Ctrl+R', label: 'Find in project', section: 'Search & replace', where: 'all' },
 	{
@@ -194,6 +205,13 @@ export function hintsFor(pane: Pane): ReadonlyArray<readonly [string, string]> {
 	return KEYS.filter((info) => info.hint && (info.hint.pane === pane || info.hint.pane === 'all'))
 		.toSorted((a, b) => a.hint!.rank - b.hint!.rank)
 		.map((info) => [info.hint!.key ?? info.key, info.hint!.label] as const);
+}
+
+/** Rows for the empty editor prompt, most useful first. */
+export function welcomeKeys(): ReadonlyArray<readonly [string, string]> {
+	return KEYS.filter((info) => info.welcome)
+		.toSorted((a, b) => a.welcome!.rank - b.welcome!.rank)
+		.map((info) => [info.welcome!.key ?? info.key, info.welcome!.label ?? info.label] as const);
 }
 
 /** Everything alive in `pane`, for the peek strip. */

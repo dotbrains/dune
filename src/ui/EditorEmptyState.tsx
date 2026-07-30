@@ -1,8 +1,21 @@
 import { TextAttributes } from '@opentui/core';
+import { useTerminalDimensions } from '@opentui/solid';
+import { createMemo, For, Show } from 'solid-js';
 
 import { ui } from '../themes';
+import { welcomeKeys } from './keys';
+
+const CHROME_ROWS = 8;
 
 export function EditorEmptyState() {
+	const dimensions = useTerminalDimensions();
+	const rows = createMemo(() => {
+		const all = welcomeKeys();
+		const room = Math.max(0, dimensions().height - CHROME_ROWS);
+		const width = Math.max(...all.map(([key]) => key.length));
+		return all.slice(0, room).map(([key, label]) => [key.padEnd(width), label] as const);
+	});
+
 	return (
 		<box
 			flexGrow={1}
@@ -11,11 +24,20 @@ export function EditorEmptyState() {
 			alignItems="center"
 			justifyContent="center"
 		>
-			<text fg={ui.dim} bg={ui.bg} content="dune" attributes={TextAttributes.BOLD} />
-			<text fg={ui.faint} bg={ui.bg} content="" />
-			<text fg={ui.faint} bg={ui.bg} content="Enter   open file from the tree" />
-			<text fg={ui.faint} bg={ui.bg} content="Ctrl+P  commands" />
-			<text fg={ui.faint} bg={ui.bg} content="Ctrl+F  find" />
+			<box flexDirection="column" backgroundColor={ui.bg} alignItems="flex-start">
+				<text fg={ui.dim} bg={ui.bg} content="dune" attributes={TextAttributes.BOLD} />
+				<Show when={rows().length > 0}>
+					<text fg={ui.faint} bg={ui.bg} content="" />
+					<For each={rows()}>
+						{([key, label]) => (
+							<box flexDirection="row" backgroundColor={ui.bg}>
+								<text fg={ui.dim} bg={ui.bg} content={`${key}  `} />
+								<text fg={ui.faint} bg={ui.bg} content={label} />
+							</box>
+						)}
+					</For>
+				</Show>
+			</box>
 		</box>
 	);
 }
