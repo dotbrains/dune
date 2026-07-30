@@ -27,7 +27,14 @@ const porcelain = (dir: string) =>
 
 async function until(t: Harness, cond: () => boolean, ms = 5000) {
 	const start = Date.now();
-	while (!cond() && Date.now() - start < ms) await settle(t, 25);
+	while (Date.now() - start < ms) {
+		try {
+			if (cond()) break;
+		} catch {
+			// Git stash can briefly remove and rewrite a path while the UI is settling.
+		}
+		await settle(t, 25);
+	}
 	expect(cond()).toBe(true);
 }
 

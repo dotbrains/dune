@@ -1,8 +1,8 @@
 import { basename } from 'node:path';
 
-import type { KeyEvent, MouseEvent } from '@opentui/core';
-import { useKeyboard, useTerminalDimensions } from '@opentui/solid';
-import { createSignal, For, Show } from 'solid-js';
+import type { MouseEvent } from '@opentui/core';
+import { useTerminalDimensions } from '@opentui/solid';
+import { For, Show } from 'solid-js';
 
 import type { Config } from '../core/config';
 import type { TreeNode } from '../core/fs';
@@ -27,8 +27,9 @@ import { HelpOverlay } from '../ui/HelpOverlay';
 import { ImageView } from '../ui/ImageView';
 import { KeyPeek } from '../ui/KeyPeek';
 import { MarkdownView } from '../ui/MarkdownView';
-import { Overlay } from '../ui/Overlay';
 import { GitPanel } from '../ui/overlays/GitPanel';
+import { SettingsView } from '../ui/overlays/SettingsView';
+import type { SettingRow } from '../ui/overlays/SettingsView';
 import { PromptModal } from '../ui/PromptModal';
 import { SearchPanel } from '../ui/SearchPanel';
 import type { SearchScope } from '../ui/SearchPanel';
@@ -39,9 +40,7 @@ import { UpdateBanner } from '../ui/UpdateBanner';
 import type { SearchOptions } from '../core/search';
 import type { UpdateInfo } from '../core/update';
 import type { Command } from './commands';
-import type { SettingRow } from './settingsRows';
 import type { BufferState, Confirmation, Conflict, Focus } from './types';
-import { listRows, modalWidth, PAD } from '../ui/modal';
 
 const GRIP = [0, 1, 2, 3, 4];
 
@@ -133,80 +132,6 @@ interface AppViewProps {
 	onCancelConflict: () => void;
 	onCloseUpdate: () => void;
 	onSkipUpdate: () => void;
-}
-
-function SettingsView(props: {
-	rows: SettingRow[];
-	scope: 'user' | 'project';
-	onClose: () => void;
-}) {
-	const dimensions = useTerminalDimensions();
-	const [index, setIndex] = createSignal(0);
-	const width = () => modalWidth(dimensions().width, 0.64, 64, 96);
-	const visibleRows = () => listRows(dimensions().height, 8, 18);
-	const selected = () => Math.min(index(), Math.max(0, props.rows.length - 1));
-	const windowStart = () =>
-		Math.max(0, Math.min(selected() - visibleRows() + 1, props.rows.length));
-	const visible = () => props.rows.slice(windowStart(), windowStart() + visibleRows());
-	const change = (dir: 1 | -1) => props.rows[selected()]?.change(dir);
-
-	useKeyboard((key: KeyEvent) => {
-		const count = Math.max(1, props.rows.length);
-		if (key.name === 'up') setIndex((selected() - 1 + count) % count);
-		else if (key.name === 'down') setIndex((selected() + 1) % count);
-		else if (key.name === 'left') change(-1);
-		else if (key.name === 'right' || key.name === 'return' || key.name === 'enter') change(1);
-		else if (key.name === 'escape') props.onClose();
-		else return;
-		key.preventDefault();
-	});
-
-	return (
-		<Overlay zIndex={145}>
-			<box
-				width={width()}
-				flexDirection="column"
-				backgroundColor={ui.panelBg}
-				border
-				borderStyle="rounded"
-				borderColor={ui.accent}
-				title={` Settings — ${props.scope === 'project' ? 'Project' : 'User'} `}
-				titleColor={ui.text}
-				paddingLeft={PAD}
-				paddingRight={PAD}
-			>
-				<For each={visible()}>
-					{(row, i) => {
-						const absolute = () => windowStart() + i();
-						const active = () => absolute() === selected();
-						const bg = () => (active() ? ui.treeSelectedBg : ui.panelBg);
-						const previous = () => props.rows[absolute() - 1];
-						return (
-							<>
-								<text
-									fg={previous()?.section === row.section ? ui.panelBg : ui.faint}
-									bg={ui.panelBg}
-									content={previous()?.section === row.section ? '' : row.section}
-								/>
-								<box flexDirection="row" backgroundColor={bg()}>
-									<text fg={ui.accent} bg={bg()} flexShrink={0} content={active() ? '▌ ' : '  '} />
-									<box flexGrow={1} backgroundColor={bg()}>
-										<text fg={active() ? ui.text : ui.dim} bg={bg()} content={row.label} />
-									</box>
-									<text fg={active() ? ui.accent : ui.text} bg={bg()} content={` ${row.value} `} />
-								</box>
-							</>
-						);
-					}}
-				</For>
-				<text
-					fg={ui.dim}
-					bg={ui.panelBg}
-					content="↑↓ move · ←→ change · Enter toggle · Esc close"
-				/>
-			</box>
-		</Overlay>
-	);
 }
 
 export function AppView(props: AppViewProps) {

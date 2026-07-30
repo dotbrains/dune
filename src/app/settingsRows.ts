@@ -2,13 +2,9 @@ import { createMemo } from 'solid-js';
 import type { Config } from '../core/config';
 import type { ThemeName } from '../themes';
 import { themeLabels } from '../themes';
+import type { SettingRow } from '../ui/overlays/SettingsView';
 
-export interface SettingRow {
-	section: string;
-	label: string;
-	value: string;
-	change: (dir: 1 | -1) => void;
-}
+export type { SettingRow } from '../ui/overlays/SettingsView';
 
 const TAB_SIZES = [2, 4, 8];
 const DIFF_VIEWS = ['inline', 'split'] as const;
