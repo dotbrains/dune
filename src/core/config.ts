@@ -80,6 +80,8 @@ export interface Config {
 	respectGitignore: boolean;
 	/** Diff presentation in Git overlays. */
 	diffView: 'inline' | 'split';
+	/** Custom global shortcuts by command id, e.g. `{ "open": "Ctrl+Alt+O" }`. */
+	keybindings: Record<string, string>;
 }
 
 export const DEFAULTS: Config = {
@@ -99,6 +101,7 @@ export const DEFAULTS: Config = {
 	showDotfiles: true,
 	respectGitignore: false,
 	diffView: 'inline',
+	keybindings: {},
 };
 
 function parsePartial(raw: unknown): Partial<Config> {
@@ -133,6 +136,13 @@ function parsePartial(raw: unknown): Partial<Config> {
 	if (typeof obj.showDotfiles === 'boolean') config.showDotfiles = obj.showDotfiles;
 	if (typeof obj.respectGitignore === 'boolean') config.respectGitignore = obj.respectGitignore;
 	if (obj.diffView === 'split' || obj.diffView === 'inline') config.diffView = obj.diffView;
+	if (obj.keybindings && typeof obj.keybindings === 'object' && !Array.isArray(obj.keybindings)) {
+		const keybindings: Record<string, string> = {};
+		for (const [id, value] of Object.entries(obj.keybindings)) {
+			if (typeof value === 'string') keybindings[id] = value;
+		}
+		config.keybindings = keybindings;
+	}
 	if (
 		typeof obj.sidebarWidth === 'number' &&
 		obj.sidebarWidth >= SIDEBAR_MIN &&

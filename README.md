@@ -108,6 +108,8 @@ user or project JSON, for example `{ "formatters": { "ts,tsx": ["prettier", "--w
 formatter args may use `{}` as the file placeholder, otherwise the path is appended.
 By default dune follows the OS light/dark appearance using `themeLight` and `themeDark`;
 toggle `themeSync` off or pick a theme manually to pin one theme.
+Global shortcuts can be customized in JSON with `keybindings`, keyed by command id:
+`{ "keybindings": { "open": "Ctrl+Alt+O", "git.sourceControl": "F2" } }`.
 The `Transparent background` setting leaves the editor and tab strip unpainted for
 translucent terminal themes.
 

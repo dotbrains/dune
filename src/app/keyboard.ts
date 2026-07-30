@@ -5,6 +5,7 @@ import { useKeyboard } from '@opentui/solid';
 
 import type { Config } from '../core/config';
 import type { TreeNode } from '../core/fs';
+import { bindingProblem, matchesChord, parseChord } from '../core/keybindings';
 import type { VimMode } from '../editor/vim';
 import type { Focus, Prompt } from './types';
 
@@ -56,6 +57,23 @@ export function useAppKeyboard(deps: {
 	toggleMarkdown: () => void;
 	expanded: () => Set<string>;
 }) {
+	const customCommands: Record<string, () => void> = {
+		open: () => deps.setPicker('files'),
+		save: deps.saveActive,
+		'tabs.switch': () => deps.setPicker('tabs'),
+		'tabs.reopen': deps.reopenTab,
+		goto: () => deps.setPrompt({ kind: 'gotoLine' }),
+		'find.file': () => deps.setSearch({ scope: 'file' }),
+		'find.project': () => deps.setSearch({ scope: 'project' }),
+		'file.new': () => deps.setPrompt({ kind: 'newFile', dir: deps.targetDir() }),
+		'file.newDir': () => deps.setPrompt({ kind: 'newFolder', dir: deps.targetDir() }),
+		'tabs.close': () => void (deps.activePath() && deps.closeTab(deps.activePath()!)),
+		'view.sidebar': deps.toggleSidebar,
+		'view.markdown': deps.toggleMarkdown,
+		'git.sourceControl': deps.toggleGitPanel,
+		help: () => deps.setHelp(true),
+		quit: deps.quit,
+	};
 	useKeyboard((key: KeyEvent) => {
 		const k = key.name;
 		if (deps.help()) {
@@ -68,6 +86,12 @@ export function useAppKeyboard(deps: {
 			key.preventDefault();
 			run();
 		};
+		for (const [id, spelling] of Object.entries(deps.config.keybindings)) {
+			const run = customCommands[id];
+			const parsed = parseChord(spelling);
+			if (!run || !parsed || bindingProblem(parsed) || !matchesChord(parsed, key)) continue;
+			return claim(run);
+		}
 		if (key.ctrl && k === 'k') return claim(() => deps.setPeek((p) => !p));
 		if (deps.peek()) deps.setPeek(() => false);
 		if (key.ctrl && k === 'q') return claim(deps.quit);
