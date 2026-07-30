@@ -1,0 +1,129 @@
+import { describe, expect, test } from 'bun:test';
+
+import {
+	applyCompletion,
+	filterCompletions,
+	fuzzyMatch,
+	matchRuns,
+	normalizeCompletion,
+	stripSnippet,
+	wordStart,
+} from '../src/lsp/completion';
+import type { CompletionItem } from '../src/lsp/protocol';
+
+describe('normalizeCompletion', () => {
+	test('normalizes arrays and completion lists', () => {
+		expect(normalizeCompletion(null)).toBeNull();
+		expect(normalizeCompletion([{ label: 'readFile' }])).toEqual({
+			items: [{ label: 'readFile' }],
+			isIncomplete: false,
+		});
+		expect(normalizeCompletion({ isIncomplete: true, items: [{ label: 'writeFile' }] })).toEqual({
+			items: [{ label: 'writeFile' }],
+			isIncomplete: true,
+		});
+		expect(normalizeCompletion({ items: 'nope' })).toBeNull();
+	});
+});
+
+describe('completion prefix matching', () => {
+	test('finds the word fragment before the cursor', () => {
+		expect(wordStart('const file_name', 15)).toBe(6);
+		expect(wordStart('client.', 7)).toBe(7);
+	});
+
+	test('scores tight and boundary matches above scattered ones', () => {
+		expect(fuzzyMatch('rf', 'readFile')!.score).toBeGreaterThan(
+			fuzzyMatch('rf', 'roughFactor')!.score,
+		);
+		expect(fuzzyMatch('xyz', 'readFile')).toBeNull();
+	});
+
+	test('filters and ranks candidates with server sortText as a tie breaker', () => {
+		const labels = filterCompletions(
+			[{ label: 'mapValues' }, { label: 'map' }, { label: 'flatMap' }, { label: 'unrelated' }],
+			'map',
+		).map((match) => match.item.label);
+		expect(labels[0]).toBe('map');
+		expect(labels).not.toContain('unrelated');
+
+		expect(
+			filterCompletions(
+				[
+					{ label: 'b', sortText: '2' },
+					{ label: 'a', sortText: '1' },
+				],
+				'',
+			).map((match) => match.item.label),
+		).toEqual(['a', 'b']);
+	});
+
+	test('filterText can match without pretending label positions are known', () => {
+		const [match] = filterCompletions([{ label: '* send', filterText: 'send' }], 'se');
+		expect(match?.positions).toEqual([]);
+	});
+});
+
+describe('completion edits', () => {
+	test('strips snippets to inserted text and first tab stop', () => {
+		expect(stripSnippet('call(${1:value})')).toEqual({ text: 'call(value)', caret: 5 });
+		expect(stripSnippet('${1|red,green|}')).toEqual({ text: 'red', caret: 0 });
+		expect(stripSnippet('done$0')).toEqual({ text: 'done', caret: null });
+	});
+
+	test('replaces the typed prefix without a server edit range', () => {
+		const result = applyCompletion('const x = ma\n', { line: 0, character: 12 }, 10, {
+			label: 'map',
+		});
+		expect(result.content).toBe('const x = map\n');
+		expect(result.cursor).toEqual({ line: 0, character: 13 });
+	});
+
+	test('honors server edit ranges and extends stale same-line ends to the cursor', () => {
+		const item: CompletionItem = {
+			label: 'console',
+			textEdit: {
+				range: { start: { line: 0, character: 0 }, end: { line: 0, character: 3 } },
+				newText: 'console',
+			},
+		};
+		expect(applyCompletion('consol\n', { line: 0, character: 6 }, 0, item).content).toBe(
+			'console\n',
+		);
+	});
+
+	test('applies additional edits against the original document', () => {
+		const result = applyCompletion('const x = hel\n', { line: 0, character: 13 }, 10, {
+			label: 'helper',
+			additionalTextEdits: [
+				{
+					range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
+					newText: 'import { helper } from "./helpers"\n',
+				},
+			],
+		});
+		expect(result.content).toBe('import { helper } from "./helpers"\nconst x = helper\n');
+		expect(result.cursor).toEqual({ line: 1, character: 16 });
+	});
+
+	test('snippet caret controls the final cursor', () => {
+		const result = applyCompletion('fo\n', { line: 0, character: 2 }, 0, {
+			label: 'forEach',
+			insertText: 'forEach(${1:item})',
+			insertTextFormat: 2,
+		});
+		expect(result.content).toBe('forEach(item)\n');
+		expect(result.cursor).toEqual({ line: 0, character: 8 });
+	});
+});
+
+describe('matchRuns', () => {
+	test('splits labels into highlighted and plain spans', () => {
+		expect(matchRuns('flatMap', [0, 4, 5, 6])).toEqual([
+			{ text: 'f', hit: true },
+			{ text: 'lat', hit: false },
+			{ text: 'Map', hit: true },
+		]);
+		expect(matchRuns('plain', [])).toEqual([{ text: 'plain', hit: false }]);
+	});
+});
