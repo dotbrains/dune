@@ -114,6 +114,10 @@ export function bindingProblem(chord: Chord): string | null {
 	return null;
 }
 
+export function isDisabledShortcut(spelling: string): boolean {
+	return spelling.trim().toLowerCase() === 'none';
+}
+
 export function formatChord(chord: Chord, altLabel: string): string {
 	const key =
 		DISPLAY[chord.key] ?? (FUNCTION_KEY.test(chord.key) ? chord.key.toUpperCase() : chord.key);

@@ -10,6 +10,7 @@ import {
 	bindingProblem,
 	chordId,
 	formatChord,
+	isDisabledShortcut,
 	parseChord,
 	parseKeybindingEdit,
 } from '../core/keybindings';
@@ -210,6 +211,11 @@ export function createDocumentActions(deps: {
 				delete keybindings[command.id];
 				deps.patchConfig({ keybindings });
 				return deps.say(`Shortcut removed for ${command.label}`);
+			}
+			if (isDisabledShortcut(edit.shortcut)) {
+				keybindings[command.id] = 'none';
+				deps.patchConfig({ keybindings });
+				return deps.say(`Shortcut disabled for ${command.label}`);
 			}
 			const parsed = parseChord(edit.shortcut);
 			if (!parsed) return deps.say(`Shortcut "${edit.shortcut}" is not valid`, 'error');

@@ -5,7 +5,7 @@ import { useKeyboard } from '@opentui/solid';
 
 import type { Config } from '../core/config';
 import type { TreeNode } from '../core/fs';
-import { bindingProblem, matchesChord, parseChord } from '../core/keybindings';
+import { bindingProblem, isDisabledShortcut, matchesChord, parseChord } from '../core/keybindings';
 import type { VimMode } from '../editor/vim';
 import type { Focus, Prompt } from './types';
 
@@ -74,6 +74,13 @@ export function useAppKeyboard(deps: {
 		help: () => deps.setHelp(true),
 		quit: deps.quit,
 	};
+	const customizes = (id: string) => {
+		const spelling = deps.config.keybindings[id];
+		if (!spelling) return false;
+		if (isDisabledShortcut(spelling)) return true;
+		const parsed = parseChord(spelling);
+		return Boolean(parsed && !bindingProblem(parsed));
+	};
 	useKeyboard((key: KeyEvent) => {
 		const k = key.name;
 		if (deps.help()) {
@@ -88,39 +95,46 @@ export function useAppKeyboard(deps: {
 		};
 		for (const [id, spelling] of Object.entries(deps.config.keybindings)) {
 			const run = customCommands[id];
+			if (isDisabledShortcut(spelling)) continue;
 			const parsed = parseChord(spelling);
 			if (!run || !parsed || bindingProblem(parsed) || !matchesChord(parsed, key)) continue;
 			return claim(run);
 		}
 		if (key.ctrl && k === 'k') return claim(() => deps.setPeek((p) => !p));
 		if (deps.peek()) deps.setPeek(() => false);
-		if (key.ctrl && k === 'q') return claim(deps.quit);
+		if (key.ctrl && k === 'q' && !customizes('quit')) return claim(deps.quit);
 		if (key.ctrl && k === 'c' && deps.focus() !== 'editor') return claim(deps.quit);
 		// Also accepts Ctrl+Opt+P / Ctrl+Shift+P when the terminal reports the modifier.
 		if (key.ctrl && k === 'p') return claim(() => deps.setPalette(true));
 		if (k === 'f1') return claim(() => deps.setPalette(true));
-		if (key.ctrl && k === 'o') return claim(() => deps.setPicker('files'));
-		if (key.ctrl && chord(key) && k === 't') return claim(deps.reopenTab);
-		if (key.ctrl && (k === 't' || k === 'up')) return claim(() => deps.setPicker('tabs'));
-		if (key.ctrl && chord(key) && k === 'g') return claim(deps.toggleGitPanel);
-		if (key.ctrl && k === 'g') return claim(() => deps.setPrompt({ kind: 'gotoLine' }));
-		if (key.ctrl && k === 's') return claim(deps.saveActive);
+		if (key.ctrl && k === 'o' && !customizes('open')) return claim(() => deps.setPicker('files'));
+		if (key.ctrl && chord(key) && k === 't' && !customizes('tabs.reopen'))
+			return claim(deps.reopenTab);
+		if (key.ctrl && (k === 't' || k === 'up') && !customizes('tabs.switch'))
+			return claim(() => deps.setPicker('tabs'));
+		if (key.ctrl && chord(key) && k === 'g' && !customizes('git.sourceControl'))
+			return claim(deps.toggleGitPanel);
+		if (key.ctrl && k === 'g' && !customizes('goto'))
+			return claim(() => deps.setPrompt({ kind: 'gotoLine' }));
+		if (key.ctrl && k === 's' && !customizes('save')) return claim(deps.saveActive);
 		const vimOwnsRedo = deps.config.vim && deps.focus() === 'editor' && deps.vimMode() !== 'insert';
-		if (key.ctrl && k === 'r' && !vimOwnsRedo)
+		if (key.ctrl && k === 'r' && !vimOwnsRedo && !customizes('find.project'))
 			return claim(() => deps.setSearch({ scope: 'project' }));
-		if (key.ctrl && chord(key) && k === 'f')
+		if (key.ctrl && chord(key) && k === 'f' && !customizes('find.project'))
 			return claim(() => deps.setSearch({ scope: 'project' }));
-		if (key.ctrl && k === 'f') return claim(() => deps.setSearch({ scope: 'file' }));
-		if (key.ctrl && k === 'w') {
+		if (key.ctrl && k === 'f' && !customizes('find.file'))
+			return claim(() => deps.setSearch({ scope: 'file' }));
+		if (key.ctrl && k === 'w' && !customizes('tabs.close')) {
 			return claim(() => void (deps.activePath() && deps.closeTab(deps.activePath()!)));
 		}
-		if (key.ctrl && chord(key) && k === 'n') {
+		if (key.ctrl && chord(key) && k === 'n' && !customizes('file.newDir')) {
 			return claim(() => deps.setPrompt({ kind: 'newFolder', dir: deps.targetDir() }));
 		}
-		if (key.ctrl && k === 'n')
+		if (key.ctrl && k === 'n' && !customizes('file.new'))
 			return claim(() => deps.setPrompt({ kind: 'newFile', dir: deps.targetDir() }));
-		if (key.ctrl && k === 'b') return claim(deps.toggleSidebar);
-		if (key.ctrl && chord(key) && k === 'm') return claim(deps.toggleMarkdown);
+		if (key.ctrl && k === 'b' && !customizes('view.sidebar')) return claim(deps.toggleSidebar);
+		if (key.ctrl && chord(key) && k === 'm' && !customizes('view.markdown'))
+			return claim(deps.toggleMarkdown);
 		if (key.ctrl && (k === 'pageup' || k === 'left')) return claim(() => deps.switchTab(-1));
 		if (key.ctrl && (k === 'pagedown' || k === 'right')) return claim(() => deps.switchTab(1));
 		if (deps.focus() === 'editor') {

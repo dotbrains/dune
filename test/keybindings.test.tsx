@@ -6,6 +6,7 @@ import { CONFIG_FILE } from '../src/core/config';
 import {
 	bindingProblem,
 	formatChord,
+	isDisabledShortcut,
 	matchesChord,
 	parseChord,
 	parseKeybindingEdit,
@@ -45,6 +46,7 @@ test('custom shortcut parsing accepts terminal-friendly spellings', () => {
 		ok: false,
 		error: 'Shortcut syntax: command = key',
 	});
+	expect(isDisabledShortcut('none')).toBe(true);
 });
 
 test('custom shortcut validation rejects text input and reserved control bytes', () => {
@@ -66,6 +68,37 @@ test('a configured shortcut opens the file picker', async () => {
 	});
 
 	await press(t, (input) => input.pressKey('o', { ctrl: true, meta: true }));
+
+	expect(t.captureCharFrame()).toContain('Open file');
+});
+
+test('a configured shortcut moves the command off its default key', async () => {
+	const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }), {
+		keybindings: { open: 'Ctrl+Alt+O' },
+	});
+
+	await press(t, (input) => input.pressKey('o', { ctrl: true }));
+
+	expect(t.captureCharFrame()).not.toContain('Open file');
+});
+
+test('none disables a default shortcut without hiding the palette command', async () => {
+	const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }), {
+		keybindings: { goto: 'none' },
+	});
+
+	await press(t, (input) => input.pressKey('g', { ctrl: true }));
+	expect(t.captureCharFrame()).not.toContain('Go to line');
+	await runCommand(t, 'Go to line');
+	expect(t.captureCharFrame()).toContain('Go to line');
+});
+
+test('an invalid configured shortcut keeps the default key', async () => {
+	const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }), {
+		keybindings: { open: 'Ctrl+Banana' },
+	});
+
+	await press(t, (input) => input.pressKey('o', { ctrl: true }));
 
 	expect(t.captureCharFrame()).toContain('Open file');
 });
@@ -101,6 +134,18 @@ test('settings can add and remove a shortcut', async () => {
 	expect(t.captureCharFrame()).toContain('0 custom');
 });
 
+test('settings can disable a shortcut', async () => {
+	const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }));
+	await runCommand(t, 'Settings');
+	await gotoRow(t, 'Add/update shortcut');
+	await press(t, (input) => input.pressEnter());
+	await press(t, (input) => void input.typeText('goto = none'));
+	await press(t, (input) => input.pressEnter());
+
+	expect(saved().keybindings).toEqual({ goto: 'none' });
+	expect(t.captureCharFrame()).toContain('1 custom');
+});
+
 test('settings rejects an invalid shortcut edit', async () => {
 	const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }));
 	await runCommand(t, 'Settings');
@@ -110,6 +155,6 @@ test('settings rejects an invalid shortcut edit', async () => {
 	await press(t, (input) => input.pressEnter());
 
 	const keybindings = existsSync(CONFIG_FILE) ? (saved().keybindings ?? {}) : {};
-	expect(keybindings).toEqual({});
+	expect(keybindings).not.toHaveProperty('save');
 	expect(t.captureCharFrame()).toContain('0 custom');
 });
