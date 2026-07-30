@@ -69,6 +69,7 @@ export function createAppControls(deps: {
 	};
 	const editFormatter = () => deps.setPrompt({ kind: 'formatterCommand' });
 	const editKeybinding = () => deps.setPrompt({ kind: 'keybindingCommand' });
+	const editSidebarWidth = () => deps.setPrompt({ kind: 'sidebarWidth' });
 	const toggleAutoSave = () => {
 		patch({ autoSaveOnBlur: !deps.config.autoSaveOnBlur });
 		deps.say(`Auto-save on blur ${deps.config.autoSaveOnBlur ? 'on' : 'off'}`);
@@ -97,6 +98,7 @@ export function createAppControls(deps: {
 		confirmation,
 		editFormatter,
 		editKeybinding,
+		editSidebarWidth,
 		promptTitle,
 		promptValue,
 		toggleDotfiles,
@@ -144,6 +146,7 @@ export type AppCommandDeps = {
 	toggleThemeSync: () => void;
 	editFormatter: () => void;
 	editKeybinding: () => void;
+	editSidebarWidth: () => void;
 	setLineOp: (
 		update: (prev: { op: 'comment' | 'up' | 'down' | 'duplicate'; key: number } | null) => {
 			op: 'comment' | 'up' | 'down' | 'duplicate';

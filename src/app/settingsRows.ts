@@ -28,6 +28,7 @@ export function settingsRows(
 		applyVim: (enabled: boolean) => void;
 		editFormatter: () => void;
 		editKeybinding: () => void;
+		editSidebarWidth: () => void;
 		toggleThemeSync: () => void;
 		toggleAutoSave: () => void;
 		toggleTransparent: () => void;
@@ -100,6 +101,12 @@ export function settingsRows(
 			label: 'Add/update shortcut…',
 			value: `${Object.keys(config.keybindings).length} custom`,
 			change: actions.editKeybinding,
+		},
+		{
+			section: 'Tree',
+			label: 'Sidebar width',
+			value: `${config.sidebarWidth}`,
+			change: actions.editSidebarWidth,
 		},
 		{
 			section: 'Tree',

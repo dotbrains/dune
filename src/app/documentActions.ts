@@ -4,6 +4,7 @@ import { produce } from 'solid-js/store';
 
 import { removeAll } from '../core/bulk';
 import { formatterFor, parseFormatterEdit, runFormatter } from '../core/format';
+import { SIDEBAR_MAX, SIDEBAR_MIN } from '../core/config';
 import type { Config } from '../core/config';
 import { createDir, createFile, exists, mtimeOf, readFile, writeFile } from '../core/fs';
 import {
@@ -232,6 +233,19 @@ export function createDocumentActions(deps: {
 			keybindings[command.id] = shortcut;
 			deps.patchConfig({ keybindings });
 			return deps.say(`${shortcut} → ${command.label}`);
+		}
+		if (p.kind === 'sidebarWidth') {
+			if (name.toLowerCase() === 'auto') {
+				deps.patchConfig({ sidebarWidth: 'auto' });
+				return deps.say('Sidebar width: auto');
+			}
+			const width = Number.parseInt(name, 10);
+			if (!Number.isInteger(width) || `${width}` !== name)
+				return deps.say(`Not a sidebar width: ${name}`, 'error');
+			if (width < SIDEBAR_MIN || width > SIDEBAR_MAX)
+				return deps.say(`Sidebar width must be ${SIDEBAR_MIN}-${SIDEBAR_MAX}`, 'error');
+			deps.patchConfig({ sidebarWidth: width });
+			return deps.say(`Sidebar width: ${width}`);
 		}
 		if (p.kind === 'gotoLine') {
 			const asked = Number.parseInt(name, 10);

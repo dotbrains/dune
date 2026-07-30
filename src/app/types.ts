@@ -49,6 +49,7 @@ export type Prompt =
 	| { kind: 'rename'; target: string }
 	| { kind: 'formatterCommand' }
 	| { kind: 'keybindingCommand' }
+	| { kind: 'sidebarWidth' }
 	| { kind: 'delete'; targets: string[] }
 	| { kind: 'closeDirty'; paths: string[]; names: string[] }
 	| { kind: 'quitDirty'; names: string[] }

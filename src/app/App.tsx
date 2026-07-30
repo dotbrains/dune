@@ -311,6 +311,7 @@ export function App(props: AppTypes.AppProps) {
 		applyVim: controls.applyVim,
 		editFormatter: controls.editFormatter,
 		editKeybinding: controls.editKeybinding,
+		editSidebarWidth: controls.editSidebarWidth,
 		toggleAutoSave: controls.toggleAutoSave,
 		toggleFormat: controls.toggleFormat,
 		toggleThemeSync: controls.toggleThemeSync,

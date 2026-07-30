@@ -6,6 +6,7 @@ const PROMPT_TITLES: Partial<Record<NonNullable<Prompt>['kind'], string>> = {
 	rename: 'Rename to',
 	formatterCommand: 'Formatter: extensions = command',
 	keybindingCommand: 'Shortcut: command = key',
+	sidebarWidth: 'Sidebar width: auto or columns',
 	gotoLine: 'Go to line',
 	commitMessage: 'Commit message',
 };
