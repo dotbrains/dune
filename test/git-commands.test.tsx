@@ -131,6 +131,31 @@ test('new branch prompt creates and checks out a branch', async () => {
 	);
 });
 
+test('merge branch command merges the selected branch after confirmation', async () => {
+	const dir = repo('main\n');
+	const git = (...args: string[]) => runGit(dir, ...args);
+	git('switch', '-q', '-c', 'feature');
+	writeFileSync(join(dir, 'feature.ts'), 'feature\n');
+	git('add', '.');
+	git('commit', '-q', '-m', 'feature');
+	git('switch', '-q', 'main');
+
+	const t = await launch(dir);
+	await runCommand(t, 'Merge branch');
+	expect(t.captureCharFrame()).toContain('Merge into current branch');
+	await press(t, (input) => input.pressEnter());
+	expect(t.captureCharFrame()).toContain('Merge branch');
+	await press(t, (input) => input.pressEnter());
+
+	await until(
+		t,
+		() =>
+			execFileSync('git', ['log', '-1', '--format=%s'], { cwd: dir }).toString().trim() ===
+			'feature',
+	);
+	expect(readFileSync(join(dir, 'feature.ts'), 'utf8')).toBe('feature\n');
+});
+
 test('outside a repository git commands warn instead of mutating', async () => {
 	const t = await launch(fixture({ 'a.ts': 'x\n' }));
 	await runCommand(t, 'Commit');

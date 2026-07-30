@@ -12,6 +12,7 @@ import {
 	lastCommitSubject,
 	listBranches,
 	localBranchName,
+	mergeBranch,
 	push as gitPush,
 	stagedPaths,
 	stashPop,
@@ -41,7 +42,7 @@ export function createGitCommands(deps: {
 	const [commitSelection, setCommitSelection] = createSignal<string[]>([]);
 	const [diff, setDiff] = createSignal<DiffFile[] | null>(null);
 	const [panel, setPanel] = createSignal(false);
-	const [branchMode, setBranchMode] = createSignal<'compare' | 'switch'>('compare');
+	const [branchMode, setBranchMode] = createSignal<'compare' | 'merge' | 'switch'>('compare');
 	const [branchChoices, setBranchChoices] = createSignal<{ id: string; label: string }[] | null>(
 		null,
 	);
@@ -115,6 +116,14 @@ export function createGitCommands(deps: {
 		);
 	};
 
+	const openBranchMerge = () => {
+		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
+		const branches = listBranches(deps.rootDir).filter((branch) => !branch.current);
+		if (branches.length === 0) return deps.say('No other branch to merge', 'warn');
+		setBranchMode('merge');
+		setBranchChoices(branches.map((branch) => ({ id: branch.name, label: branch.name })));
+	};
+
 	const startCommit = (paths: string[]) => {
 		setCommitFiles(null);
 		setCommitSelection(paths);
@@ -144,6 +153,10 @@ export function createGitCommands(deps: {
 		deps.setPrompt({ kind: 'newBranch' });
 	};
 
+	const merge = (name: string) => {
+		runGit('Merging', () => mergeBranch(deps.rootDir, name), `Merged ${name}`);
+	};
+
 	return {
 		commitFiles,
 		branchChoices,
@@ -154,14 +167,21 @@ export function createGitCommands(deps: {
 		cancelCommit: () => setCommitFiles(null),
 		closeBranchChoices: () => setBranchChoices(null),
 		branchChoiceTitle: () =>
-			branchMode() === 'switch' ? 'Switch to branch' : 'Compare against branch',
+			branchMode() === 'switch'
+				? 'Switch to branch'
+				: branchMode() === 'merge'
+					? 'Merge into current branch'
+					: 'Compare against branch',
 		branchChoiceMessage: () =>
 			branchMode() === 'switch'
 				? 'Enter checks out the selected branch.'
-				: 'Enter compares the current branch against the selected branch.',
+				: branchMode() === 'merge'
+					? 'Enter chooses a branch to merge into the current branch.'
+					: 'Enter compares the current branch against the selected branch.',
 		pickBranch: (name: string) => {
 			setBranchChoices(null);
 			if (branchMode() === 'compare') return compareWith(name);
+			if (branchMode() === 'merge') return deps.setPrompt({ kind: 'mergeBranch', name });
 			const branch = listBranches(deps.rootDir).find((item) => item.name === name);
 			runGit(
 				'Switching branch',
@@ -172,6 +192,7 @@ export function createGitCommands(deps: {
 		startCommit,
 		submitCommit,
 		submitBranch,
+		merge,
 		confirmUndoCommit,
 		undoCommit: () =>
 			runGit('Undoing commit', () => undoLastCommit(deps.rootDir), 'Undid last commit'),
@@ -181,6 +202,7 @@ export function createGitCommands(deps: {
 		openDiff,
 		openBranchComparison,
 		openBranchSwitch,
+		openBranchMerge,
 		openBranchPrompt,
 		push: () =>
 			runGit(

@@ -37,6 +37,13 @@ export function confirmationForPrompt(prompt: Prompt): Confirmation | null {
 				danger: true,
 				message: `Undo "${prompt.subject}" and keep its changes staged?`,
 			};
+		case 'mergeBranch':
+			return {
+				title: 'Merge branch',
+				verb: 'merge it',
+				danger: false,
+				message: `Merge "${prompt.name}" into the current branch? Conflicts are left in the working tree.`,
+			};
 		default:
 			return null;
 	}

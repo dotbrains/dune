@@ -56,6 +56,7 @@ export type Prompt =
 	| { kind: 'closeDirty'; paths: string[]; names: string[] }
 	| { kind: 'quitDirty'; names: string[] }
 	| { kind: 'undoCommit'; subject: string }
+	| { kind: 'mergeBranch'; name: string }
 	| null;
 
 export type PromptKind = NonNullable<Prompt>['kind'];

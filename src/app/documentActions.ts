@@ -35,6 +35,7 @@ export function createDocumentActions(deps: {
 	gitCommands: {
 		submitCommit: (message: string) => void;
 		submitBranch: (name: string) => void;
+		merge: (name: string) => void;
 		undoCommit: () => void;
 	};
 	closeTab: (path: string, discardUnsaved?: boolean) => void;
@@ -328,6 +329,8 @@ export function createDocumentActions(deps: {
 				return deps.quit(true);
 			case 'undoCommit':
 				return deps.gitCommands.undoCommit();
+			case 'mergeBranch':
+				return deps.gitCommands.merge(p.name);
 		}
 	};
 	return {
