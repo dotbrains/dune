@@ -106,6 +106,8 @@ Auto-save on blur and tab switch is on by default and can be disabled from Setti
 External formatters can run on save by setting `formatOnSave` and a `formatters` map in
 user or project JSON, for example `{ "formatters": { "ts,tsx": ["prettier", "--write"] } }`;
 formatter args may use `{}` as the file placeholder, otherwise the path is appended.
+By default dune follows the OS light/dark appearance using `themeLight` and `themeDark`;
+toggle `themeSync` off or pick a theme manually to pin one theme.
 The `Transparent background` setting leaves the editor and tab strip unpainted for
 translucent terminal themes.
 

@@ -3,12 +3,14 @@ import { basename } from 'node:path';
 import { on, onCleanup, onMount, createEffect } from 'solid-js';
 
 import type { Config } from '../core/config';
+import type { Appearance } from '../core/appearance';
 import type { TreeNode } from '../core/fs';
 import type { FileStatus, LineChange, Upstream } from '../core/git';
 import { currentBranch, diffLines, ignoredAmong, statusMap, upstreamOf } from '../core/git';
 import { saveSession } from '../core/session';
 import { checkForUpdate } from '../core/update';
 import { watchTree } from '../core/fs';
+import { watchAppearance } from '../core/appearance';
 import { clashWarning } from './clashes';
 import { CLASH_CHANGED, CLASH_DELETED, READY } from './constants';
 import type { BufferState, DiskSync } from './types';
@@ -36,6 +38,7 @@ export function useAppLifecycle(deps: {
 			off: (event: 'data', fn: (chunk: BufferState | string) => void) => void;
 		};
 	};
+	onAppearance: (appearance: Appearance) => void;
 	saveDirtyOnBlur: () => void;
 	syncFromDisk: () => DiskSync;
 	say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
@@ -69,6 +72,10 @@ export function useAppLifecycle(deps: {
 			const info = await checkForUpdate();
 			if (!cancelled && info && info.latest !== deps.initialConfig.skipUpdate) deps.setUpdate(info);
 		})();
+	});
+	onMount(() => {
+		const stop = watchAppearance(deps.onAppearance);
+		onCleanup(stop);
 	});
 	onMount(() => {
 		if (process.stdout.isTTY) process.stdout.write('\x1B[?1004h');

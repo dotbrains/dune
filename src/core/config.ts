@@ -46,6 +46,12 @@ export function sidebarColumns(width: number | 'auto', terminalWidth: number): n
 export interface Config {
 	/** Color scheme id — see src/themes. */
 	theme: ThemeName;
+	/** Follow the OS light/dark appearance using the light and dark theme slots. */
+	themeSync: boolean;
+	/** Theme used when the OS appearance is light and themeSync is enabled. */
+	themeLight: ThemeName;
+	/** Theme used when the OS appearance is dark and themeSync is enabled. */
+	themeDark: ThemeName;
 	/** Leave the editor and tab strip unpainted for translucent terminals. */
 	transparent: boolean;
 	/** Modal editing (normal / insert / visual). */
@@ -78,6 +84,9 @@ export interface Config {
 
 export const DEFAULTS: Config = {
 	theme: 'dark',
+	themeSync: true,
+	themeLight: 'light',
+	themeDark: 'dark',
 	transparent: false,
 	vim: false,
 	tabSize: 2,
@@ -96,6 +105,9 @@ function parsePartial(raw: unknown): Partial<Config> {
 	const obj = (raw ?? {}) as Partial<Record<keyof Config, unknown>>;
 	const config: Partial<Config> = {};
 	if (isThemeName(obj.theme)) config.theme = obj.theme;
+	if (typeof obj.themeSync === 'boolean') config.themeSync = obj.themeSync;
+	if (isThemeName(obj.themeLight)) config.themeLight = obj.themeLight;
+	if (isThemeName(obj.themeDark)) config.themeDark = obj.themeDark;
 	if (typeof obj.transparent === 'boolean') config.transparent = obj.transparent;
 	if (typeof obj.vim === 'boolean') config.vim = obj.vim;
 	if (typeof obj.tabSize === 'number' && obj.tabSize >= 1 && obj.tabSize <= 16) {
@@ -137,6 +149,11 @@ const parse = (raw: unknown): Config => ({ ...DEFAULTS, ...parsePartial(raw) });
 
 export function resolveConfig(user: Config, project: Partial<Config>): Config {
 	return { ...user, ...project };
+}
+
+export function resolvedTheme(config: Config, appearance: 'dark' | 'light' | null): ThemeName {
+	if (!config.themeSync || !appearance) return config.theme;
+	return config[appearance === 'dark' ? 'themeDark' : 'themeLight'];
 }
 
 /** Read the config file, falling back to defaults on any error or bad value. */

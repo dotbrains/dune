@@ -25,6 +25,7 @@ test('the settings page toggles transparent background', async () => {
 	const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }));
 	await runCommand(t, 'Settings');
 	await press(t, (input) => input.pressArrow('down'));
+	await press(t, (input) => input.pressArrow('down'));
 	await press(t, (input) => input.pressEnter());
 
 	expect(ui.bg).toBe('transparent');

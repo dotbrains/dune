@@ -4,7 +4,8 @@ import { render } from '@opentui/solid';
 
 import { App } from './app/App';
 import { flagOutput, resolveTarget } from './core/cli';
-import { loadConfig, loadProjectConfig, resolveConfig } from './core/config';
+import { detectAppearance } from './core/appearance';
+import { loadConfig, loadProjectConfig, resolveConfig, resolvedTheme } from './core/config';
 import { runUpgrade } from './core/upgrade';
 import { setTheme, setTransparency } from './themes';
 
@@ -29,8 +30,9 @@ const { rootDir, openFile } = target;
 const config = loadConfig();
 const projectConfig = loadProjectConfig(rootDir);
 // Apply the resolved theme before the first render.
-setTheme(resolveConfig(config, projectConfig).theme);
-setTransparency(resolveConfig(config, projectConfig).transparent);
+const resolved = resolveConfig(config, projectConfig);
+setTheme(resolvedTheme(resolved, detectAppearance()));
+setTransparency(resolved.transparent);
 
 await render(
 	() => (

@@ -26,6 +26,7 @@ export function settingsRows(
 		applyTheme: (name: ThemeName) => void;
 		applyTabSize: (size: number) => void;
 		applyVim: (enabled: boolean) => void;
+		toggleThemeSync: () => void;
 		toggleAutoSave: () => void;
 		toggleTransparent: () => void;
 		toggleDotfiles: () => void;
@@ -43,6 +44,12 @@ export function settingsRows(
 			label: 'Theme',
 			value: themeLabels[config.theme],
 			change: (dir) => actions.applyTheme(cycle(themes, config.theme, dir)),
+		},
+		{
+			section: 'Appearance',
+			label: 'Follow OS appearance',
+			value: onOff(config.themeSync),
+			change: actions.toggleThemeSync,
 		},
 		{
 			section: 'Appearance',

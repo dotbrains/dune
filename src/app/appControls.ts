@@ -15,6 +15,7 @@ import type { Focus, Prompt } from './types';
 export function createAppControls(deps: {
 	config: Config;
 	configScope: () => 'user' | 'project';
+	currentAppearance: () => 'dark' | 'light' | null;
 	prompt: () => Prompt;
 	selectedNode: () => TreeNode | undefined;
 	setVimMode: (mode: 'normal' | null) => void;
@@ -25,8 +26,20 @@ export function createAppControls(deps: {
 	const applyTheme = (name: ThemeName) => {
 		setTheme(name);
 		invalidateSyntaxStyle();
-		patch({ theme: name });
+		patch({ theme: name, themeSync: false });
 		deps.say(`Theme: ${themeLabels[name]}`);
+	};
+	const toggleThemeSync = () => {
+		const next = !deps.config.themeSync;
+		const appearance = deps.currentAppearance();
+		const theme =
+			next && appearance
+				? deps.config[appearance === 'dark' ? 'themeDark' : 'themeLight']
+				: deps.config.theme;
+		setTheme(theme);
+		invalidateSyntaxStyle();
+		patch({ theme, themeSync: next });
+		deps.say(next ? 'Following OS appearance' : 'Theme sync off');
 	};
 	const applyTabSize = (size: number) => {
 		patch({ tabSize: size });
@@ -86,6 +99,7 @@ export function createAppControls(deps: {
 		toggleFormat,
 		toggleTrim,
 		toggleAutoSave,
+		toggleThemeSync,
 		toggleTransparent,
 		withNode,
 	};
@@ -122,6 +136,7 @@ export type AppCommandDeps = {
 	applyVim: (enabled: boolean) => void;
 	applyTabSize: (size: number) => void;
 	applyTheme: (name: ThemeName) => void;
+	toggleThemeSync: () => void;
 	setLineOp: (
 		update: (prev: { op: 'comment' | 'up' | 'down' | 'duplicate'; key: number } | null) => {
 			op: 'comment' | 'up' | 'down' | 'duplicate';

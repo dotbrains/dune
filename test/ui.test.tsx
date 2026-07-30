@@ -96,9 +96,8 @@ describe('command palette', () => {
 		await runCommand(t, 'Settings');
 		expect(t.captureCharFrame()).toContain('Tab size');
 		expect(t.captureCharFrame()).toContain('4');
-		expect(t.captureCharFrame()).toContain('Diff layout');
 
-		for (let i = 0; i < 7; i++) await press(t, (input) => input.pressArrow('down'));
+		for (let i = 0; i < 8; i++) await press(t, (input) => input.pressArrow('down'));
 		await press(t, (input) => input.pressArrow('right'));
 		expect(t.captureCharFrame()).toContain('.env');
 

@@ -2,17 +2,19 @@ import type { MouseEvent } from '@opentui/core';
 import { useRenderer, useTerminalDimensions } from '@opentui/solid';
 import { createMemo, createSignal } from 'solid-js';
 import { createStore, produce } from 'solid-js/store';
-import { resolveConfig } from '../core/config';
+import { detectAppearance } from '../core/appearance';
+import { resolveConfig, resolvedTheme } from '../core/config';
 import type { Config } from '../core/config';
 import type { TreeNode } from '../core/fs';
 import { flattenVisible } from '../core/fs';
 import { currentBranch } from '../core/git';
+import { invalidateSyntaxStyle } from '../languages/highlight';
 import type { FileStatus, LineChange, Upstream } from '../core/git';
 import { isMarkdownPath } from '../core/markdown';
 import type { Match } from '../core/search';
 import { checkForUpdate } from '../core/update';
 import type { VimMode } from '../editor/vim';
-import { setTransparency } from '../themes';
+import { setTheme, setTransparency } from '../themes';
 import { createAppCommands } from './appCommands';
 import { createAppControls } from './appControls';
 import { AppView } from './AppView';
@@ -40,11 +42,14 @@ export function App(props: AppTypes.AppProps) {
 	const restored = restoreAppState(rootDir, single);
 	const initialProjectConfig = props.projectConfig ?? {};
 	const initialConfig = resolveConfig(props.initialConfig, initialProjectConfig);
+	const initialAppearance = detectAppearance();
+	initialConfig.theme = resolvedTheme(initialConfig, initialAppearance);
 	const [userConfig, setUserConfig] = createStore<Config>({ ...props.initialConfig });
 	const [projectConfig, setProjectConfig] = createStore<Partial<Config>>({
 		...initialProjectConfig,
 	});
 	const [config, setConfig] = createStore<Config>(initialConfig);
+	setTheme(initialConfig.theme);
 	setTransparency(initialConfig.transparent);
 	const [buffers, setBuffers] = createStore<Record<string, AppTypes.BufferState>>(restored.buffers);
 	const [expanded, setExpanded] = createSignal<Set<string>>(new Set(restored.expanded));
@@ -63,6 +68,7 @@ export function App(props: AppTypes.AppProps) {
 	const [peek, setPeek] = createSignal(false);
 	const [palette, setPalette] = createSignal(false);
 	const [settingsPage, setSettingsPage] = createSignal<'user' | 'project' | null>(null);
+	const [appearance, setAppearance] = createSignal<'dark' | 'light' | null>(initialAppearance);
 	const [vimMode, setVimMode] = createSignal<VimMode | null>(initialConfig.vim ? 'normal' : null);
 	const [reloadKey, setReloadKey] = createSignal(0);
 	const [conflict, setConflict] = createSignal<AppTypes.Conflict | null>(null);
@@ -289,6 +295,7 @@ export function App(props: AppTypes.AppProps) {
 	const controls = createAppControls({
 		config,
 		configScope: () => settingsPage() ?? 'user',
+		currentAppearance: appearance,
 		prompt,
 		selectedNode,
 		setVimMode,
@@ -302,6 +309,7 @@ export function App(props: AppTypes.AppProps) {
 		applyVim: controls.applyVim,
 		toggleAutoSave: controls.toggleAutoSave,
 		toggleFormat: controls.toggleFormat,
+		toggleThemeSync: controls.toggleThemeSync,
 		toggleTransparent: controls.toggleTransparent,
 		toggleDotfiles: controls.toggleDotfiles,
 		toggleGitignored: controls.toggleGitignored,
@@ -368,6 +376,14 @@ export function App(props: AppTypes.AppProps) {
 		branch,
 		config,
 		renderer,
+		onAppearance: (next) => {
+			setAppearance(next);
+			if (!config.themeSync) return;
+			const theme = resolvedTheme(config, next);
+			setTheme(theme);
+			invalidateSyntaxStyle();
+			setConfig('theme', theme);
+		},
 		saveDirtyOnBlur,
 		syncFromDisk,
 		say,
