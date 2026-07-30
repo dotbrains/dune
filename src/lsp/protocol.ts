@@ -1,3 +1,12 @@
+export interface RpcMessage {
+	jsonrpc?: '2.0';
+	id?: number | string | null;
+	method?: string;
+	params?: unknown;
+	result?: unknown;
+	error?: { code: number; message: string };
+}
+
 export interface Position {
 	line: number;
 	character: number;
