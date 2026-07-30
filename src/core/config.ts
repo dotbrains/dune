@@ -80,6 +80,12 @@ export interface Config {
 	respectGitignore: boolean;
 	/** Diff presentation in Git overlays. */
 	diffView: 'inline' | 'split';
+	/** Language servers: spawn matching servers as files open. */
+	lsp: boolean;
+	/** Completion menu while typing. Requires `lsp` to be enabled. */
+	lspCompletion: boolean;
+	/** Per-server command override. An empty array disables that server. */
+	lspServers: Record<string, string[]>;
 	/** Custom global shortcuts by command id, e.g. `{ "open": "Ctrl+Alt+O" }`. */
 	keybindings: Record<string, string>;
 }
@@ -101,6 +107,9 @@ export const DEFAULTS: Config = {
 	showDotfiles: true,
 	respectGitignore: false,
 	diffView: 'inline',
+	lsp: false,
+	lspCompletion: true,
+	lspServers: {},
 	keybindings: {},
 };
 
@@ -136,6 +145,21 @@ function parsePartial(raw: unknown): Partial<Config> {
 	if (typeof obj.showDotfiles === 'boolean') config.showDotfiles = obj.showDotfiles;
 	if (typeof obj.respectGitignore === 'boolean') config.respectGitignore = obj.respectGitignore;
 	if (obj.diffView === 'split' || obj.diffView === 'inline') config.diffView = obj.diffView;
+	if (typeof obj.lsp === 'boolean') config.lsp = obj.lsp;
+	if (typeof obj.lspCompletion === 'boolean') config.lspCompletion = obj.lspCompletion;
+	if (obj.lspServers && typeof obj.lspServers === 'object' && !Array.isArray(obj.lspServers)) {
+		const lspServers: Record<string, string[]> = {};
+		for (const [id, value] of Object.entries(obj.lspServers)) {
+			if (
+				typeof id === 'string' &&
+				Array.isArray(value) &&
+				value.every((part): part is string => typeof part === 'string')
+			) {
+				lspServers[id] = value;
+			}
+		}
+		config.lspServers = lspServers;
+	}
 	if (obj.keybindings && typeof obj.keybindings === 'object' && !Array.isArray(obj.keybindings)) {
 		const keybindings: Record<string, string> = {};
 		for (const [id, value] of Object.entries(obj.keybindings)) {

@@ -94,6 +94,25 @@ export function settingsRows(
 		},
 		{
 			section: 'Editor',
+			label: 'Language servers',
+			value: onOff(config.lsp),
+			change: () => actions.patchConfig({ lsp: !config.lsp }, actions.configScope()),
+		},
+		{
+			section: 'Editor',
+			label: 'Autocomplete',
+			value: onOff(config.lspCompletion),
+			change: () =>
+				actions.patchConfig({ lspCompletion: !config.lspCompletion }, actions.configScope()),
+		},
+		{
+			section: 'Editor',
+			label: 'Language server overrides',
+			value: `${Object.keys(config.lspServers).length} overridden`,
+			change: () => {},
+		},
+		{
+			section: 'Editor',
 			label: 'Add/update shortcut…',
 			value: `${Object.keys(config.keybindings).length} custom`,
 			change: actions.editKeybinding,
