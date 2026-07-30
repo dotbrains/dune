@@ -22,6 +22,7 @@ function selectedRow(t: Harness): string {
 			.join('')
 			.trim();
 		if (text === 'no open files') continue;
+		if (text.includes('F1 commands')) continue;
 		if (marks.has(hex(line.spans[0]?.bg))) {
 			return text;
 		}
