@@ -81,6 +81,23 @@ export function currentBranch(cwd: string): string | null {
 	return branch.length > 0 && branch !== 'HEAD' ? branch : null;
 }
 
+export function defaultBranch(cwd: string): string | null {
+	const originHead = git(cwd, ['symbolic-ref', '--quiet', '--short', 'refs/remotes/origin/HEAD']);
+	const remote = originHead.stdout?.trim();
+	if (originHead.status === 0 && remote) return remote.replace(/^origin\//, '');
+	for (const name of ['main', 'master', 'trunk']) {
+		if (git(cwd, ['rev-parse', '--verify', '--quiet', name]).status === 0) return name;
+	}
+	const run = git(cwd, ['for-each-ref', '--format=%(refname:short)', 'refs/heads']);
+	if (run.status !== 0) return null;
+	return (
+		run.stdout
+			.split('\n')
+			.map((line) => line.trim())
+			.find((line) => line.length > 0) ?? null
+	);
+}
+
 const STATUS_BY_CODE: Record<string, FileStatus> = {
 	'?': 'untracked',
 	A: 'added',
@@ -129,6 +146,11 @@ export function textAtHead(cwd: string, path: string): string {
 	return run.status === 0 ? run.stdout : '';
 }
 
+function textAtRef(cwd: string, ref: string, rel: string): string | null {
+	const run = git(cwd, ['show', `${ref}:${rel}`], 5000);
+	return run.status === 0 ? run.stdout : null;
+}
+
 export function diffFiles(cwd: string, only?: string): DiffFile[] {
 	const statuses = statusMap(cwd);
 	const files: DiffFile[] = [];
@@ -148,6 +170,45 @@ export function diffFiles(cwd: string, only?: string): DiffFile[] {
 			status,
 			oldText: status === 'untracked' ? '' : textAtHead(cwd, path),
 			newText,
+		});
+	}
+	return files.toSorted((a, b) => a.rel.localeCompare(b.rel));
+}
+
+const BRANCH_STATUS_BY_CODE: Record<string, FileStatus> = {
+	A: 'added',
+	M: 'modified',
+	R: 'modified',
+	C: 'modified',
+	D: 'deleted',
+};
+
+export function branchDiffFiles(cwd: string, baseBranch = defaultBranch(cwd)): DiffFile[] {
+	const base = keyBase(cwd);
+	if (base === null || !baseBranch) return [];
+	const mergeBase = git(cwd, ['merge-base', baseBranch, 'HEAD'], 5000);
+	if (mergeBase.status !== 0) return [];
+	const baseRef = mergeBase.stdout.trim();
+	const names = git(cwd, ['diff', '--name-status', '-z', `${baseRef}...HEAD`], 5000);
+	if (names.status !== 0 || !names.stdout) return [];
+	const parts = names.stdout.split('\0');
+	const files: DiffFile[] = [];
+	for (let i = 0; i < parts.length;) {
+		const code = parts[i++]?.[0] ?? '';
+		const status = BRANCH_STATUS_BY_CODE[code];
+		if (!status) continue;
+		const oldRel = code === 'R' || code === 'C' ? parts[i++] : parts[i];
+		const rel = parts[i++];
+		if (!rel) continue;
+		const oldText = status === 'added' ? '' : (textAtRef(cwd, baseRef, oldRel ?? rel) ?? '');
+		const newText = status === 'deleted' ? '' : textAtRef(cwd, 'HEAD', rel);
+		if (newText === null && status !== 'deleted') continue;
+		files.push({
+			path: join(base, rel),
+			rel,
+			status,
+			oldText,
+			newText: newText ?? '',
 		});
 	}
 	return files.toSorted((a, b) => a.rel.localeCompare(b.rel));

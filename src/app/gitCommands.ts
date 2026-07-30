@@ -2,7 +2,9 @@ import { relative } from 'node:path';
 import { createSignal } from 'solid-js';
 
 import {
+	branchDiffFiles,
 	commitPaths,
+	defaultBranch,
 	diffFiles,
 	fetch as gitFetch,
 	inRepository,
@@ -74,6 +76,16 @@ export function createGitCommands(deps: {
 		setDiff(files);
 	};
 
+	const openBranchComparison = () => {
+		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
+		const base = defaultBranch(deps.rootDir);
+		if (!base) return deps.say('No branch to compare against', 'warn');
+		const files = branchDiffFiles(deps.rootDir, base);
+		if (files.length === 0) return deps.say(`No differences from ${base}`, 'warn');
+		setDiff(files);
+		deps.say(`Comparing against ${base}`);
+	};
+
 	const startCommit = (paths: string[]) => {
 		setCommitFiles(null);
 		setCommitSelection(paths);
@@ -110,6 +122,7 @@ export function createGitCommands(deps: {
 		stashPop: () => runGit('Applying stash', () => stashPop(deps.rootDir), 'Applied stash'),
 		fetch: () => runGit('Fetching', () => gitFetch(deps.rootDir), 'Fetched'),
 		openDiff,
+		openBranchComparison,
 		push: () =>
 			runGit(
 				'Pushing',

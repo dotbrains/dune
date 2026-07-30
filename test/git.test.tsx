@@ -4,7 +4,15 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { currentBranch, diffFiles, diffLines, ignoredAmong, statusMap } from '../src/core/git';
+import {
+	branchDiffFiles,
+	currentBranch,
+	defaultBranch,
+	diffFiles,
+	diffLines,
+	ignoredAmong,
+	statusMap,
+} from '../src/core/git';
 import { THEMES } from '../src/themes';
 import { git as runGit } from './git-fixture';
 import { launch, press, pressEscape, runCommand, settle } from './helpers';
@@ -91,6 +99,22 @@ test('diffFiles returns text snapshots for changed files', () => {
 	expect(files[1]).toMatchObject({ oldText: '', newText: 'new\n', status: 'untracked' });
 });
 
+test('branchDiffFiles returns snapshots introduced since the base branch', () => {
+	const dir = repo('one\n');
+	const git = (...args: string[]) => runGit(dir, ...args);
+	git('switch', '-q', '-c', 'feature');
+	writeFileSync(join(dir, 'a.ts'), 'two\n');
+	writeFileSync(join(dir, 'fresh.ts'), 'new\n');
+	git('add', '.');
+	git('commit', '-q', '-m', 'feature work');
+
+	expect(defaultBranch(dir)).toBe('main');
+	const files = branchDiffFiles(dir, 'main');
+	expect(files.map((file) => file.rel)).toEqual(['a.ts', 'fresh.ts']);
+	expect(files[0]).toMatchObject({ oldText: 'one\n', newText: 'two\n', status: 'modified' });
+	expect(files[1]).toMatchObject({ oldText: '', newText: 'new\n', status: 'added' });
+});
+
 test('diff commands show current file and all changed files', async () => {
 	const dir = repo('one\ntwo\n');
 	writeFileSync(join(dir, 'a.ts'), 'one\nTWO\nthree\n');
@@ -119,6 +143,26 @@ test('diff commands show current file and all changed files', async () => {
 	expect(t.captureCharFrame()).not.toContain('Changed files');
 	await press(t, (i) => i.pressArrow('right'));
 	expect(t.captureCharFrame()).toContain('a.ts');
+});
+
+test('the branch comparison command opens a diff from the default branch', async () => {
+	const dir = repo('one\n');
+	const git = (...args: string[]) => runGit(dir, ...args);
+	git('switch', '-q', '-c', 'feature');
+	writeFileSync(join(dir, 'a.ts'), 'two\n');
+	writeFileSync(join(dir, 'fresh.ts'), 'new\n');
+	git('add', '.');
+	git('commit', '-q', '-m', 'feature work');
+
+	const t = await launch(dir);
+	await runCommand(t, 'Compare branches');
+
+	const frame = t.captureCharFrame();
+	expect(frame).toContain('file 1/2');
+	expect(frame).toContain('- one');
+	expect(frame).toContain('+ two');
+	await press(t, (input) => void input.typeText('f'));
+	expect(t.captureCharFrame()).toContain('fresh.ts +1 -0');
 });
 
 test('diff commands can render split layout', async () => {

@@ -82,6 +82,7 @@ export interface CommandActions {
 	sourceControl: () => void;
 	diffCurrent: () => void;
 	diffAll: () => void;
+	compareBranches: () => void;
 	undoCommit: () => void;
 	stash: () => void;
 	stashPop: () => void;
@@ -294,6 +295,7 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 				{ id: 'git.sourceControl', label: 'Source control panel', run: actions.sourceControl },
 				{ id: 'git.diffCurrent', label: 'Diff current file', run: actions.diffCurrent },
 				{ id: 'git.diffAll', label: 'Diff all changes', run: actions.diffAll },
+				{ id: 'git.compareBranches', label: 'Compare branches', run: actions.compareBranches },
 				{ id: 'git.undoCommit', label: 'Undo last commit…', run: actions.undoCommit },
 				{ id: 'git.stash', label: 'Stash changes', run: actions.stash },
 				{ id: 'git.stashPop', label: 'Stash pop', run: actions.stashPop },
