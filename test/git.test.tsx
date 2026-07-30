@@ -9,6 +9,7 @@ import {
 	createBranch,
 	currentBranch,
 	defaultBranch,
+	deleteBranch,
 	diffFiles,
 	diffLines,
 	ignoredAmong,
@@ -176,6 +177,18 @@ test('renameBranch renames a local branch', async () => {
 	expect(
 		spawnSync('git', ['rev-parse', '--verify', '--quiet', 'refs/heads/done'], { cwd: dir }).status,
 	).toBe(0);
+});
+
+test('deleteBranch deletes a merged local branch', async () => {
+	const dir = repo('one\n');
+	const git = (...args: string[]) => runGit(dir, ...args);
+	git('switch', '-q', '-c', 'work');
+	git('switch', '-q', 'main');
+
+	expect(await deleteBranch(dir, 'work')).toMatchObject({ ok: true });
+	expect(
+		spawnSync('git', ['rev-parse', '--verify', '--quiet', 'refs/heads/work'], { cwd: dir }).status,
+	).not.toBe(0);
 });
 
 test('mergeBranch merges another branch into the current branch', async () => {

@@ -423,6 +423,10 @@ export function renameBranch(cwd: string, from: string, to: string): Promise<Git
 	return mutate(cwd, ['branch', '-m', from, to]);
 }
 
+export function deleteBranch(cwd: string, name: string): Promise<GitResult> {
+	return mutate(cwd, ['branch', '-d', name]);
+}
+
 export function mergeBranch(cwd: string, name: string): Promise<GitResult> {
 	return mutate(cwd, ['merge', '--no-edit', name]);
 }

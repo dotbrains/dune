@@ -44,6 +44,13 @@ export function confirmationForPrompt(prompt: Prompt): Confirmation | null {
 				danger: false,
 				message: `Merge "${prompt.name}" into the current branch? Conflicts are left in the working tree.`,
 			};
+		case 'deleteBranch':
+			return {
+				title: 'Delete branch',
+				verb: 'delete it',
+				danger: true,
+				message: `Delete "${prompt.name}"? Git refuses if it has commits that are not merged.`,
+			};
 		default:
 			return null;
 	}

@@ -186,6 +186,26 @@ test('rename branch command renames the selected local branch', async () => {
 	);
 });
 
+test('delete branch command deletes the selected local branch after confirmation', async () => {
+	const dir = repo('main\n');
+	const git = (...args: string[]) => runGit(dir, ...args);
+	git('switch', '-q', '-c', 'work');
+	git('switch', '-q', 'main');
+
+	const t = await launch(dir);
+	await runCommand(t, 'Delete branch');
+	expect(t.captureCharFrame()).toContain('Delete branch');
+	await press(t, (input) => void input.typeText('work'));
+	await press(t, (input) => input.pressEnter());
+	expect(t.captureCharFrame()).toContain('Delete branch');
+	await press(t, (input) => input.pressEnter());
+
+	await until(
+		t,
+		() => execFileSync('git', ['branch', '--list', 'work'], { cwd: dir }).toString().trim() === '',
+	);
+});
+
 test('outside a repository git commands warn instead of mutating', async () => {
 	const t = await launch(fixture({ 'a.ts': 'x\n' }));
 	await runCommand(t, 'Commit');

@@ -66,6 +66,7 @@ export function createAppCommands(deps: {
 		openBranchPrompt: () => void;
 		openBranchMerge: () => void;
 		openBranchRename: () => void;
+		openBranchDelete: () => void;
 		confirmUndoCommit: () => void;
 		stash: () => void;
 		stashPop: () => void;
@@ -139,6 +140,7 @@ export function createAppCommands(deps: {
 				newBranch: deps.gitCommands.openBranchPrompt,
 				mergeBranch: deps.gitCommands.openBranchMerge,
 				renameBranch: deps.gitCommands.openBranchRename,
+				deleteBranch: deps.gitCommands.openBranchDelete,
 				undoCommit: deps.gitCommands.confirmUndoCommit,
 				stash: deps.gitCommands.stash,
 				stashPop: deps.gitCommands.stashPop,
