@@ -31,6 +31,7 @@ export interface Diagnostic {
 	range: Range;
 	message: string;
 	severity?: DiagnosticSeverity;
+	source?: string;
 	tags?: number[];
 }
 
