@@ -93,6 +93,28 @@ test('stash reverts the working tree and pop brings it back', async () => {
 	await until(t, () => readFileSync(join(dir, 'a.ts'), 'utf8') === 'CHANGED\ntwo\n');
 });
 
+test('branch switch picker checks out the selected branch', async () => {
+	const dir = repo('main\n');
+	const git = (...args: string[]) => runGit(dir, ...args);
+	git('switch', '-q', '-c', 'feature');
+	writeFileSync(join(dir, 'a.ts'), 'feature\n');
+	git('commit', '-qam', 'feature');
+	git('switch', '-q', 'main');
+
+	const t = await launch(dir);
+	await runCommand(t, 'Switch branch');
+	expect(t.captureCharFrame()).toContain('Switch to branch');
+	await press(t, (input) => input.pressEnter());
+
+	await until(
+		t,
+		() =>
+			execFileSync('git', ['branch', '--show-current'], { cwd: dir }).toString().trim() ===
+			'feature',
+	);
+	expect(readFileSync(join(dir, 'a.ts'), 'utf8')).toBe('feature\n');
+});
+
 test('outside a repository git commands warn instead of mutating', async () => {
 	const t = await launch(fixture({ 'a.ts': 'x\n' }));
 	await runCommand(t, 'Commit');

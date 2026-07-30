@@ -539,17 +539,17 @@ export function App(props: AppTypes.AppProps) {
 			settingRows={settingRows()}
 			commitFiles={gitCommands.commitFiles()}
 			branchChoices={gitCommands.branchChoices()}
+			branchChoiceTitle={gitCommands.branchChoiceTitle()}
+			branchChoiceMessage={gitCommands.branchChoiceMessage()}
 			conflict={conflict()}
 			update={update()}
 			peek={peek()}
 			help={help()}
 			selection={selection()}
-			onSelectTab={(path: string) => openFile(path)}
+			onSelectTab={openFile}
 			onCloseTab={closeTab}
 			onOverflowTabs={() => setPicker('tabs')}
-			onResizeDrag={(event) => {
-				if (resizing()) resizeSidebar(event.x);
-			}}
+			onResizeDrag={(event) => resizing() && resizeSidebar(event.x)}
 			onResizeEnd={() => setResizing(false)}
 			onActivateNode={activateNode}
 			onPinNode={(node: TreeNode) => pinTab(node.path)}

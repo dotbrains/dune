@@ -130,6 +130,10 @@ export function listBranches(cwd: string): Branch[] {
 		.filter((branch) => !branch.name.endsWith('/HEAD'));
 }
 
+export function localBranchName(name: string): string {
+	return name.replace(/^[^/]+\//, '');
+}
+
 const STATUS_BY_CODE: Record<string, FileStatus> = {
 	'?': 'untracked',
 	A: 'added',
@@ -400,4 +404,13 @@ export function fetch(cwd: string): Promise<GitResult> {
 
 export function push(cwd: string, branch: string, hasUpstream: boolean): Promise<GitResult> {
 	return mutate(cwd, hasUpstream ? ['push'] : ['push', '--set-upstream', 'origin', branch]);
+}
+
+export function switchBranch(cwd: string, name: string, remote: boolean): Promise<GitResult> {
+	if (!remote) return mutate(cwd, ['checkout', name]);
+	const local = localBranchName(name);
+	const exists = git(cwd, ['rev-parse', '--verify', '--quiet', `refs/heads/${local}`], 3000);
+	return exists.status === 0
+		? mutate(cwd, ['checkout', local])
+		: mutate(cwd, ['checkout', '-b', local, '--track', name]);
 }

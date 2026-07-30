@@ -10,10 +10,12 @@ import {
 	inRepository,
 	lastCommitSubject,
 	listBranches,
+	localBranchName,
 	push as gitPush,
 	stagedPaths,
 	stashPop,
 	stashPush,
+	switchBranch,
 	statusMap,
 	undoLastCommit,
 } from '../core/git';
@@ -38,6 +40,7 @@ export function createGitCommands(deps: {
 	const [commitSelection, setCommitSelection] = createSignal<string[]>([]);
 	const [diff, setDiff] = createSignal<DiffFile[] | null>(null);
 	const [panel, setPanel] = createSignal(false);
+	const [branchMode, setBranchMode] = createSignal<'compare' | 'switch'>('compare');
 	const [branchChoices, setBranchChoices] = createSignal<{ id: string; label: string }[] | null>(
 		null,
 	);
@@ -94,7 +97,21 @@ export function createGitCommands(deps: {
 			const base = defaultBranch(deps.rootDir);
 			return base ? compareWith(base) : deps.say('No branch to compare against', 'warn');
 		}
+		setBranchMode('compare');
 		setBranchChoices(branches.map((branch) => ({ id: branch.name, label: branch.name })));
+	};
+
+	const openBranchSwitch = () => {
+		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
+		const branches = listBranches(deps.rootDir).filter((branch) => !branch.current);
+		if (branches.length === 0) return deps.say('No other branch to switch to', 'warn');
+		setBranchMode('switch');
+		setBranchChoices(
+			branches.map((branch) => ({
+				id: branch.name,
+				label: branch.remote ? `${branch.name}  remote` : branch.name,
+			})),
+		);
 	};
 
 	const startCommit = (paths: string[]) => {
@@ -126,7 +143,22 @@ export function createGitCommands(deps: {
 		closeDiff: () => setDiff(null),
 		cancelCommit: () => setCommitFiles(null),
 		closeBranchChoices: () => setBranchChoices(null),
-		pickBranch: (name: string) => void (setBranchChoices(null), compareWith(name)),
+		branchChoiceTitle: () =>
+			branchMode() === 'switch' ? 'Switch to branch' : 'Compare against branch',
+		branchChoiceMessage: () =>
+			branchMode() === 'switch'
+				? 'Enter checks out the selected branch.'
+				: 'Enter compares the current branch against the selected branch.',
+		pickBranch: (name: string) => {
+			setBranchChoices(null);
+			if (branchMode() === 'compare') return compareWith(name);
+			const branch = listBranches(deps.rootDir).find((item) => item.name === name);
+			runGit(
+				'Switching branch',
+				() => switchBranch(deps.rootDir, name, branch?.remote ?? false),
+				`On ${localBranchName(name)}`,
+			);
+		},
 		startCommit,
 		submitCommit,
 		confirmUndoCommit,
@@ -137,6 +169,7 @@ export function createGitCommands(deps: {
 		fetch: () => runGit('Fetching', () => gitFetch(deps.rootDir), 'Fetched'),
 		openDiff,
 		openBranchComparison,
+		openBranchSwitch,
 		push: () =>
 			runGit(
 				'Pushing',

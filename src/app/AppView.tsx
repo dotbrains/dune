@@ -101,6 +101,8 @@ interface AppViewProps {
 	settingRows: SettingRow[];
 	commitFiles: CommitFile[] | null;
 	branchChoices: Choice[] | null;
+	branchChoiceTitle: string;
+	branchChoiceMessage: string;
 	conflict: Conflict | null;
 	update: { current: string; latest: string } | null;
 	peek: boolean;
@@ -408,8 +410,8 @@ export function AppView(props: AppViewProps) {
 			<Show when={props.branchChoices}>
 				{(choices: () => Choice[]) => (
 					<ChoiceModal
-						title="Compare against branch"
-						message="Enter compares the current branch against the selected branch."
+						title={props.branchChoiceTitle}
+						message={props.branchChoiceMessage}
 						choices={choices()}
 						onPick={props.onPickBranch}
 						onCancel={props.onCloseBranchChoices}

@@ -12,7 +12,9 @@ import {
 	diffLines,
 	ignoredAmong,
 	listBranches,
+	localBranchName,
 	statusMap,
+	switchBranch,
 } from '../src/core/git';
 import { git as runGit } from './git-fixture';
 import { launch, press, pressEscape, runCommand, settle } from './helpers';
@@ -132,6 +134,21 @@ test('listBranches reports local and remote branches for pickers', () => {
 		remote: true,
 	});
 	expect(branches.some((branch) => branch.name === 'origin/HEAD')).toBe(false);
+});
+
+test('switchBranch checks out local and remote-tracking branches', async () => {
+	const dir = repo('one\n');
+	const git = (...args: string[]) => runGit(dir, ...args);
+	git('switch', '-q', '-c', 'feature');
+	git('switch', '-q', 'main');
+	git('remote', 'add', 'origin', dir);
+	git('update-ref', 'refs/remotes/origin/remote-work', 'feature');
+
+	expect(localBranchName('origin/remote-work')).toBe('remote-work');
+	expect(await switchBranch(dir, 'feature', false)).toMatchObject({ ok: true });
+	expect(git('branch', '--show-current').toString().trim()).toBe('feature');
+	expect(await switchBranch(dir, 'origin/remote-work', true)).toMatchObject({ ok: true });
+	expect(git('branch', '--show-current').toString().trim()).toBe('remote-work');
 });
 
 test('diff commands show current file and all changed files', async () => {
