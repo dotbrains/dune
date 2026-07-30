@@ -4,6 +4,8 @@ import { join } from 'node:path';
 
 import { buildCommands } from '../src/app/commands';
 import type { CommandActions } from '../src/app/commands';
+import { settingsRows } from '../src/app/settingsRows';
+import { DEFAULTS } from '../src/core/config';
 import { fixture, launch, press, pressEscape, runCommand } from './helpers';
 import type { Harness } from './helpers';
 
@@ -21,6 +23,28 @@ function rowOf(label: string): number {
 		respectGitignore: false,
 	});
 	return tree.findIndex((command) => command.label === label);
+}
+
+/** Row index of a settings entry, so tests survive new settings. */
+function settingsRowOf(label: string): number {
+	const actions = {
+		applyTheme: () => {},
+		applyTabSize: () => {},
+		applyVim: () => {},
+		editFormatter: () => {},
+		editKeybinding: () => {},
+		editSidebarWidth: () => {},
+		toggleThemeSync: () => {},
+		toggleAutoSave: () => {},
+		toggleTransparent: () => {},
+		toggleDotfiles: () => {},
+		toggleGitignored: () => {},
+		toggleFormat: () => {},
+		toggleTrim: () => {},
+		patchConfig: () => {},
+		configScope: () => 'user' as const,
+	};
+	return settingsRows(DEFAULTS, actions).findIndex((row) => row.label === label);
 }
 
 const PROJECT = {
@@ -97,7 +121,9 @@ describe('command palette', () => {
 		expect(t.captureCharFrame()).toContain('Tab size');
 		expect(t.captureCharFrame()).toContain('4');
 
-		for (let i = 0; i < 11; i++) await press(t, (input) => input.pressArrow('down'));
+		for (let i = 0; i < settingsRowOf('Show dotfiles'); i++) {
+			await press(t, (input) => input.pressArrow('down'));
+		}
 		await press(t, (input) => input.pressArrow('right'));
 		expect(t.captureCharFrame()).toContain('.env');
 
