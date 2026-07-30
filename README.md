@@ -103,6 +103,9 @@ away. By default the tree lists dotfiles and gitignored files; use the View comm
 Use `Settings: this project` to save overrides in `.dune/settings.json`; project values
 take precedence over `~/.config/dune/config.json` when that workspace opens.
 Auto-save on blur and tab switch is on by default and can be disabled from Settings.
+External formatters can run on save by setting `formatOnSave` and a `formatters` map in
+user or project JSON, for example `{ "formatters": { "ts,tsx": ["prettier", "--write"] } }`;
+formatter args may use `{}` as the file placeholder, otherwise the path is appended.
 The `Transparent background` setting leaves the editor and tab strip unpainted for
 translucent terminal themes.
 

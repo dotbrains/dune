@@ -12,6 +12,7 @@ import os from 'node:os';
 import { dirname, join } from 'node:path';
 
 import { isThemeName } from '../themes';
+import type { Formatters } from './format';
 import type { ThemeName } from '../themes';
 
 export const CONFIG_FILE = join(
@@ -61,6 +62,10 @@ export interface Config {
 	skipUpdate: string;
 	/** On save: strip trailing spaces and end the file with one newline. */
 	trimOnSave: boolean;
+	/** Run a configured external formatter after saving matching files. */
+	formatOnSave: boolean;
+	/** File extension keys (`ts`, `js,jsx`, `*`) mapped to formatter argv arrays. */
+	formatters: Formatters;
 	/** Save every dirty buffer when the terminal window loses focus. */
 	autoSaveOnBlur: boolean;
 	/** Whether the tree lists dotfiles. Defaults to the filesystem's truth. */
@@ -79,6 +84,8 @@ export const DEFAULTS: Config = {
 	sidebarWidth: 'auto',
 	skipUpdate: '',
 	trimOnSave: false,
+	formatOnSave: false,
+	formatters: {},
 	autoSaveOnBlur: true,
 	showDotfiles: true,
 	respectGitignore: false,
@@ -96,6 +103,20 @@ function parsePartial(raw: unknown): Partial<Config> {
 	}
 	if (typeof obj.skipUpdate === 'string') config.skipUpdate = obj.skipUpdate;
 	if (typeof obj.trimOnSave === 'boolean') config.trimOnSave = obj.trimOnSave;
+	if (typeof obj.formatOnSave === 'boolean') config.formatOnSave = obj.formatOnSave;
+	if (obj.formatters && typeof obj.formatters === 'object' && !Array.isArray(obj.formatters)) {
+		const formatters: Formatters = {};
+		for (const [key, value] of Object.entries(obj.formatters)) {
+			if (
+				typeof key === 'string' &&
+				Array.isArray(value) &&
+				value.every((part): part is string => typeof part === 'string')
+			) {
+				formatters[key] = value;
+			}
+		}
+		config.formatters = formatters;
+	}
 	if (typeof obj.autoSaveOnBlur === 'boolean') config.autoSaveOnBlur = obj.autoSaveOnBlur;
 	if (typeof obj.showDotfiles === 'boolean') config.showDotfiles = obj.showDotfiles;
 	if (typeof obj.respectGitignore === 'boolean') config.respectGitignore = obj.respectGitignore;

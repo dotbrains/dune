@@ -257,6 +257,7 @@ export function App(props: AppTypes.AppProps) {
 		setSelectedPath,
 		pushEdit,
 		whileFree,
+		rootDir,
 	});
 	saveDirtyPathsRef.run = documentActions.saveDirtyPaths;
 	const {
@@ -300,6 +301,7 @@ export function App(props: AppTypes.AppProps) {
 		applyTabSize: controls.applyTabSize,
 		applyVim: controls.applyVim,
 		toggleAutoSave: controls.toggleAutoSave,
+		toggleFormat: controls.toggleFormat,
 		toggleTransparent: controls.toggleTransparent,
 		toggleDotfiles: controls.toggleDotfiles,
 		toggleGitignored: controls.toggleGitignored,
@@ -337,6 +339,7 @@ export function App(props: AppTypes.AppProps) {
 		toggleDotfiles: controls.toggleDotfiles,
 		toggleGitignored: controls.toggleGitignored,
 		toggleTrim: controls.toggleTrim,
+		toggleFormat: controls.toggleFormat,
 		toggleAutoSave: controls.toggleAutoSave,
 		toggleTransparent: controls.toggleTransparent,
 		openSettings: () => setSettingsPage('user'),

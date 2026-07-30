@@ -15,6 +15,7 @@ function rowOf(label: string): number {
 		activeTheme: 'dark',
 		tabSize: 2,
 		trimOnSave: false,
+		formatOnSave: false,
 		autoSaveOnBlur: false,
 		showDotfiles: true,
 		respectGitignore: false,
@@ -97,7 +98,7 @@ describe('command palette', () => {
 		expect(t.captureCharFrame()).toContain('4');
 		expect(t.captureCharFrame()).toContain('Diff layout');
 
-		for (let i = 0; i < 6; i++) await press(t, (input) => input.pressArrow('down'));
+		for (let i = 0; i < 7; i++) await press(t, (input) => input.pressArrow('down'));
 		await press(t, (input) => input.pressArrow('right'));
 		expect(t.captureCharFrame()).toContain('.env');
 

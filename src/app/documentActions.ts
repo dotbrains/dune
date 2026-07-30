@@ -3,6 +3,7 @@ import { basename, dirname, join } from 'node:path';
 import { produce } from 'solid-js/store';
 
 import { removeAll } from '../core/bulk';
+import { formatterFor, runFormatter } from '../core/format';
 import { createDir, createFile, exists, mtimeOf, readFile, writeFile } from '../core/fs';
 import { trimTrailing } from '../editor/lines';
 import { CLASH_CHANGED } from './constants';
@@ -10,7 +11,11 @@ import { isTextPrompt } from './prompts';
 import type { BufferState, Conflict, DiskSync, Prompt } from './types';
 
 export function createDocumentActions(deps: {
-	config: { trimOnSave: boolean };
+	config: {
+		trimOnSave: boolean;
+		formatOnSave: boolean;
+		formatters: Record<string, string[]>;
+	};
 	buffers: Record<string, BufferState>;
 	activePath: () => string | null;
 	activeBuffer: () => BufferState | undefined;
@@ -47,6 +52,7 @@ export function createDocumentActions(deps: {
 	setSelectedPath: (path: string | null) => void;
 	pushEdit: (content: string) => void;
 	whileFree: (run: () => void) => void;
+	rootDir: string;
 }) {
 	const writeBuffer = (path: string, content: string): boolean => {
 		const final = deps.config.trimOnSave ? trimTrailing(content) : content;
@@ -55,10 +61,28 @@ export function createDocumentActions(deps: {
 			deps.say(`Save failed: ${err}`, 'error');
 			return false;
 		}
-		deps.setBuffers(path, { content: final, dirty: false, mtime: mtimeOf(path) });
-		if (final !== content && path === deps.activePath()) deps.pushEdit(final);
+		let saved = final;
+		const formatter = deps.config.formatOnSave ? formatterFor(path, deps.config.formatters) : null;
+		if (formatter) {
+			const formatError = runFormatter(formatter, path, deps.rootDir);
+			if (formatError) {
+				deps.setBuffers(path, { content: final, dirty: false, mtime: mtimeOf(path) });
+				if (final !== content && path === deps.activePath()) deps.pushEdit(final);
+				deps.setGitRevision((n) => n + 1);
+				deps.say(`Format failed: ${formatError}`, 'error');
+				return true;
+			}
+			try {
+				saved = readFile(path);
+			} catch (e) {
+				deps.say(`Format failed: ${(e as Error).message}`, 'error');
+				saved = final;
+			}
+		}
+		deps.setBuffers(path, { content: saved, dirty: false, mtime: mtimeOf(path) });
+		if (saved !== content && path === deps.activePath()) deps.pushEdit(saved);
 		deps.setGitRevision((n) => n + 1);
-		deps.say(`Saved ${basename(path)}`);
+		deps.say(formatter ? `Formatted ${basename(path)}` : `Saved ${basename(path)}`);
 		return true;
 	};
 	const saveActive = () => {

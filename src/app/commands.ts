@@ -57,6 +57,7 @@ export interface CommandActions {
 	setTheme: (name: ThemeName) => void;
 	lineOp: (op: 'comment' | 'up' | 'down' | 'duplicate') => void;
 	toggleTrim: () => void;
+	toggleFormat: () => void;
 	toggleAutoSave: () => void;
 	toggleTransparent: () => void;
 	commit: () => void;
@@ -77,6 +78,7 @@ export interface CommandContext {
 	activeTheme: ThemeName;
 	tabSize: number;
 	trimOnSave: boolean;
+	formatOnSave: boolean;
 	autoSaveOnBlur: boolean;
 	showDotfiles: boolean;
 	respectGitignore: boolean;
@@ -242,6 +244,11 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 					id: 'editor.trim',
 					label: `${check(ctx.trimOnSave)}Trim trailing whitespace on save`,
 					run: actions.toggleTrim,
+				},
+				{
+					id: 'editor.formatOnSave',
+					label: `${check(ctx.formatOnSave)}Format on save`,
+					run: actions.toggleFormat,
 				},
 				{
 					id: 'editor.autoSave',

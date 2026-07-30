@@ -30,6 +30,7 @@ export function settingsRows(
 		toggleTransparent: () => void;
 		toggleDotfiles: () => void;
 		toggleGitignored: () => void;
+		toggleFormat: () => void;
 		toggleTrim: () => void;
 		patchConfig: (patch: Partial<Config>, scope?: 'user' | 'project') => void;
 		configScope: () => 'user' | 'project';
@@ -66,6 +67,12 @@ export function settingsRows(
 			label: 'Trim trailing whitespace on save',
 			value: onOff(config.trimOnSave),
 			change: actions.toggleTrim,
+		},
+		{
+			section: 'Editor',
+			label: 'Format on save',
+			value: onOff(config.formatOnSave),
+			change: actions.toggleFormat,
 		},
 		{
 			section: 'Editor',

@@ -49,6 +49,10 @@ export function createAppControls(deps: {
 		patch({ trimOnSave: !deps.config.trimOnSave });
 		deps.say(`Trim on save ${deps.config.trimOnSave ? 'on' : 'off'}`);
 	};
+	const toggleFormat = () => {
+		patch({ formatOnSave: !deps.config.formatOnSave });
+		deps.say(`Format on save ${deps.config.formatOnSave ? 'on' : 'off'}`);
+	};
 	const toggleAutoSave = () => {
 		patch({ autoSaveOnBlur: !deps.config.autoSaveOnBlur });
 		deps.say(`Auto-save on blur ${deps.config.autoSaveOnBlur ? 'on' : 'off'}`);
@@ -79,6 +83,7 @@ export function createAppControls(deps: {
 		promptValue,
 		toggleDotfiles,
 		toggleGitignored,
+		toggleFormat,
 		toggleTrim,
 		toggleAutoSave,
 		toggleTransparent,
@@ -124,6 +129,7 @@ export type AppCommandDeps = {
 		},
 	) => void;
 	patchConfig: (patch: Partial<Config>) => void;
+	toggleFormat: () => void;
 	gitCommands: Parameters<typeof createAppCommands>[0]['gitCommands'];
 	setHelp: (show: boolean) => void;
 	quit: () => void;

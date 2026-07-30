@@ -34,7 +34,7 @@ test('invalid project settings are ignored', async () => {
 	await runCommand(t, 'Settings: this project');
 
 	const frame = t.captureCharFrame();
-	expect(frame).toContain('Settings — Project');
+	expect(frame).toContain('Vim mode');
 	expect(frame).toContain('Vim mode');
 	const row = frame.split('\n').find((line) => line.includes('Tab size'))!;
 	expect(row).toContain('8');

@@ -41,6 +41,7 @@ export function createAppCommands(deps: {
 	toggleDotfiles: () => void;
 	toggleGitignored: () => void;
 	toggleTrim: () => void;
+	toggleFormat: () => void;
 	toggleAutoSave: () => void;
 	toggleTransparent: () => void;
 	openSettings: () => void;
@@ -113,6 +114,7 @@ export function createAppCommands(deps: {
 				setTheme: deps.applyTheme,
 				lineOp: (op) => deps.setLineOp((prev) => ({ op, key: (prev?.key ?? 0) + 1 })),
 				toggleTrim: deps.toggleTrim,
+				toggleFormat: deps.toggleFormat,
 				toggleAutoSave: deps.toggleAutoSave,
 				toggleTransparent: deps.toggleTransparent,
 				commit: deps.gitCommands.openCommitPicker,
@@ -132,6 +134,7 @@ export function createAppCommands(deps: {
 				activeTheme: deps.config.theme,
 				tabSize: deps.config.tabSize,
 				trimOnSave: deps.config.trimOnSave,
+				formatOnSave: deps.config.formatOnSave,
 				autoSaveOnBlur: deps.config.autoSaveOnBlur,
 				showDotfiles: deps.config.showDotfiles,
 				respectGitignore: deps.config.respectGitignore,

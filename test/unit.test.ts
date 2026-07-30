@@ -91,6 +91,7 @@ describe('registries', () => {
 			activeTheme: 'dark',
 			tabSize: 2,
 			trimOnSave: false,
+			formatOnSave: false,
 			autoSaveOnBlur: false,
 			showDotfiles: true,
 			respectGitignore: false,
