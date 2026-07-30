@@ -63,6 +63,7 @@ export function createAppCommands(deps: {
 		openDiff: (path?: string | null) => void;
 		openBranchComparison: () => void;
 		openBranchSwitch: () => void;
+		openBranchPrompt: () => void;
 		confirmUndoCommit: () => void;
 		stash: () => void;
 		stashPop: () => void;
@@ -133,6 +134,7 @@ export function createAppCommands(deps: {
 				diffAll: () => deps.gitCommands.openDiff(),
 				compareBranches: deps.gitCommands.openBranchComparison,
 				switchBranch: deps.gitCommands.openBranchSwitch,
+				newBranch: deps.gitCommands.openBranchPrompt,
 				undoCommit: deps.gitCommands.confirmUndoCommit,
 				stash: deps.gitCommands.stash,
 				stashPop: deps.gitCommands.stashPop,

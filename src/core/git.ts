@@ -414,3 +414,7 @@ export function switchBranch(cwd: string, name: string, remote: boolean): Promis
 		? mutate(cwd, ['checkout', local])
 		: mutate(cwd, ['checkout', '-b', local, '--track', name]);
 }
+
+export function createBranch(cwd: string, name: string): Promise<GitResult> {
+	return mutate(cwd, ['checkout', '-b', name]);
+}

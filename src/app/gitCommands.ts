@@ -4,6 +4,7 @@ import { createSignal } from 'solid-js';
 import {
 	branchDiffFiles,
 	commitPaths,
+	createBranch,
 	defaultBranch,
 	diffFiles,
 	fetch as gitFetch,
@@ -127,11 +128,20 @@ export function createGitCommands(deps: {
 		runGit('Committing', () => commitPaths(deps.rootDir, message, paths), 'Committed');
 	};
 
+	const submitBranch = (name: string) => {
+		runGit('Creating branch', () => createBranch(deps.rootDir, name), `On ${name}`);
+	};
+
 	const confirmUndoCommit = () => {
 		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
 		const subject = lastCommitSubject(deps.rootDir);
 		if (!subject) return deps.say('No commit to undo', 'warn');
 		deps.setPrompt({ kind: 'undoCommit', subject });
+	};
+
+	const openBranchPrompt = () => {
+		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
+		deps.setPrompt({ kind: 'newBranch' });
 	};
 
 	return {
@@ -161,6 +171,7 @@ export function createGitCommands(deps: {
 		},
 		startCommit,
 		submitCommit,
+		submitBranch,
 		confirmUndoCommit,
 		undoCommit: () =>
 			runGit('Undoing commit', () => undoLastCommit(deps.rootDir), 'Undid last commit'),
@@ -170,6 +181,7 @@ export function createGitCommands(deps: {
 		openDiff,
 		openBranchComparison,
 		openBranchSwitch,
+		openBranchPrompt,
 		push: () =>
 			runGit(
 				'Pushing',

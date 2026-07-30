@@ -32,7 +32,11 @@ export function createDocumentActions(deps: {
 	nodes: () => { path: string }[];
 	tabs: () => string[];
 	selectedPath: () => string | null;
-	gitCommands: { submitCommit: (message: string) => void; undoCommit: () => void };
+	gitCommands: {
+		submitCommit: (message: string) => void;
+		submitBranch: (name: string) => void;
+		undoCommit: () => void;
+	};
 	closeTab: (path: string, discardUnsaved?: boolean) => void;
 	expand: (path: string) => void;
 	movePath: (from: string, to: string) => string | null;
@@ -186,6 +190,7 @@ export function createDocumentActions(deps: {
 		if (!p || !isTextPrompt(p)) return;
 		if (!name) return deps.say('Nothing entered', 'warn');
 		if (p.kind === 'commitMessage') return deps.gitCommands.submitCommit(name);
+		if (p.kind === 'newBranch') return deps.gitCommands.submitBranch(name);
 		if (p.kind === 'formatterCommand') {
 			const edit = parseFormatterEdit(name);
 			if (!edit.ok) return deps.say(edit.error, 'error');

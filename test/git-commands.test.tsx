@@ -115,6 +115,22 @@ test('branch switch picker checks out the selected branch', async () => {
 	expect(readFileSync(join(dir, 'a.ts'), 'utf8')).toBe('feature\n');
 });
 
+test('new branch prompt creates and checks out a branch', async () => {
+	const dir = repo('main\n');
+
+	const t = await launch(dir);
+	await runCommand(t, 'New branch');
+	expect(t.captureCharFrame()).toContain('New branch name');
+	await press(t, (input) => void input.typeText('work'));
+	await press(t, (input) => input.pressEnter());
+
+	await until(
+		t,
+		() =>
+			execFileSync('git', ['branch', '--show-current'], { cwd: dir }).toString().trim() === 'work',
+	);
+});
+
 test('outside a repository git commands warn instead of mutating', async () => {
 	const t = await launch(fixture({ 'a.ts': 'x\n' }));
 	await runCommand(t, 'Commit');

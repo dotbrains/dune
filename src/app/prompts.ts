@@ -9,6 +9,7 @@ const PROMPT_TITLES: Partial<Record<NonNullable<Prompt>['kind'], string>> = {
 	sidebarWidth: 'Sidebar width: auto or columns',
 	gotoLine: 'Go to line',
 	commitMessage: 'Commit message',
+	newBranch: 'New branch name',
 };
 
 export function promptTitleFor(prompt: Prompt): string | undefined {

@@ -6,6 +6,7 @@ import { join } from 'node:path';
 
 import {
 	branchDiffFiles,
+	createBranch,
 	currentBranch,
 	defaultBranch,
 	diffFiles,
@@ -149,6 +150,15 @@ test('switchBranch checks out local and remote-tracking branches', async () => {
 	expect(git('branch', '--show-current').toString().trim()).toBe('feature');
 	expect(await switchBranch(dir, 'origin/remote-work', true)).toMatchObject({ ok: true });
 	expect(git('branch', '--show-current').toString().trim()).toBe('remote-work');
+});
+
+test('createBranch creates and checks out a branch from HEAD', async () => {
+	const dir = repo('one\n');
+	const git = (...args: string[]) => runGit(dir, ...args);
+
+	expect(await createBranch(dir, 'work')).toMatchObject({ ok: true });
+	expect(git('branch', '--show-current').toString().trim()).toBe('work');
+	expect(git('rev-parse', 'work').toString()).toBe(git('rev-parse', 'main').toString());
 });
 
 test('diff commands show current file and all changed files', async () => {

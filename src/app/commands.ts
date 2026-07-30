@@ -92,6 +92,7 @@ export interface CommandActions {
 	diffAll: () => void;
 	compareBranches: () => void;
 	switchBranch: () => void;
+	newBranch: () => void;
 	undoCommit: () => void;
 	stash: () => void;
 	stashPop: () => void;
@@ -320,6 +321,7 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 				{ id: 'git.diffAll', label: 'Diff all changes', run: actions.diffAll },
 				{ id: 'git.compareBranches', label: 'Compare branches', run: actions.compareBranches },
 				{ id: 'git.switchBranch', label: 'Switch branch…', run: actions.switchBranch },
+				{ id: 'git.newBranch', label: 'New branch…', run: actions.newBranch },
 				{ id: 'git.undoCommit', label: 'Undo last commit…', run: actions.undoCommit },
 				{ id: 'git.stash', label: 'Stash changes', run: actions.stash },
 				{ id: 'git.stashPop', label: 'Stash pop', run: actions.stashPop },
