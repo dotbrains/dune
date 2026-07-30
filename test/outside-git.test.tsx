@@ -48,6 +48,7 @@ describe('git work done in another terminal', () => {
 		const stop = watchTree(dir, () => hits++);
 		try {
 			await new Promise((resolve) => setTimeout(resolve, 200));
+			hits = 0;
 			for (let n = 0; n < 5; n++) git('status', '--porcelain');
 			await new Promise((resolve) => setTimeout(resolve, 400));
 			// `git status` refreshes .git/index. If that reached the watcher, the refresh

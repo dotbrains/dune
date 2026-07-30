@@ -11,6 +11,36 @@ export interface CompletionMatch {
 	positions: number[];
 }
 
+export type KindGroup = 'fn' | 'var' | 'type' | 'module' | 'keyword' | 'text';
+
+const KIND_GROUPS: Record<number, { glyph: string; group: KindGroup }> = {
+	1: { glyph: '·', group: 'text' },
+	2: { glyph: 'ƒ', group: 'fn' },
+	3: { glyph: 'ƒ', group: 'fn' },
+	4: { glyph: 'ƒ', group: 'fn' },
+	5: { glyph: '◦', group: 'var' },
+	6: { glyph: 'ν', group: 'var' },
+	7: { glyph: '◆', group: 'type' },
+	8: { glyph: '◇', group: 'type' },
+	9: { glyph: '⧉', group: 'module' },
+	10: { glyph: '◦', group: 'var' },
+	11: { glyph: '#', group: 'var' },
+	12: { glyph: 'π', group: 'var' },
+	13: { glyph: 'Σ', group: 'type' },
+	14: { glyph: 'κ', group: 'keyword' },
+	15: { glyph: '⌗', group: 'text' },
+	16: { glyph: '□', group: 'var' },
+	17: { glyph: '⧉', group: 'module' },
+	18: { glyph: '→', group: 'module' },
+	19: { glyph: '⧉', group: 'module' },
+	20: { glyph: 'Σ', group: 'var' },
+	21: { glyph: 'π', group: 'var' },
+	22: { glyph: '◆', group: 'type' },
+	23: { glyph: '⚡︎', group: 'fn' },
+	24: { glyph: '±', group: 'fn' },
+	25: { glyph: 'τ', group: 'type' },
+};
+
 const WORD = /[A-Za-z0-9_$]/;
 const SNIPPET = /\$(?:(\d+)|\{(\d+)(?::((?:[^{}]|\{[^}]*\})*))?(?:\|([^,|]*)[^}]*)?\})/g;
 
@@ -80,6 +110,10 @@ export function filterCompletions(items: CompletionItem[], prefix: string): Comp
 			(a.item.sortText ?? a.item.label).localeCompare(b.item.sortText ?? b.item.label) ||
 			a.item.label.length - b.item.label.length,
 	);
+}
+
+export function kindInfo(kind: number | undefined): { glyph: string; group: KindGroup } {
+	return KIND_GROUPS[kind ?? 1] ?? { glyph: '·', group: 'text' };
 }
 
 export function stripSnippet(text: string): { text: string; caret: number | null } {
