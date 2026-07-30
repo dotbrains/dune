@@ -10,6 +10,7 @@ const PROMPT_TITLES: Partial<Record<NonNullable<Prompt>['kind'], string>> = {
 	gotoLine: 'Go to line',
 	commitMessage: 'Commit message',
 	newBranch: 'New branch name',
+	renameBranch: 'Rename branch to',
 };
 
 export function promptTitleFor(prompt: Prompt): string | undefined {

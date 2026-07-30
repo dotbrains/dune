@@ -94,6 +94,7 @@ export interface CommandActions {
 	switchBranch: () => void;
 	newBranch: () => void;
 	mergeBranch: () => void;
+	renameBranch: () => void;
 	undoCommit: () => void;
 	stash: () => void;
 	stashPop: () => void;
@@ -324,6 +325,7 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 				{ id: 'git.switchBranch', label: 'Switch branch…', run: actions.switchBranch },
 				{ id: 'git.newBranch', label: 'New branch…', run: actions.newBranch },
 				{ id: 'git.mergeBranch', label: 'Merge branch…', run: actions.mergeBranch },
+				{ id: 'git.renameBranch', label: 'Rename branch…', run: actions.renameBranch },
 				{ id: 'git.undoCommit', label: 'Undo last commit…', run: actions.undoCommit },
 				{ id: 'git.stash', label: 'Stash changes', run: actions.stash },
 				{ id: 'git.stashPop', label: 'Stash pop', run: actions.stashPop },

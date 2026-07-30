@@ -88,7 +88,9 @@ export function createAppControls(deps: {
 	const promptTitle = () => promptTitleFor(deps.prompt());
 	const promptValue = () => {
 		const p = deps.prompt();
-		return p?.kind === 'rename' ? basename(p.target) : '';
+		if (p?.kind === 'rename') return basename(p.target);
+		if (p?.kind === 'renameBranch') return p.from;
+		return '';
 	};
 	const confirmation = createMemo(() => confirmationForPrompt(deps.prompt()));
 	return {

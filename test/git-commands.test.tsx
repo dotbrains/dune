@@ -156,6 +156,36 @@ test('merge branch command merges the selected branch after confirmation', async
 	expect(readFileSync(join(dir, 'feature.ts'), 'utf8')).toBe('feature\n');
 });
 
+test('rename branch command renames the selected local branch', async () => {
+	const dir = repo('main\n');
+	const git = (...args: string[]) => runGit(dir, ...args);
+	git('switch', '-q', '-c', 'work');
+	git('switch', '-q', 'main');
+
+	const t = await launch(dir);
+	await runCommand(t, 'Rename branch');
+	expect(t.captureCharFrame()).toContain('Rename branch');
+	await press(t, (input) => void input.typeText('work'));
+	await press(t, (input) => input.pressEnter());
+	expect(t.captureCharFrame()).toContain('Rename branch to');
+	await press(t, (input) => {
+		input.pressBackspace();
+		input.pressBackspace();
+		input.pressBackspace();
+		input.pressBackspace();
+		input.typeText('done');
+	});
+	await press(t, (input) => input.pressEnter());
+
+	await until(
+		t,
+		() =>
+			execFileSync('git', ['rev-parse', '--verify', '--quiet', 'refs/heads/done'], { cwd: dir })
+				.toString()
+				.trim() !== '',
+	);
+});
+
 test('outside a repository git commands warn instead of mutating', async () => {
 	const t = await launch(fixture({ 'a.ts': 'x\n' }));
 	await runCommand(t, 'Commit');

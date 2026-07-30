@@ -419,6 +419,10 @@ export function createBranch(cwd: string, name: string): Promise<GitResult> {
 	return mutate(cwd, ['checkout', '-b', name]);
 }
 
+export function renameBranch(cwd: string, from: string, to: string): Promise<GitResult> {
+	return mutate(cwd, ['branch', '-m', from, to]);
+}
+
 export function mergeBranch(cwd: string, name: string): Promise<GitResult> {
 	return mutate(cwd, ['merge', '--no-edit', name]);
 }

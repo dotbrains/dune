@@ -35,6 +35,7 @@ export function createDocumentActions(deps: {
 	gitCommands: {
 		submitCommit: (message: string) => void;
 		submitBranch: (name: string) => void;
+		rename: (from: string, to: string) => void;
 		merge: (name: string) => void;
 		undoCommit: () => void;
 	};
@@ -192,6 +193,7 @@ export function createDocumentActions(deps: {
 		if (!name) return deps.say('Nothing entered', 'warn');
 		if (p.kind === 'commitMessage') return deps.gitCommands.submitCommit(name);
 		if (p.kind === 'newBranch') return deps.gitCommands.submitBranch(name);
+		if (p.kind === 'renameBranch') return deps.gitCommands.rename(p.from, name);
 		if (p.kind === 'formatterCommand') {
 			const edit = parseFormatterEdit(name);
 			if (!edit.ok) return deps.say(edit.error, 'error');

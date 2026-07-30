@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -15,6 +15,7 @@ import {
 	listBranches,
 	localBranchName,
 	mergeBranch,
+	renameBranch,
 	statusMap,
 	switchBranch,
 } from '../src/core/git';
@@ -160,6 +161,21 @@ test('createBranch creates and checks out a branch from HEAD', async () => {
 	expect(await createBranch(dir, 'work')).toMatchObject({ ok: true });
 	expect(git('branch', '--show-current').toString().trim()).toBe('work');
 	expect(git('rev-parse', 'work').toString()).toBe(git('rev-parse', 'main').toString());
+});
+
+test('renameBranch renames a local branch', async () => {
+	const dir = repo('one\n');
+	const git = (...args: string[]) => runGit(dir, ...args);
+	git('switch', '-q', '-c', 'work');
+	git('switch', '-q', 'main');
+
+	expect(await renameBranch(dir, 'work', 'done')).toMatchObject({ ok: true });
+	expect(
+		spawnSync('git', ['rev-parse', '--verify', '--quiet', 'refs/heads/work'], { cwd: dir }).status,
+	).not.toBe(0);
+	expect(
+		spawnSync('git', ['rev-parse', '--verify', '--quiet', 'refs/heads/done'], { cwd: dir }).status,
+	).toBe(0);
 });
 
 test('mergeBranch merges another branch into the current branch', async () => {
