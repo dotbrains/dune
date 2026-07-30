@@ -17,11 +17,13 @@ const hex = (bg?: { buffer: Uint8Array }) =>
 function selectedRow(t: Harness): string {
 	const marks = new Set([ui.treeSelectedBg.toLowerCase(), ui.treeFocusBg.toLowerCase()]);
 	for (const line of (t.captureSpans() as unknown as Frame).lines) {
+		const text = line.spans
+			.map((span) => span.text)
+			.join('')
+			.trim();
+		if (text === 'no open files') continue;
 		if (marks.has(hex(line.spans[0]?.bg))) {
-			return line.spans
-				.map((span) => span.text)
-				.join('')
-				.trim();
+			return text;
 		}
 	}
 	return '';

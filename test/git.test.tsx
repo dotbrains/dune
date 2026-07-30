@@ -315,6 +315,7 @@ test('a gitignored entry is dimmed without inventing a status mark', async () =>
 
 	const t = await launch(dir);
 	await settle(t);
+	await settle(t);
 	const frame = t.captureCharFrame();
 
 	expect(frame).toContain('dist');
