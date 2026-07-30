@@ -25,7 +25,7 @@ test('losing terminal focus saves the dirty buffer', async () => {
 	expect(t.captureCharFrame()).toContain('Saved a.ts');
 });
 
-test('off by default: blur leaves the buffer dirty', async () => {
+test('off in config: blur leaves the buffer dirty', async () => {
 	const { t, file } = await edited({ autoSaveOnBlur: false });
 	await blur(t);
 
@@ -47,7 +47,7 @@ test('switching tabs saves the buffer left behind', async () => {
 	expect(t.captureCharFrame()).toContain('Saved a.ts');
 });
 
-test('off: switching tabs leaves the buffer dirty', async () => {
+test('off in config: switching tabs leaves the buffer dirty', async () => {
 	const dir = fixture({ 'a.ts': 'aaa\n', 'b.ts': 'bbb\n' });
 	const t = await launch(dir, { autoSaveOnBlur: false });
 	await press(t, (input) => input.pressArrow('down'));

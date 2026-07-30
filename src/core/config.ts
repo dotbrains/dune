@@ -76,7 +76,7 @@ export const DEFAULTS: Config = {
 	sidebarWidth: 'auto',
 	skipUpdate: '',
 	trimOnSave: false,
-	autoSaveOnBlur: false,
+	autoSaveOnBlur: true,
 	showDotfiles: true,
 	respectGitignore: false,
 	diffView: 'inline',
