@@ -13,6 +13,13 @@ export interface DiffFile {
 	newText: string;
 }
 
+export interface Branch {
+	name: string;
+	current: boolean;
+	remote: boolean;
+	upstream: string | null;
+}
+
 /**
  * Queries run synchronously because they sit behind gutter marks, tree marks and
  * the status bar. Mutations run asynchronously below, so push/fetch/stash/commit
@@ -96,6 +103,31 @@ export function defaultBranch(cwd: string): string | null {
 			.map((line) => line.trim())
 			.find((line) => line.length > 0) ?? null
 	);
+}
+
+export function listBranches(cwd: string): Branch[] {
+	const run = git(cwd, [
+		'for-each-ref',
+		'--sort=-committerdate',
+		'--format=%(refname:short)%00%(HEAD)%00%(upstream:short)',
+		'refs/heads',
+		'refs/remotes',
+	]);
+	if (run.status !== 0) return [];
+	return run.stdout
+		.split('\n')
+		.map((line) => line.trim())
+		.filter(Boolean)
+		.map((line) => {
+			const [name = '', head = '', upstream = ''] = line.split('\0');
+			return {
+				name,
+				current: head === '*',
+				remote: name.includes('/'),
+				upstream: upstream || null,
+			};
+		})
+		.filter((branch) => !branch.name.endsWith('/HEAD'));
 }
 
 const STATUS_BY_CODE: Record<string, FileStatus> = {

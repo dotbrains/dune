@@ -1,4 +1,3 @@
-import type { MouseEvent } from '@opentui/core';
 import { useRenderer, useTerminalDimensions } from '@opentui/solid';
 import { createMemo, createSignal } from 'solid-js';
 import { createStore, produce } from 'solid-js/store';
@@ -539,6 +538,7 @@ export function App(props: AppTypes.AppProps) {
 			commands={commands()}
 			settingRows={settingRows()}
 			commitFiles={gitCommands.commitFiles()}
+			branchChoices={gitCommands.branchChoices()}
 			conflict={conflict()}
 			update={update()}
 			peek={peek()}
@@ -547,7 +547,7 @@ export function App(props: AppTypes.AppProps) {
 			onSelectTab={(path: string) => openFile(path)}
 			onCloseTab={closeTab}
 			onOverflowTabs={() => setPicker('tabs')}
-			onResizeDrag={(event: MouseEvent) => {
+			onResizeDrag={(event) => {
 				if (resizing()) resizeSidebar(event.x);
 			}}
 			onResizeEnd={() => setResizing(false)}
@@ -557,7 +557,7 @@ export function App(props: AppTypes.AppProps) {
 			onGitDiff={gitCommands.openDiff}
 			onGitCommit={gitCommands.openCommitPicker}
 			onGitPush={gitCommands.push}
-			onResizeStart={(event: MouseEvent) => {
+			onResizeStart={(event) => {
 				setResizing(true);
 				resizeSidebar(event.x);
 			}}
@@ -580,13 +580,13 @@ export function App(props: AppTypes.AppProps) {
 			onClosePicker={() => setPicker(null)}
 			onClosePalette={() => setPalette(false)}
 			onCloseSettings={() => setSettingsPage(null)}
-			onPickProblem={(id: string) => {
-				problemUi.pick(id);
-			}}
+			onPickProblem={problemUi.pick}
 			onCloseProblems={() => setProblemsOpen(false)}
 			onCloseDiff={gitCommands.closeDiff}
 			onCommitFiles={gitCommands.startCommit}
 			onCancelCommit={gitCommands.cancelCommit}
+			onPickBranch={gitCommands.pickBranch}
+			onCloseBranchChoices={gitCommands.closeBranchChoices}
 			onResolveConflict={resolveConflict}
 			onCancelConflict={() => setConflict(null)}
 			onCloseUpdate={() => setUpdate(null)}

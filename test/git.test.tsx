@@ -11,6 +11,7 @@ import {
 	diffFiles,
 	diffLines,
 	ignoredAmong,
+	listBranches,
 	statusMap,
 } from '../src/core/git';
 import { git as runGit } from './git-fixture';
@@ -114,6 +115,25 @@ test('branchDiffFiles returns snapshots introduced since the base branch', () =>
 	expect(files[1]).toMatchObject({ oldText: '', newText: 'new\n', status: 'added' });
 });
 
+test('listBranches reports local and remote branches for pickers', () => {
+	const dir = repo('one\n');
+	const git = (...args: string[]) => runGit(dir, ...args);
+	git('switch', '-q', '-c', 'feature');
+	git('symbolic-ref', 'refs/remotes/origin/HEAD', 'refs/remotes/origin/main');
+	git('update-ref', 'refs/remotes/origin/main', 'main');
+
+	const branches = listBranches(dir);
+	expect(branches.find((branch) => branch.name === 'feature')).toMatchObject({
+		current: true,
+		remote: false,
+	});
+	expect(branches.find((branch) => branch.name === 'origin/main')).toMatchObject({
+		current: false,
+		remote: true,
+	});
+	expect(branches.some((branch) => branch.name === 'origin/HEAD')).toBe(false);
+});
+
 test('diff commands show current file and all changed files', async () => {
 	const dir = repo('one\ntwo\n');
 	writeFileSync(join(dir, 'a.ts'), 'one\nTWO\nthree\n');
@@ -155,6 +175,8 @@ test('the branch comparison command opens a diff from the default branch', async
 
 	const t = await launch(dir);
 	await runCommand(t, 'Compare branches');
+	expect(t.captureCharFrame()).toContain('Compare against branch');
+	await press(t, (input) => input.pressEnter());
 
 	const frame = t.captureCharFrame();
 	expect(frame).toContain('file 1/2');

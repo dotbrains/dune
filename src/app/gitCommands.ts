@@ -9,6 +9,7 @@ import {
 	fetch as gitFetch,
 	inRepository,
 	lastCommitSubject,
+	listBranches,
 	push as gitPush,
 	stagedPaths,
 	stashPop,
@@ -37,6 +38,9 @@ export function createGitCommands(deps: {
 	const [commitSelection, setCommitSelection] = createSignal<string[]>([]);
 	const [diff, setDiff] = createSignal<DiffFile[] | null>(null);
 	const [panel, setPanel] = createSignal(false);
+	const [branchChoices, setBranchChoices] = createSignal<{ id: string; label: string }[] | null>(
+		null,
+	);
 
 	const runGit = (label: string, action: () => Promise<GitResult>, success: string) => {
 		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
@@ -76,14 +80,21 @@ export function createGitCommands(deps: {
 		setDiff(files);
 	};
 
-	const openBranchComparison = () => {
-		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
-		const base = defaultBranch(deps.rootDir);
-		if (!base) return deps.say('No branch to compare against', 'warn');
+	const compareWith = (base: string) => {
 		const files = branchDiffFiles(deps.rootDir, base);
 		if (files.length === 0) return deps.say(`No differences from ${base}`, 'warn');
 		setDiff(files);
 		deps.say(`Comparing against ${base}`);
+	};
+
+	const openBranchComparison = () => {
+		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
+		const branches = listBranches(deps.rootDir).filter((branch) => branch.name !== deps.branch());
+		if (branches.length === 0) {
+			const base = defaultBranch(deps.rootDir);
+			return base ? compareWith(base) : deps.say('No branch to compare against', 'warn');
+		}
+		setBranchChoices(branches.map((branch) => ({ id: branch.name, label: branch.name })));
 	};
 
 	const startCommit = (paths: string[]) => {
@@ -108,11 +119,14 @@ export function createGitCommands(deps: {
 
 	return {
 		commitFiles,
+		branchChoices,
 		diff,
 		panel,
 		togglePanel: () => setPanel((open) => !open),
 		closeDiff: () => setDiff(null),
 		cancelCommit: () => setCommitFiles(null),
+		closeBranchChoices: () => setBranchChoices(null),
+		pickBranch: (name: string) => void (setBranchChoices(null), compareWith(name)),
 		startCommit,
 		submitCommit,
 		confirmUndoCommit,

@@ -100,6 +100,7 @@ interface AppViewProps {
 	commands: Command[];
 	settingRows: SettingRow[];
 	commitFiles: CommitFile[] | null;
+	branchChoices: Choice[] | null;
 	conflict: Conflict | null;
 	update: { current: string; latest: string } | null;
 	peek: boolean;
@@ -141,6 +142,8 @@ interface AppViewProps {
 	onCloseDiff: () => void;
 	onCommitFiles: (paths: string[]) => void;
 	onCancelCommit: () => void;
+	onPickBranch: (name: string) => void;
+	onCloseBranchChoices: () => void;
 	onResolveConflict: (choice: string) => void;
 	onCancelConflict: () => void;
 	onCloseUpdate: () => void;
@@ -400,6 +403,17 @@ export function AppView(props: AppViewProps) {
 			<Show when={props.diff}>
 				{(files: () => DiffFile[]) => (
 					<DiffView files={files()} mode={props.config.diffView} onClose={props.onCloseDiff} />
+				)}
+			</Show>
+			<Show when={props.branchChoices}>
+				{(choices: () => Choice[]) => (
+					<ChoiceModal
+						title="Compare against branch"
+						message="Enter compares the current branch against the selected branch."
+						choices={choices()}
+						onPick={props.onPickBranch}
+						onCancel={props.onCloseBranchChoices}
+					/>
 				)}
 			</Show>
 			<Show when={props.commitFiles}>
