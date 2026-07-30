@@ -58,6 +58,7 @@ export interface CommandActions {
 	lineOp: (op: 'comment' | 'up' | 'down' | 'duplicate') => void;
 	toggleTrim: () => void;
 	toggleAutoSave: () => void;
+	toggleTransparent: () => void;
 	commit: () => void;
 	sourceControl: () => void;
 	diffCurrent: () => void;
@@ -246,6 +247,17 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 					id: 'editor.autoSave',
 					label: `${check(ctx.autoSaveOnBlur)}Auto-save on blur and tab switch`,
 					run: actions.toggleAutoSave,
+				},
+			],
+		},
+		{
+			id: 'appearance',
+			label: 'Appearance',
+			children: [
+				{
+					id: 'appearance.transparent',
+					label: 'Transparent background',
+					run: actions.toggleTransparent,
 				},
 			],
 		},

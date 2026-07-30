@@ -120,6 +120,10 @@ mutated object would leave every color on screen stale after a theme switch — 
 `ui.bg` inside JSX is what subscribes that spot to the change. `syntaxTheme` can stay a
 plain object because it is only read when the style table is rebuilt.
 
+The transparent-background setting is applied in `src/themes/index.ts`, not in individual
+palette files, so switching themes preserves transparency without mutating the registered
+theme definitions.
+
 Indent guides ride the same pipeline: `computeHighlights` appends one `indent.guide`
 capture per indent stop, so they inherit the newline-offset conversion and run-merging
 that syntax highlights use.

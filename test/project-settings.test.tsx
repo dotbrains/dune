@@ -48,6 +48,7 @@ test('the project settings command writes only project overrides', async () => {
 	const t = await launch(dir);
 	await runCommand(t, 'Settings: this project');
 	await press(t, (input) => input.pressArrow('down'));
+	await press(t, (input) => input.pressArrow('down'));
 	await press(t, (input) => input.pressEnter());
 
 	expect(localSettings(dir)).toEqual({ vim: true });

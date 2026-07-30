@@ -97,7 +97,7 @@ describe('command palette', () => {
 		expect(t.captureCharFrame()).toContain('4');
 		expect(t.captureCharFrame()).toContain('Diff layout');
 
-		for (let i = 0; i < 5; i++) await press(t, (input) => input.pressArrow('down'));
+		for (let i = 0; i < 6; i++) await press(t, (input) => input.pressArrow('down'));
 		await press(t, (input) => input.pressArrow('right'));
 		expect(t.captureCharFrame()).toContain('.env');
 

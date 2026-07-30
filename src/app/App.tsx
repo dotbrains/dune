@@ -12,6 +12,7 @@ import { isMarkdownPath } from '../core/markdown';
 import type { Match } from '../core/search';
 import { checkForUpdate } from '../core/update';
 import type { VimMode } from '../editor/vim';
+import { setTransparency } from '../themes';
 import { createAppCommands } from './appCommands';
 import { createAppControls } from './appControls';
 import { AppView } from './AppView';
@@ -44,6 +45,7 @@ export function App(props: AppTypes.AppProps) {
 		...initialProjectConfig,
 	});
 	const [config, setConfig] = createStore<Config>(initialConfig);
+	setTransparency(initialConfig.transparent);
 	const [buffers, setBuffers] = createStore<Record<string, AppTypes.BufferState>>(restored.buffers);
 	const [expanded, setExpanded] = createSignal<Set<string>>(new Set(restored.expanded));
 	const [selectedPath, setSelectedPath] = createSignal<string | null>(restored.activePath);
@@ -298,6 +300,7 @@ export function App(props: AppTypes.AppProps) {
 		applyTabSize: controls.applyTabSize,
 		applyVim: controls.applyVim,
 		toggleAutoSave: controls.toggleAutoSave,
+		toggleTransparent: controls.toggleTransparent,
 		toggleDotfiles: controls.toggleDotfiles,
 		toggleGitignored: controls.toggleGitignored,
 		toggleTrim: controls.toggleTrim,
@@ -335,6 +338,7 @@ export function App(props: AppTypes.AppProps) {
 		toggleGitignored: controls.toggleGitignored,
 		toggleTrim: controls.toggleTrim,
 		toggleAutoSave: controls.toggleAutoSave,
+		toggleTransparent: controls.toggleTransparent,
 		openSettings: () => setSettingsPage('user'),
 		openProjectSettings: () => setSettingsPage('project'),
 		setLineOp,

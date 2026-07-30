@@ -5,7 +5,7 @@ import { createMemo } from 'solid-js';
 import type { Config } from '../core/config';
 import type { TreeNode } from '../core/fs';
 import { invalidateSyntaxStyle } from '../languages/highlight';
-import { setTheme, themeLabels } from '../themes';
+import { setTheme, setTransparency, themeLabels } from '../themes';
 import type { ThemeName } from '../themes';
 import { confirmationForPrompt } from './confirmation';
 import { createAppCommands } from './appCommands';
@@ -53,6 +53,12 @@ export function createAppControls(deps: {
 		patch({ autoSaveOnBlur: !deps.config.autoSaveOnBlur });
 		deps.say(`Auto-save on blur ${deps.config.autoSaveOnBlur ? 'on' : 'off'}`);
 	};
+	const toggleTransparent = () => {
+		const next = !deps.config.transparent;
+		setTransparency(next);
+		patch({ transparent: next });
+		deps.say(`Transparent background ${next ? 'on' : 'off'}`);
+	};
 	const withNode = (run: (node: TreeNode) => void) => () => {
 		const node = deps.selectedNode();
 		if (node) run(node);
@@ -75,6 +81,7 @@ export function createAppControls(deps: {
 		toggleGitignored,
 		toggleTrim,
 		toggleAutoSave,
+		toggleTransparent,
 		withNode,
 	};
 }

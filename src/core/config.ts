@@ -45,6 +45,8 @@ export function sidebarColumns(width: number | 'auto', terminalWidth: number): n
 export interface Config {
 	/** Color scheme id — see src/themes. */
 	theme: ThemeName;
+	/** Leave the editor and tab strip unpainted for translucent terminals. */
+	transparent: boolean;
 	/** Modal editing (normal / insert / visual). */
 	vim: boolean;
 	/** Columns per indent level: indent guides and literal tabs both use it. */
@@ -71,6 +73,7 @@ export interface Config {
 
 export const DEFAULTS: Config = {
 	theme: 'dark',
+	transparent: false,
 	vim: false,
 	tabSize: 2,
 	sidebarWidth: 'auto',
@@ -86,6 +89,7 @@ function parsePartial(raw: unknown): Partial<Config> {
 	const obj = (raw ?? {}) as Partial<Record<keyof Config, unknown>>;
 	const config: Partial<Config> = {};
 	if (isThemeName(obj.theme)) config.theme = obj.theme;
+	if (typeof obj.transparent === 'boolean') config.transparent = obj.transparent;
 	if (typeof obj.vim === 'boolean') config.vim = obj.vim;
 	if (typeof obj.tabSize === 'number' && obj.tabSize >= 1 && obj.tabSize <= 16) {
 		config.tabSize = Math.floor(obj.tabSize);

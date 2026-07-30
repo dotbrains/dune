@@ -102,6 +102,8 @@ away. By default the tree lists dotfiles and gitignored files; use the View comm
 Use `Settings: this project` to save overrides in `.dune/settings.json`; project values
 take precedence over `~/.config/dune/config.json` when that workspace opens.
 Auto-save on blur and tab switch is on by default and can be disabled from Settings.
+The `Transparent background` setting leaves the editor and tab strip unpainted for
+translucent terminal themes.
 
 PNG and JPEG files open as read-only image tabs. They are rendered in the editor slot,
 restore with the rest of the session, and are never treated as editable buffers.

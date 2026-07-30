@@ -27,6 +27,7 @@ export function settingsRows(
 		applyTabSize: (size: number) => void;
 		applyVim: (enabled: boolean) => void;
 		toggleAutoSave: () => void;
+		toggleTransparent: () => void;
 		toggleDotfiles: () => void;
 		toggleGitignored: () => void;
 		toggleTrim: () => void;
@@ -41,6 +42,12 @@ export function settingsRows(
 			label: 'Theme',
 			value: themeLabels[config.theme],
 			change: (dir) => actions.applyTheme(cycle(themes, config.theme, dir)),
+		},
+		{
+			section: 'Appearance',
+			label: 'Transparent background',
+			value: onOff(config.transparent),
+			change: actions.toggleTransparent,
 		},
 		{
 			section: 'Editor',

@@ -20,11 +20,18 @@ export const themeLabels = Object.fromEntries(
 ) as Record<ThemeName, string>;
 
 const DEFAULT: ThemeName = 'dark';
+let currentTheme: ThemeName = DEFAULT;
+let transparent = false;
+
+function colorsFor(name: ThemeName): ThemeUi {
+	const base = THEMES[name].ui;
+	return transparent ? { ...base, bg: 'transparent', barBg: 'transparent' } : base;
+}
 
 // `ui` is a store, not a plain object: Solid components never re-render, so a
 // mutated object would leave every color on screen stale after a theme switch.
 // Reading `ui.bg` inside JSX subscribes that spot to the change.
-const [ui, setUi] = createStore<ThemeUi>({ ...THEMES[DEFAULT].ui });
+const [ui, setUi] = createStore<ThemeUi>({ ...colorsFor(DEFAULT) });
 export { ui };
 
 // Read imperatively when the syntax style table is rebuilt, so a plain object is fine.
@@ -35,9 +42,15 @@ export function isThemeName(value: unknown): value is ThemeName {
 }
 
 export function setTheme(name: ThemeName): void {
-	setUi(THEMES[name].ui);
+	currentTheme = name;
+	setUi(colorsFor(name));
 	// Replace, never merge: a group the new theme omits would otherwise keep the
 	// previous theme's color and render invisible when light/dark flips.
 	for (const group of Object.keys(syntaxTheme)) delete syntaxTheme[group];
 	Object.assign(syntaxTheme, THEMES[name].syntax);
+}
+
+export function setTransparency(on: boolean): void {
+	transparent = on;
+	setUi(colorsFor(currentTheme));
 }

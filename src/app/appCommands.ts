@@ -42,6 +42,7 @@ export function createAppCommands(deps: {
 	toggleGitignored: () => void;
 	toggleTrim: () => void;
 	toggleAutoSave: () => void;
+	toggleTransparent: () => void;
 	openSettings: () => void;
 	openProjectSettings: () => void;
 	setLineOp: (
@@ -113,6 +114,7 @@ export function createAppCommands(deps: {
 				lineOp: (op) => deps.setLineOp((prev) => ({ op, key: (prev?.key ?? 0) + 1 })),
 				toggleTrim: deps.toggleTrim,
 				toggleAutoSave: deps.toggleAutoSave,
+				toggleTransparent: deps.toggleTransparent,
 				commit: deps.gitCommands.openCommitPicker,
 				sourceControl: deps.gitCommands.togglePanel,
 				diffCurrent: () => deps.gitCommands.openDiff(deps.activePath()),

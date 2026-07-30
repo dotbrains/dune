@@ -6,7 +6,7 @@ import { App } from './app/App';
 import { flagOutput, resolveTarget } from './core/cli';
 import { loadConfig, loadProjectConfig, resolveConfig } from './core/config';
 import { runUpgrade } from './core/upgrade';
-import { setTheme } from './themes';
+import { setTheme, setTransparency } from './themes';
 
 const flag = flagOutput(process.argv[2]);
 if (flag !== null) {
@@ -30,6 +30,7 @@ const config = loadConfig();
 const projectConfig = loadProjectConfig(rootDir);
 // Apply the resolved theme before the first render.
 setTheme(resolveConfig(config, projectConfig).theme);
+setTransparency(resolveConfig(config, projectConfig).transparent);
 
 await render(
 	() => (
