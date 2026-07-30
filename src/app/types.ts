@@ -8,6 +8,7 @@ export type ClipboardState = { paths: string[]; mode: 'cut' | 'copy' };
 export type HistoryRequest = { kind: 'undo' | 'redo'; key: number } | null;
 export type GotoRequest = { line: number; col: number; key: number } | null;
 export type EditRequest = { content: string; key: number } | null;
+export type CompletionRequest = { key: number } | null;
 export type LineOpRequest = { op: 'comment' | 'up' | 'down' | 'duplicate'; key: number } | null;
 export type BusyState = { label: string; done: number; total: number } | null;
 

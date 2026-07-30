@@ -58,6 +58,7 @@ export function useAppKeyboard(deps: {
 	problemsList: () => void;
 	problemsNext: () => void;
 	problemsPrev: () => void;
+	completion: () => void;
 	expanded: () => Set<string>;
 }) {
 	const customCommands: Record<string, () => void> = {
@@ -77,6 +78,7 @@ export function useAppKeyboard(deps: {
 		'problems.list': deps.problemsList,
 		'problems.next': deps.problemsNext,
 		'problems.prev': deps.problemsPrev,
+		'editor.complete': deps.completion,
 		help: () => deps.setHelp(true),
 		quit: deps.quit,
 	};

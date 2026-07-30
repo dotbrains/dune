@@ -1,5 +1,6 @@
 import type { TextareaRenderable } from '@opentui/core';
 import { Show } from 'solid-js';
+import type { JSX } from 'solid-js';
 import type { LineChange } from '../core/git';
 import type { ProblemSeverity } from '../lsp/protocol';
 import { ui } from '../themes';
@@ -19,6 +20,7 @@ export function EditorPaneContent(props: {
 	problemTrack: (ProblemSeverity | undefined)[];
 	scrollbar: boolean[];
 	dragging: boolean;
+	completionMenu?: JSX.Element;
 	onFocus: () => void;
 	onDrag: (event: { y: number }) => void;
 	onDragEnd: () => void;
@@ -61,6 +63,7 @@ export function EditorPaneContent(props: {
 					onStartScrollbarDrag={props.onStartScrollbarDrag}
 					onTrack={props.onTrack}
 				/>
+				{props.completionMenu}
 			</Show>
 		</box>
 	);

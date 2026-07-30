@@ -47,6 +47,7 @@ export function createAppCommands(deps: {
 	problemsList: () => void;
 	problemsNext: () => void;
 	problemsPrev: () => void;
+	completion: () => void;
 	openSettings: () => void;
 	openProjectSettings: () => void;
 	setLineOp: (
@@ -124,6 +125,7 @@ export function createAppCommands(deps: {
 				problemsList: deps.problemsList,
 				problemsNext: deps.problemsNext,
 				problemsPrev: deps.problemsPrev,
+				completion: deps.completion,
 				commit: deps.gitCommands.openCommitPicker,
 				sourceControl: deps.gitCommands.togglePanel,
 				diffCurrent: () => deps.gitCommands.openDiff(deps.activePath()),

@@ -16,14 +16,13 @@ import type { GutterHost } from './EditorPaneBody';
 import { EditorPaneContent } from './EditorPaneContent';
 import { afterResize, allowSelectionOnlyInEditor, ignoreScrollOutsideBounds } from './editorHost';
 import { useEditorKeymap } from './editorKeymap';
+import { createEditorCompletion } from './editorCompletion';
+import type { EditorCompletionProps } from './editorCompletion';
 import { createEditorLineActions } from './editorLineActions';
 import { editorLineSigns } from './problemMarks';
 export { ignoreScrollOutsideBounds } from './editorHost';
-export interface EditorPaneProps {
-	path: string | null;
-	content: string;
+export interface EditorPaneProps extends EditorCompletionProps {
 	filetype?: string;
-	focused: boolean;
 	theme: ThemeName;
 	reloadKey: number;
 	goto: { line: number; col: number; key: number } | null;
@@ -32,7 +31,6 @@ export interface EditorPaneProps {
 	lineOp: { op: 'comment' | 'up' | 'down' | 'duplicate'; key: number } | null;
 	vim: boolean;
 	tabSize: number;
-	blocked: boolean;
 	gitLines: Map<number, LineChange>;
 	problems: Map<number, { severity: ProblemSeverity; message: string }>;
 	notice: { name: string; reason: string } | null;
@@ -68,9 +66,7 @@ export function EditorPane(props: EditorPaneProps) {
 	const [viewTotal, setViewTotal] = createSignal(0);
 	const viewport = () => ({ top: viewTop(), height: viewHeight(), total: viewTotal() });
 	let visualToLogical: number[] | null = null;
-	const forgetWrapMap = () => {
-		visualToLogical = null;
-	};
+	const forgetWrapMap = () => (visualToLogical = null);
 	const wrapMap = (): number[] => {
 		if (!editor) return [];
 		if (!visualToLogical) visualToLogical = editor.lineInfo.lineSources as number[];
@@ -329,6 +325,12 @@ export function EditorPane(props: EditorPaneProps) {
 		cursorSync = null;
 	};
 	onCleanup(releaseEditor);
+	const completion = createEditorCompletion(props, {
+		editor: () => editor,
+		onChange: props.onChange,
+		rehighlight,
+		scheduleCursorSync,
+	});
 	useEditorKeymap({
 		blocked: () => props.blocked,
 		focused: () => props.focused,
@@ -343,9 +345,7 @@ export function EditorPane(props: EditorPaneProps) {
 		applyWindow,
 		scheduleCursorSync,
 		scheduleHighlight,
-		setCursorBeforeEdit: (offset) => {
-			cursorBeforeEdit = offset;
-		},
+		setCursorBeforeEdit: (offset) => void (cursorBeforeEdit = offset),
 		stepHistory,
 		toggleCommentLines,
 		moveSelectedLines,
@@ -453,7 +453,8 @@ export function EditorPane(props: EditorPaneProps) {
 			problemTrack={problemTrack()}
 			scrollbar={scrollbar()}
 			dragging={dragging()}
-			onFocus={() => props.onFocus()}
+			completionMenu={completion.menu()}
+			onFocus={props.onFocus}
 			onDrag={(event) => {
 				if (dragging()) dragTo(event.y);
 			}}

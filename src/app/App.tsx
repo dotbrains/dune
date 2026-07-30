@@ -1,6 +1,6 @@
 import type { MouseEvent } from '@opentui/core';
 import { useRenderer, useTerminalDimensions } from '@opentui/solid';
-import { createMemo, createSignal, onCleanup } from 'solid-js';
+import { createMemo, createSignal } from 'solid-js';
 import { createStore, produce } from 'solid-js/store';
 import { detectAppearance } from '../core/appearance';
 import { resolveConfig, resolvedTheme } from '../core/config';
@@ -8,8 +8,8 @@ import type { Config } from '../core/config';
 import type { TreeNode } from '../core/fs';
 import { flattenVisible } from '../core/fs';
 import { currentBranch } from '../core/git';
-import { invalidateSyntaxStyle } from '../languages/highlight';
 import type { FileStatus, LineChange, Upstream } from '../core/git';
+import { invalidateSyntaxStyle } from '../languages/highlight';
 import { isMarkdownPath } from '../core/markdown';
 import type { Match } from '../core/search';
 import { checkForUpdate } from '../core/update';
@@ -25,6 +25,7 @@ import { createGitCommands } from './gitCommands';
 import { useAppKeyboard } from './keyboard';
 import { useAppLifecycle } from './lifecycle';
 import { createAppLsp, problemFrom, wireAppLspEffects } from './lsp/index';
+import { createCompletionActions } from './lsp/completionActions';
 import { createProblemUi } from './lsp/view';
 import { createFileOpener } from './openFile';
 import { createOverlayOpen } from './overlayState';
@@ -128,13 +129,7 @@ export function App(props: AppTypes.AppProps) {
 	});
 	const refreshTree = () => setExpanded((prev) => new Set(prev));
 	const lsp = createAppLsp({ rootDir, config, say });
-	onCleanup(lsp.dispose);
-	wireAppLspEffects({
-		lsp,
-		config,
-		tabs,
-		buffers,
-	});
+	wireAppLspEffects({ lsp, config, tabs, buffers });
 	const expand = (path: string) => setExpanded((prev) => new Set(prev).add(path));
 	const discardBuffer = (path: string) => setBuffers(produce((draft) => void delete draft[path]));
 	const toggleExpand = (path: string) =>
@@ -245,6 +240,7 @@ export function App(props: AppTypes.AppProps) {
 		say,
 		nextFrom: problemFrom,
 	});
+	const completion = createCompletionActions({ activePath, lsp, setFocus, say });
 	const gitCommands = createGitCommands({
 		rootDir,
 		branch,
@@ -386,6 +382,7 @@ export function App(props: AppTypes.AppProps) {
 		problemsList: problemUi.list,
 		problemsNext: () => problemUi.next(1),
 		problemsPrev: () => problemUi.next(-1),
+		completion: completion.show,
 		setLineOp,
 		patchConfig,
 		gitCommands,
@@ -479,6 +476,7 @@ export function App(props: AppTypes.AppProps) {
 		problemsList: problemUi.list,
 		problemsNext: () => problemUi.next(1),
 		problemsPrev: () => problemUi.next(-1),
+		completion: completion.show,
 		expanded,
 	});
 	const { replaceOne, replaceEvery } = createReplacementHandlers({
@@ -514,6 +512,7 @@ export function App(props: AppTypes.AppProps) {
 			history={history()}
 			edit={edit()}
 			lineOp={lineOp()}
+			completion={completion.request()}
 			gitLines={gitLines()}
 			problems={problemUi.lines()}
 			problemCounts={problemUi.counts()}
@@ -567,6 +566,8 @@ export function App(props: AppTypes.AppProps) {
 			onEditorFocus={() => setFocus('editor')}
 			onVimMode={setVimMode}
 			onToggleMarkdown={toggleMarkdown}
+			onComplete={completion.complete}
+			onResolveCompletion={completion.resolve}
 			onQuit={quit}
 			onSubmitPrompt={submitPrompt}
 			onCancelPrompt={() => setPrompt(null)}

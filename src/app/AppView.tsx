@@ -11,6 +11,8 @@ import type { DiffFile } from '../core/git';
 import { isImagePath } from '../core/image';
 import type { Match } from '../core/search';
 import type { ProblemSeverity } from '../lsp/protocol';
+import type { CompletionItem } from '../lsp/protocol';
+import type { CompletionReply } from '../lsp/completion';
 import type { VimMode } from '../editor/vim';
 import { languageLabel } from '../languages';
 import { filetypeForPath } from '../languages/highlight';
@@ -71,6 +73,7 @@ interface AppViewProps {
 	history: { kind: 'undo' | 'redo'; key: number } | null;
 	edit: { content: string; key: number } | null;
 	lineOp: { op: 'comment' | 'up' | 'down' | 'duplicate'; key: number } | null;
+	completion: { key: number } | null;
 	gitLines: Map<number, LineChange>;
 	problems: Map<number, { severity: ProblemSeverity; message: string }>;
 	problemCounts: { errors: number; warnings: number };
@@ -119,6 +122,8 @@ interface AppViewProps {
 	onEditorFocus: () => void;
 	onVimMode: (mode: VimMode | null) => void;
 	onToggleMarkdown: () => void;
+	onComplete: ((line: number, col: number) => Promise<CompletionReply | null>) | null;
+	onResolveCompletion: ((item: CompletionItem) => Promise<CompletionItem | null>) | null;
 	onQuit: () => void;
 	onSubmitPrompt: (value: string) => void;
 	onCancelPrompt: () => void;
@@ -245,6 +250,7 @@ export function AppView(props: AppViewProps) {
 									history={props.history}
 									edit={props.edit}
 									lineOp={props.lineOp}
+									completion={props.completion}
 									vim={props.config.vim}
 									tabSize={props.config.tabSize}
 									gitLines={props.gitLines}
@@ -255,6 +261,8 @@ export function AppView(props: AppViewProps) {
 									onCursor={props.onCursor}
 									onFocus={props.onEditorFocus}
 									onVimMode={props.onVimMode}
+									complete={props.onComplete}
+									resolveCompletion={props.onResolveCompletion}
 									onQuit={props.onQuit}
 								/>
 							}

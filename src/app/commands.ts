@@ -39,6 +39,7 @@ export const KEYBINDABLE_COMMANDS: ReadonlyArray<{ id: string; label: string }> 
 	{ id: 'problems.list', label: 'List problems' },
 	{ id: 'problems.next', label: 'Next problem' },
 	{ id: 'problems.prev', label: 'Previous problem' },
+	{ id: 'editor.complete', label: 'Show completions' },
 	{ id: 'help', label: 'Keyboard shortcuts' },
 	{ id: 'quit', label: 'Quit' },
 ];
@@ -84,6 +85,7 @@ export interface CommandActions {
 	problemsList: () => void;
 	problemsNext: () => void;
 	problemsPrev: () => void;
+	completion: () => void;
 	commit: () => void;
 	sourceControl: () => void;
 	diffCurrent: () => void;
@@ -222,6 +224,11 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 			children: [
 				// Also commands because the chords are not always sendable: some layouts
 				// have no byte for Ctrl+/ at all.
+				{
+					id: 'editor.complete',
+					label: 'Show completions',
+					run: actions.completion,
+				},
 				{
 					id: 'editor.comment',
 					label: 'Toggle comment',
