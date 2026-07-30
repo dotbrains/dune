@@ -76,23 +76,24 @@ dune update           # upgrade this installation
 
 ## Shortcuts
 
-| Key                            | Action                 |
-| ------------------------------ | ---------------------- |
-| `F1` / `Ctrl+P` / `Ctrl+Opt+P` | Command palette        |
-| `Ctrl+K`                       | Peek active shortcuts  |
-| `Ctrl+O`                       | Open a file            |
-| `Ctrl+T`                       | Switch tabs            |
-| `Ctrl+S`                       | Save                   |
-| `Ctrl+F`                       | Find in file           |
-| `Ctrl+R`                       | Search project         |
-| `Ctrl+G`                       | Go to line             |
-| `Ctrl+Opt+G`                   | Source control panel   |
-| `Ctrl+Opt+M`                   | Markdown render/source |
-| `Ctrl+N`                       | New file               |
-| `Ctrl+W`                       | Close tab              |
-| `Ctrl+B`                       | Toggle sidebar         |
-| `Ctrl+Q`                       | Quit                   |
-| `Ctrl+Z` / `Ctrl+Y`            | Undo / redo            |
+| Key                                  | Action                 |
+| ------------------------------------ | ---------------------- |
+| `F1` / `Ctrl+P` / `Ctrl+Opt+P`       | Command palette        |
+| `Ctrl+K`                             | Peek active shortcuts  |
+| `Ctrl+O`                             | Open a file            |
+| `Ctrl+T`                             | Switch tabs            |
+| `Ctrl+S`                             | Save                   |
+| `Ctrl+F`                             | Find in file           |
+| `Ctrl+R`                             | Search project         |
+| `Ctrl+G`                             | Go to line             |
+| `Ctrl+Opt+G`                         | Source control panel   |
+| `Ctrl+Opt+M`                         | Markdown render/source |
+| `Ctrl+N`                             | New file               |
+| `Ctrl+W`                             | Close tab              |
+| `Ctrl+B`                             | Toggle sidebar         |
+| `Ctrl+Q`                             | Quit                   |
+| `Ctrl+Z` / `Ctrl+Y`                  | Undo / redo            |
+| `PgUp` / `PgDn`, `Ctrl+U` / `Ctrl+D` | Page editor            |
 
 The file tree supports keyboard and mouse navigation, preview tabs, bulk moves and
 copies, guarded deletes, git status marks, and dimming for gitignored paths. `Ctrl+C`

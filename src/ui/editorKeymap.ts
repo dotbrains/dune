@@ -25,6 +25,7 @@ export function useEditorKeymap(deps: {
 	toggleCommentLines: () => void;
 	moveSelectedLines: (delta: -1 | 1) => void;
 	duplicateSelectedLines: (follow: boolean) => void;
+	scrollPage: (delta: -1 | 1) => void;
 }) {
 	useKeyboard((key: KeyEvent) => {
 		const editor = deps.editor();
@@ -93,6 +94,20 @@ export function useEditorKeymap(deps: {
 			key.preventDefault();
 			if (key.shift) deps.duplicateSelectedLines(key.name === 'down');
 			else deps.moveSelectedLines(key.name === 'up' ? -1 : 1);
+			return;
+		}
+		if (key.name === 'pageup' || key.name === 'pagedown') {
+			key.preventDefault();
+			deps.scrollPage(key.name === 'pageup' ? -1 : 1);
+			return;
+		}
+		if (
+			(!deps.vim() || deps.vimState.mode === 'insert') &&
+			key.ctrl &&
+			(key.name === 'u' || key.name === 'd')
+		) {
+			key.preventDefault();
+			deps.scrollPage(key.name === 'u' ? -1 : 1);
 			return;
 		}
 		if (deps.vim() && deps.vimState.mode !== 'insert') return;

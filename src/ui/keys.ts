@@ -60,6 +60,12 @@ export const KEYS: KeyInfo[] = [
 	{ key: 'Ctrl+/ · Ctrl+L', label: 'Toggle comment', section: 'Editing', where: 'editor' },
 	{ key: `${ALT}+↑ / ↓`, label: 'Move line or selection', section: 'Editing', where: 'editor' },
 	{
+		key: 'PgUp/PgDn · ^U/^D',
+		label: 'Page the editor',
+		section: 'Editing',
+		where: 'editor',
+	},
+	{
 		key: `${ALT}+Shift+↑ / ↓`,
 		label: 'Duplicate line or selection',
 		section: 'Editing',

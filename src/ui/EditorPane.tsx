@@ -198,6 +198,24 @@ export function EditorPane(props: EditorPaneProps) {
 		syncViewport();
 		applyWindow();
 	};
+	const scrollPage = (direction: -1 | 1) => {
+		if (!editor) return;
+		const pageRows = Math.max(1, editor.height - 1);
+		const maxTop = Math.max(0, editor.lineCount - editor.height);
+		const target = Math.max(0, Math.min(maxTop, editor.scrollY + direction * pageRows));
+		const delta = target - editor.scrollY;
+		if (delta === 0) return;
+		const host = editor as unknown as { onMouseEvent: (event: unknown) => void };
+		host.onMouseEvent({
+			type: 'scroll',
+			x: editor.x + 1,
+			y: editor.y + 1,
+			scroll: { direction: delta > 0 ? 'down' : 'up', delta: Math.abs(delta) },
+		});
+		syncViewport();
+		applyWindow();
+		scheduleCursorSync();
+	};
 	const dragTo = (screenY: number) => {
 		const m = scrollMetrics();
 		if (!m || !track) return;
@@ -335,6 +353,7 @@ export function EditorPane(props: EditorPaneProps) {
 		toggleCommentLines,
 		moveSelectedLines,
 		duplicateSelectedLines,
+		scrollPage,
 	});
 	createEffect(
 		on(
