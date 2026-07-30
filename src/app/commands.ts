@@ -36,6 +36,9 @@ export const KEYBINDABLE_COMMANDS: ReadonlyArray<{ id: string; label: string }> 
 	{ id: 'view.sidebar', label: 'Toggle sidebar' },
 	{ id: 'view.markdown', label: 'Markdown: rendered / source' },
 	{ id: 'git.sourceControl', label: 'Source control panel' },
+	{ id: 'problems.list', label: 'List problems' },
+	{ id: 'problems.next', label: 'Next problem' },
+	{ id: 'problems.prev', label: 'Previous problem' },
 	{ id: 'help', label: 'Keyboard shortcuts' },
 	{ id: 'quit', label: 'Quit' },
 ];
@@ -78,6 +81,9 @@ export interface CommandActions {
 	toggleFormat: () => void;
 	toggleAutoSave: () => void;
 	toggleTransparent: () => void;
+	problemsList: () => void;
+	problemsNext: () => void;
+	problemsPrev: () => void;
 	commit: () => void;
 	sourceControl: () => void;
 	diffCurrent: () => void;
@@ -285,6 +291,15 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 					label: 'Transparent background',
 					run: actions.toggleTransparent,
 				},
+			],
+		},
+		{
+			id: 'problems',
+			label: 'Problems',
+			children: [
+				{ id: 'problems.list', label: 'List problems', run: actions.problemsList },
+				{ id: 'problems.next', label: 'Next problem', run: actions.problemsNext },
+				{ id: 'problems.prev', label: 'Previous problem', run: actions.problemsPrev },
 			],
 		},
 		{

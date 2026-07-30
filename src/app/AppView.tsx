@@ -10,11 +10,13 @@ import type { FileStatus, LineChange, Upstream } from '../core/git';
 import type { DiffFile } from '../core/git';
 import { isImagePath } from '../core/image';
 import type { Match } from '../core/search';
+import type { ProblemSeverity } from '../lsp/protocol';
 import type { VimMode } from '../editor/vim';
 import { languageLabel } from '../languages';
 import { filetypeForPath } from '../languages/highlight';
 import { ui } from '../themes';
 import { ChoiceModal } from '../ui/ChoiceModal';
+import type { Choice } from '../ui/ChoiceModal';
 import { CommandPalette } from '../ui/CommandPalette';
 import { CommitModal } from '../ui/CommitModal';
 import type { CommitFile } from '../ui/CommitModal';
@@ -70,6 +72,10 @@ interface AppViewProps {
 	edit: { content: string; key: number } | null;
 	lineOp: { op: 'comment' | 'up' | 'down' | 'duplicate'; key: number } | null;
 	gitLines: Map<number, LineChange>;
+	problems: Map<number, { severity: ProblemSeverity; message: string }>;
+	problemCounts: { errors: number; warnings: number };
+	problemChoices: Choice[];
+	problemsOpen: boolean;
 	notice: { name: string; reason: string } | null;
 	blocked: boolean;
 	status: { msg: string; tone: Tone };
@@ -125,6 +131,8 @@ interface AppViewProps {
 	onClosePicker: () => void;
 	onClosePalette: () => void;
 	onCloseSettings: () => void;
+	onPickProblem: (id: string) => void;
+	onCloseProblems: () => void;
 	onCloseDiff: () => void;
 	onCommitFiles: (paths: string[]) => void;
 	onCancelCommit: () => void;
@@ -240,6 +248,7 @@ export function AppView(props: AppViewProps) {
 									vim={props.config.vim}
 									tabSize={props.config.tabSize}
 									gitLines={props.gitLines}
+									problems={props.problems}
 									notice={props.notice}
 									blocked={props.blocked}
 									onChange={props.onEditorChange}
@@ -301,6 +310,7 @@ export function AppView(props: AppViewProps) {
 				ahead={props.upstream?.ahead ?? 0}
 				behind={props.upstream?.behind ?? 0}
 				changed={props.gitStatus.size}
+				problems={props.problemCounts}
 				focus={props.renderedMarkdownPath ? 'editor' : props.focus}
 				busy={props.busy}
 			/>
@@ -368,6 +378,15 @@ export function AppView(props: AppViewProps) {
 					rows={props.settingRows}
 					scope={props.settingsScope}
 					onClose={() => props.onCloseSettings()}
+				/>
+			</Show>
+			<Show when={props.problemsOpen}>
+				<ChoiceModal
+					title="Problems"
+					message="Enter jumps to the selected diagnostic."
+					choices={props.problemChoices}
+					onPick={props.onPickProblem}
+					onCancel={props.onCloseProblems}
 				/>
 			</Show>
 			<Show when={props.diff}>

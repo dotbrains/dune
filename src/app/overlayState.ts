@@ -12,6 +12,7 @@ export function isOverlayOpen(deps: {
 	diff: Accessor<unknown>;
 	update: Accessor<unknown>;
 	picker: Accessor<PickerState>;
+	problemsOpen: Accessor<boolean>;
 	commitFiles: Accessor<unknown>;
 }) {
 	return !!(
@@ -24,6 +25,7 @@ export function isOverlayOpen(deps: {
 		deps.diff() ||
 		deps.update() ||
 		deps.picker() ||
+		deps.problemsOpen() ||
 		deps.commitFiles()
 	);
 }

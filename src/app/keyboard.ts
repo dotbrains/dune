@@ -55,6 +55,9 @@ export function useAppKeyboard(deps: {
 	toggleSidebar: () => void;
 	toggleGitPanel: () => void;
 	toggleMarkdown: () => void;
+	problemsList: () => void;
+	problemsNext: () => void;
+	problemsPrev: () => void;
 	expanded: () => Set<string>;
 }) {
 	const customCommands: Record<string, () => void> = {
@@ -71,6 +74,9 @@ export function useAppKeyboard(deps: {
 		'view.sidebar': deps.toggleSidebar,
 		'view.markdown': deps.toggleMarkdown,
 		'git.sourceControl': deps.toggleGitPanel,
+		'problems.list': deps.problemsList,
+		'problems.next': deps.problemsNext,
+		'problems.prev': deps.problemsPrev,
 		help: () => deps.setHelp(true),
 		quit: deps.quit,
 	};

@@ -22,6 +22,8 @@ export interface StatusBarProps {
 	behind: number;
 	/** Files differing from HEAD in the working tree. */
 	changed: number;
+	/** LSP diagnostics in the active file; hidden while both counts are zero. */
+	problems?: { errors: number; warnings: number };
 	focus: 'tree' | 'editor';
 	/** A long file operation in flight; replaces the message while it runs. */
 	busy: { label: string; done: number; total: number } | null;
@@ -81,12 +83,22 @@ export function StatusBar(props: StatusBarProps) {
 	const cursorText = () =>
 		props.cursor ? `Ln ${props.cursor.line + 1}, Col ${props.cursor.col + 1}` : '';
 
+	const problemsText = () => {
+		const problems = props.problems;
+		if (!problems) return '';
+		const parts: string[] = [];
+		if (problems.errors > 0) parts.push(`● ${problems.errors}`);
+		if (problems.warnings > 0) parts.push(`▲ ${problems.warnings}`);
+		return parts.join(' ');
+	};
+
 	/** Everything that never gives way — the vim badge, git, and the right-hand groups. */
 	const fixedWidth = createMemo(
 		() =>
 			groupWidth(props.vimMode ? MODE_LABELS[props.vimMode] : '') +
 			groupWidth(gitText()) +
 			groupWidth(props.dirty ? '● unsaved' : '') +
+			groupWidth(problemsText()) +
 			groupWidth(cursorText()) +
 			groupWidth(props.filetype ?? ''),
 	);
@@ -178,6 +190,15 @@ export function StatusBar(props: StatusBarProps) {
 			<Show when={props.dirty}>
 				<box paddingRight={2} flexShrink={0}>
 					<text fg={ui.dirty} bg={ui.barBg} content="● unsaved" />
+				</box>
+			</Show>
+			<Show when={problemsText()}>
+				<box paddingRight={2} flexShrink={0}>
+					<text
+						fg={props.problems && props.problems.errors > 0 ? ui.error : ui.dirty}
+						bg={ui.barBg}
+						content={problemsText()}
+					/>
 				</box>
 			</Show>
 			<Show when={cursorText()}>

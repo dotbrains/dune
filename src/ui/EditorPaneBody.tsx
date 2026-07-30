@@ -2,8 +2,10 @@ import type { MouseEvent, TextareaRenderable } from '@opentui/core';
 import { For, Show } from 'solid-js';
 
 import type { LineChange } from '../core/git';
+import type { ProblemSeverity } from '../lsp/protocol';
 import { getSyntaxStyle } from '../languages/highlight';
 import { ui } from '../themes';
+import { problemColor, problemGlyph } from './problemMarks';
 
 const CHANGE_COLORS: Record<LineChange, () => string> = {
 	added: () => ui.gitAdded,
@@ -24,6 +26,7 @@ export function EditorPaneBody(props: {
 	cursorLine: number;
 	gutterWidth: number;
 	changeTrack: (LineChange | undefined)[];
+	problemTrack: (ProblemSeverity | undefined)[];
 	scrollbar: boolean[];
 	dragging: boolean;
 	onFocus: () => void;
@@ -80,6 +83,26 @@ export function EditorPaneBody(props: {
 					onCursorChange={props.onCursorChange}
 				/>
 			</line_number>
+			<Show when={props.problemTrack.some(Boolean)}>
+				<box
+					width={1}
+					flexShrink={0}
+					backgroundColor={ui.bg}
+					onMouseDown={(event: MouseEvent) => {
+						if (!props.dragging) props.onJumpTrack(event.y);
+					}}
+				>
+					<For each={props.problemTrack}>
+						{(severity) => (
+							<text
+								fg={severity ? problemColor(severity) : ui.bg}
+								bg={ui.bg}
+								content={problemGlyph(severity)}
+							/>
+						)}
+					</For>
+				</box>
+			</Show>
 			<Show when={props.changeTrack.some(Boolean)}>
 				<box
 					width={1}

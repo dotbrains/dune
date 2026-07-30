@@ -4,18 +4,20 @@ import { createEffect, createMemo, createSignal, on, onCleanup } from 'solid-js'
 import type { LineChange } from '../core/git';
 import { changeRows } from '../editor/changes';
 import { History } from '../editor/history';
+import { problemRows } from '../editor/problems';
 import { initialVimState } from '../editor/vim';
 import type { VimMode } from '../editor/vim';
 import { lineAt, logicalWindow } from '../editor/window';
+import type { ProblemSeverity } from '../lsp/protocol';
 import { computeHighlights, getSyntaxStyle, segmentsIn, STALE } from '../languages/highlight';
 import type { Highlighted, Segment } from '../languages/highlight';
-import { ui } from '../themes';
 import type { ThemeName } from '../themes';
 import type { GutterHost } from './EditorPaneBody';
 import { EditorPaneContent } from './EditorPaneContent';
 import { afterResize, allowSelectionOnlyInEditor, ignoreScrollOutsideBounds } from './editorHost';
 import { useEditorKeymap } from './editorKeymap';
 import { createEditorLineActions } from './editorLineActions';
+import { editorLineSigns } from './problemMarks';
 export { ignoreScrollOutsideBounds } from './editorHost';
 export interface EditorPaneProps {
 	path: string | null;
@@ -32,6 +34,7 @@ export interface EditorPaneProps {
 	tabSize: number;
 	blocked: boolean;
 	gitLines: Map<number, LineChange>;
+	problems: Map<number, { severity: ProblemSeverity; message: string }>;
 	notice: { name: string; reason: string } | null;
 	onChange: (text: string) => void;
 	onCursor: (pos: { line: number; col: number }) => void;
@@ -41,7 +44,6 @@ export interface EditorPaneProps {
 }
 const DEBOUNCE_MS = 16;
 const OVERSCAN = 60;
-const SIGN_GLYPH: Record<LineChange, string> = { added: '▎', modified: '▎', deleted: '▁' };
 
 export function EditorPane(props: EditorPaneProps) {
 	const dimensions = useTerminalDimensions();
@@ -116,19 +118,7 @@ export function EditorPane(props: EditorPaneProps) {
 		if (gutter?.gutter) gutter.gutter['_minWidth'] = width;
 	});
 	const applyLineSigns = () => {
-		const signColor: Record<LineChange, string> = {
-			added: ui.gitAdded,
-			modified: ui.gitModified,
-			deleted: ui.gitDeleted,
-		};
-		gutter?.setLineSigns?.(
-			new Map(
-				[...props.gitLines].map(([line, change]) => [
-					line,
-					{ before: SIGN_GLYPH[change], beforeColor: signColor[change] },
-				]),
-			),
-		);
+		gutter?.setLineSigns?.(editorLineSigns(props.gitLines, props.problems));
 	};
 	createEffect(applyLineSigns);
 	const syncViewport = () => {
@@ -317,6 +307,13 @@ export function EditorPane(props: EditorPaneProps) {
 		if (height <= 0) return [];
 		return changeRows(props.gitLines, total, height);
 	});
+	const problemTrack = createMemo(() => {
+		const m = scrollMetrics();
+		const height = m?.height ?? viewHeight();
+		const total = m?.total ?? viewTotal();
+		if (height <= 0) return [];
+		return problemRows(props.problems, total, height);
+	});
 	const jumpToRow = (row: number) => {
 		const m = scrollMetrics();
 		if (!m || !editor) return;
@@ -453,6 +450,7 @@ export function EditorPane(props: EditorPaneProps) {
 			cursorLine={cursorLine()}
 			gutterWidth={gutterWidth()}
 			changeTrack={changeTrack()}
+			problemTrack={problemTrack()}
 			scrollbar={scrollbar()}
 			dragging={dragging()}
 			onFocus={() => props.onFocus()}

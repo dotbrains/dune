@@ -44,6 +44,9 @@ export function createAppCommands(deps: {
 	toggleFormat: () => void;
 	toggleAutoSave: () => void;
 	toggleTransparent: () => void;
+	problemsList: () => void;
+	problemsNext: () => void;
+	problemsPrev: () => void;
 	openSettings: () => void;
 	openProjectSettings: () => void;
 	setLineOp: (
@@ -118,6 +121,9 @@ export function createAppCommands(deps: {
 				toggleFormat: deps.toggleFormat,
 				toggleAutoSave: deps.toggleAutoSave,
 				toggleTransparent: deps.toggleTransparent,
+				problemsList: deps.problemsList,
+				problemsNext: deps.problemsNext,
+				problemsPrev: deps.problemsPrev,
 				commit: deps.gitCommands.openCommitPicker,
 				sourceControl: deps.gitCommands.togglePanel,
 				diffCurrent: () => deps.gitCommands.openDiff(deps.activePath()),

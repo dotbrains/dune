@@ -1,6 +1,6 @@
 import type { MouseEvent } from '@opentui/core';
 import { useRenderer, useTerminalDimensions } from '@opentui/solid';
-import { createMemo, createSignal } from 'solid-js';
+import { createMemo, createSignal, onCleanup } from 'solid-js';
 import { createStore, produce } from 'solid-js/store';
 import { detectAppearance } from '../core/appearance';
 import { resolveConfig, resolvedTheme } from '../core/config';
@@ -24,6 +24,8 @@ import { createFileActions } from './fileActions';
 import { createGitCommands } from './gitCommands';
 import { useAppKeyboard } from './keyboard';
 import { useAppLifecycle } from './lifecycle';
+import { createAppLsp, problemFrom, wireAppLspEffects } from './lsp/index';
+import { createProblemUi } from './lsp/view';
 import { createFileOpener } from './openFile';
 import { createOverlayOpen } from './overlayState';
 import { restoreAppState } from './restore';
@@ -73,6 +75,7 @@ export function App(props: AppTypes.AppProps) {
 	const [reloadKey, setReloadKey] = createSignal(0);
 	const [conflict, setConflict] = createSignal<AppTypes.Conflict | null>(null);
 	const [search, setSearch] = createSignal<AppTypes.SearchState>(null);
+	const [problemsOpen, setProblemsOpen] = createSignal(false);
 	const selection = () => selectedSingleLineText(renderer);
 	const [picker, setPicker] = createSignal<AppTypes.PickerState>(null);
 	const [clipboard, setClipboard] = createSignal({ paths: [] as string[], mode: 'cut' as const });
@@ -124,6 +127,14 @@ export function App(props: AppTypes.AppProps) {
 		setStatus,
 	});
 	const refreshTree = () => setExpanded((prev) => new Set(prev));
+	const lsp = createAppLsp({ rootDir, config, say });
+	onCleanup(lsp.dispose);
+	wireAppLspEffects({
+		lsp,
+		config,
+		tabs,
+		buffers,
+	});
 	const expand = (path: string) => setExpanded((prev) => new Set(prev).add(path));
 	const discardBuffer = (path: string) => setBuffers(produce((draft) => void delete draft[path]));
 	const toggleExpand = (path: string) =>
@@ -220,6 +231,20 @@ export function App(props: AppTypes.AppProps) {
 		setGoto((prev) => ({ line: match.line, col: match.col, key: (prev?.key ?? 0) + 1 }));
 		setFocus('editor');
 	};
+	const problemUi = createProblemUi({
+		rootDir,
+		problems: lsp.problems,
+		tabs,
+		activePath,
+		cursor,
+		problemsOpen,
+		setProblemsOpen,
+		setGoto,
+		setFocus,
+		openFile,
+		say,
+		nextFrom: problemFrom,
+	});
 	const gitCommands = createGitCommands({
 		rootDir,
 		branch,
@@ -286,6 +311,7 @@ export function App(props: AppTypes.AppProps) {
 		diff: gitCommands.diff,
 		update,
 		picker,
+		problemsOpen,
 		commitFiles: gitCommands.commitFiles,
 	});
 	const { nudgeSidebar, resizeSidebar, treeWidth } = createSidebarSizing({
@@ -357,6 +383,9 @@ export function App(props: AppTypes.AppProps) {
 		toggleTransparent: controls.toggleTransparent,
 		openSettings: () => setSettingsPage('user'),
 		openProjectSettings: () => setSettingsPage('project'),
+		problemsList: problemUi.list,
+		problemsNext: () => problemUi.next(1),
+		problemsPrev: () => problemUi.next(-1),
 		setLineOp,
 		patchConfig,
 		gitCommands,
@@ -447,6 +476,9 @@ export function App(props: AppTypes.AppProps) {
 		toggleSidebar,
 		toggleGitPanel: gitCommands.togglePanel,
 		toggleMarkdown,
+		problemsList: problemUi.list,
+		problemsNext: () => problemUi.next(1),
+		problemsPrev: () => problemUi.next(-1),
 		expanded,
 	});
 	const { replaceOne, replaceEvery } = createReplacementHandlers({
@@ -483,6 +515,10 @@ export function App(props: AppTypes.AppProps) {
 			edit={edit()}
 			lineOp={lineOp()}
 			gitLines={gitLines()}
+			problems={problemUi.lines()}
+			problemCounts={problemUi.counts()}
+			problemChoices={problemUi.choices()}
+			problemsOpen={problemsOpen()}
 			notice={notice()}
 			blocked={overlay()}
 			status={status()}
@@ -543,6 +579,10 @@ export function App(props: AppTypes.AppProps) {
 			onClosePicker={() => setPicker(null)}
 			onClosePalette={() => setPalette(false)}
 			onCloseSettings={() => setSettingsPage(null)}
+			onPickProblem={(id: string) => {
+				problemUi.pick(id);
+			}}
+			onCloseProblems={() => setProblemsOpen(false)}
 			onCloseDiff={gitCommands.closeDiff}
 			onCommitFiles={gitCommands.startCommit}
 			onCancelCommit={gitCommands.cancelCommit}

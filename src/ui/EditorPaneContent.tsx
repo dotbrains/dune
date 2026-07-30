@@ -1,6 +1,7 @@
 import type { TextareaRenderable } from '@opentui/core';
 import { Show } from 'solid-js';
 import type { LineChange } from '../core/git';
+import type { ProblemSeverity } from '../lsp/protocol';
 import { ui } from '../themes';
 import { EditorEmptyState, EditorNotice } from './EditorEmptyState';
 import { EditorPaneBody } from './EditorPaneBody';
@@ -15,6 +16,7 @@ export function EditorPaneContent(props: {
 	cursorLine: number;
 	gutterWidth: number;
 	changeTrack: (LineChange | undefined)[];
+	problemTrack: (ProblemSeverity | undefined)[];
 	scrollbar: boolean[];
 	dragging: boolean;
 	onFocus: () => void;
@@ -44,6 +46,7 @@ export function EditorPaneContent(props: {
 					cursorLine={props.cursorLine}
 					gutterWidth={props.gutterWidth}
 					changeTrack={props.changeTrack}
+					problemTrack={props.problemTrack}
 					scrollbar={props.scrollbar}
 					dragging={props.dragging}
 					onFocus={props.onFocus}
