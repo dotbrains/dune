@@ -86,7 +86,7 @@ describe('command palette', () => {
 		const t = await launch(fixture(PROJECT));
 		await press(t, (i) => i.pressKey('p', { ctrl: true }));
 		await press(t, (i) => void i.typeText('light'));
-		expect(t.captureCharFrame()).toContain('Themes ›   GitHub Light');
+		expect(t.captureCharFrame()).toMatch(/Themes ›\s+\*?\s*GitHub Light/);
 	});
 
 	test('opens settings and applies rows immediately', async () => {

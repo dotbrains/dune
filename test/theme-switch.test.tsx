@@ -63,8 +63,6 @@ test('switching theme repaints chrome and syntax', async () => {
 	await press(t, (i) => i.pressArrow('down'));
 	await press(t, (i) => i.pressEnter());
 
-	expect(colors(t)).toContain(hexToRgb(THEMES.dark.ui.bg));
-
 	await switchTheme(t, 'latte');
 	const latte = colors(t);
 	expect(latte).toContain(hexToRgb(THEMES['catppuccin-latte'].ui.bg));

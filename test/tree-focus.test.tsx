@@ -23,10 +23,11 @@ function selectedRow(frame: Frame): string {
 	const marks = new Set([ui.treeSelectedBg.toLowerCase(), ui.treeFocusBg.toLowerCase()]);
 	for (const line of frame.lines) {
 		if (marks.has(hex(line.spans[0]?.bg) ?? '')) {
-			return line.spans
+			const text = line.spans
 				.map((span) => span.text)
 				.join('')
 				.trim();
+			if (text && text !== 'no open files') return text;
 		}
 	}
 	return '';
