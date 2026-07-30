@@ -47,6 +47,7 @@ export type Prompt =
 	| { kind: 'newFile'; dir: string }
 	| { kind: 'newFolder'; dir: string }
 	| { kind: 'rename'; target: string }
+	| { kind: 'formatterCommand' }
 	| { kind: 'delete'; targets: string[] }
 	| { kind: 'closeDirty'; paths: string[]; names: string[] }
 	| { kind: 'quitDirty'; names: string[] }

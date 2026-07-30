@@ -26,6 +26,7 @@ export function settingsRows(
 		applyTheme: (name: ThemeName) => void;
 		applyTabSize: (size: number) => void;
 		applyVim: (enabled: boolean) => void;
+		editFormatter: () => void;
 		toggleThemeSync: () => void;
 		toggleAutoSave: () => void;
 		toggleTransparent: () => void;
@@ -80,6 +81,12 @@ export function settingsRows(
 			label: 'Format on save',
 			value: onOff(config.formatOnSave),
 			change: actions.toggleFormat,
+		},
+		{
+			section: 'Editor',
+			label: 'Add/update formatter…',
+			value: `${Object.keys(config.formatters).length} configured`,
+			change: actions.editFormatter,
 		},
 		{
 			section: 'Editor',

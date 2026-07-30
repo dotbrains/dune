@@ -3,7 +3,8 @@ import { basename, dirname, join } from 'node:path';
 import { produce } from 'solid-js/store';
 
 import { removeAll } from '../core/bulk';
-import { formatterFor, runFormatter } from '../core/format';
+import { formatterFor, parseFormatterEdit, runFormatter } from '../core/format';
+import type { Config } from '../core/config';
 import { createDir, createFile, exists, mtimeOf, readFile, writeFile } from '../core/fs';
 import { trimTrailing } from '../editor/lines';
 import { CLASH_CHANGED } from './constants';
@@ -51,6 +52,7 @@ export function createDocumentActions(deps: {
 	setReloadKey: (update: (n: number) => number) => void;
 	setSelectedPath: (path: string | null) => void;
 	pushEdit: (content: string) => void;
+	patchConfig: (patch: Partial<Config>) => void;
 	whileFree: (run: () => void) => void;
 	rootDir: string;
 }) {
@@ -177,6 +179,19 @@ export function createDocumentActions(deps: {
 		if (!p || !isTextPrompt(p)) return;
 		if (!name) return deps.say('Nothing entered', 'warn');
 		if (p.kind === 'commitMessage') return deps.gitCommands.submitCommit(name);
+		if (p.kind === 'formatterCommand') {
+			const edit = parseFormatterEdit(name);
+			if (!edit.ok) return deps.say(edit.error, 'error');
+			const formatters = { ...deps.config.formatters };
+			if (edit.command) {
+				formatters[edit.key] = edit.command;
+				deps.patchConfig({ formatters });
+				return deps.say(`Formatter: ${edit.key} = ${edit.command.join(' ')}`);
+			}
+			delete formatters[edit.key];
+			deps.patchConfig({ formatters });
+			return deps.say(`Formatter for "${edit.key}" removed`);
+		}
 		if (p.kind === 'gotoLine') {
 			const asked = Number.parseInt(name, 10);
 			if (!Number.isInteger(asked) || asked < 1)

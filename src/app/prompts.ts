@@ -4,6 +4,7 @@ const PROMPT_TITLES: Partial<Record<NonNullable<Prompt>['kind'], string>> = {
 	newFile: 'New file name',
 	newFolder: 'New folder name',
 	rename: 'Rename to',
+	formatterCommand: 'Formatter: extensions = command',
 	gotoLine: 'Go to line',
 	commitMessage: 'Commit message',
 };

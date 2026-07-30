@@ -262,6 +262,7 @@ export function App(props: AppTypes.AppProps) {
 		setReloadKey,
 		setSelectedPath,
 		pushEdit,
+		patchConfig: (patch) => patchConfig(patch, settingsPage() ?? 'user'),
 		whileFree,
 		rootDir,
 	});
@@ -299,6 +300,7 @@ export function App(props: AppTypes.AppProps) {
 		prompt,
 		selectedNode,
 		setVimMode,
+		setPrompt,
 		patchConfig,
 		say,
 	});
@@ -307,6 +309,7 @@ export function App(props: AppTypes.AppProps) {
 		applyTheme: controls.applyTheme,
 		applyTabSize: controls.applyTabSize,
 		applyVim: controls.applyVim,
+		editFormatter: controls.editFormatter,
 		toggleAutoSave: controls.toggleAutoSave,
 		toggleFormat: controls.toggleFormat,
 		toggleThemeSync: controls.toggleThemeSync,

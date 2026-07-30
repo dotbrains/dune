@@ -19,6 +19,7 @@ export function createAppControls(deps: {
 	prompt: () => Prompt;
 	selectedNode: () => TreeNode | undefined;
 	setVimMode: (mode: 'normal' | null) => void;
+	setPrompt: (prompt: Prompt) => void;
 	patchConfig: (patch: Partial<Config>, scope?: 'user' | 'project') => void;
 	say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
 }) {
@@ -66,6 +67,7 @@ export function createAppControls(deps: {
 		patch({ formatOnSave: !deps.config.formatOnSave });
 		deps.say(`Format on save ${deps.config.formatOnSave ? 'on' : 'off'}`);
 	};
+	const editFormatter = () => deps.setPrompt({ kind: 'formatterCommand' });
 	const toggleAutoSave = () => {
 		patch({ autoSaveOnBlur: !deps.config.autoSaveOnBlur });
 		deps.say(`Auto-save on blur ${deps.config.autoSaveOnBlur ? 'on' : 'off'}`);
@@ -92,6 +94,7 @@ export function createAppControls(deps: {
 		applyTabSize,
 		applyVim,
 		confirmation,
+		editFormatter,
 		promptTitle,
 		promptValue,
 		toggleDotfiles,
@@ -137,6 +140,7 @@ export type AppCommandDeps = {
 	applyTabSize: (size: number) => void;
 	applyTheme: (name: ThemeName) => void;
 	toggleThemeSync: () => void;
+	editFormatter: () => void;
 	setLineOp: (
 		update: (prev: { op: 'comment' | 'up' | 'down' | 'duplicate'; key: number } | null) => {
 			op: 'comment' | 'up' | 'down' | 'duplicate';
