@@ -22,7 +22,7 @@ scripts/
     commands.ts      command tree  ← the feature index (Ctrl+P palette)
   core/
     cli.ts           argv -> project directory + optional single file
-    config.ts        user settings, persisted to ~/.config/dune/config.json
+    config.ts        user settings plus per-project overrides in .dune/settings.json
     fs.ts            file listing, read/write, binary guard, directory watcher
     search.ts        in-file/project search, fuzzy matching, replace
     git.ts           read-only queries: diff hunks, status, branch, ahead/behind
@@ -125,9 +125,14 @@ that syntax highlights use.
 
 ### Add a setting
 
-Add the field to `Config`, a value to `DEFAULTS`, and validation to `parse()` in
+Add the field to `Config`, a value to `DEFAULTS`, and validation to `parsePartial()` in
 [`src/core/config.ts`](src/core/config.ts). Unknown or malformed values fall back to
 defaults, so a hand-edited config can never break startup.
+
+Settings have two layers: the user file at `~/.config/dune/config.json` and optional
+project overrides at `<project>/.dune/settings.json`. Startup resolves user values first
+and then overlays the project file. `Settings` writes user settings; `Settings: this
+project` writes only the local override file.
 
 ### Add a command
 

@@ -50,6 +50,7 @@ export interface CommandActions {
 	toggleDotfiles: () => void;
 	toggleGitignored: () => void;
 	openSettings: () => void;
+	openProjectSettings: () => void;
 	setVim: (enabled: boolean) => void;
 	setTabSize: (size: number) => void;
 	setTheme: (name: ThemeName) => void;
@@ -89,6 +90,7 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 		{ id: 'open', label: 'Open file…', hint: 'Ctrl+O', run: actions.openFile },
 		{ id: 'save', label: 'Save file', hint: 'Ctrl+S', run: actions.save },
 		{ id: 'settings', label: 'Settings', run: actions.openSettings },
+		{ id: 'settings.project', label: 'Settings: this project', run: actions.openProjectSettings },
 		{ id: 'goto', label: 'Go to line…', hint: 'Ctrl+G', run: actions.gotoLine },
 		{ id: 'undo', label: 'Undo', hint: 'Ctrl+Z', run: actions.undo },
 		{ id: 'redo', label: 'Redo', hint: 'Ctrl+Y', run: actions.redo },

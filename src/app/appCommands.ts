@@ -42,6 +42,7 @@ export function createAppCommands(deps: {
 	toggleTrim: () => void;
 	toggleAutoSave: () => void;
 	openSettings: () => void;
+	openProjectSettings: () => void;
 	setLineOp: (
 		update: (prev: { op: 'comment' | 'up' | 'down' | 'duplicate'; key: number } | null) => {
 			op: 'comment' | 'up' | 'down' | 'duplicate';
@@ -103,6 +104,7 @@ export function createAppCommands(deps: {
 				toggleDotfiles: deps.toggleDotfiles,
 				toggleGitignored: deps.toggleGitignored,
 				openSettings: deps.openSettings,
+				openProjectSettings: deps.openProjectSettings,
 				setVim: deps.applyVim,
 				setTabSize: deps.applyTabSize,
 				setTheme: deps.applyTheme,

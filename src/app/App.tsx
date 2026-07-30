@@ -2,6 +2,7 @@ import type { MouseEvent } from '@opentui/core';
 import { useRenderer, useTerminalDimensions } from '@opentui/solid';
 import { createMemo, createSignal } from 'solid-js';
 import { createStore, produce } from 'solid-js/store';
+import { resolveConfig } from '../core/config';
 import type { Config } from '../core/config';
 import type { TreeNode } from '../core/fs';
 import { flattenVisible } from '../core/fs';
@@ -35,7 +36,13 @@ export function App(props: AppTypes.AppProps) {
 	const rootDir = props.rootDir;
 	const single = props.openFile ?? null;
 	const restored = restoreAppState(rootDir, single);
-	const [config, setConfig] = createStore<Config>({ ...props.initialConfig });
+	const initialProjectConfig = props.projectConfig ?? {};
+	const initialConfig = resolveConfig(props.initialConfig, initialProjectConfig);
+	const [userConfig, setUserConfig] = createStore<Config>({ ...props.initialConfig });
+	const [projectConfig, setProjectConfig] = createStore<Partial<Config>>({
+		...initialProjectConfig,
+	});
+	const [config, setConfig] = createStore<Config>(initialConfig);
 	const [buffers, setBuffers] = createStore<Record<string, AppTypes.BufferState>>(restored.buffers);
 	const [expanded, setExpanded] = createSignal<Set<string>>(new Set(restored.expanded));
 	const [selectedPath, setSelectedPath] = createSignal<string | null>(restored.activePath);
@@ -51,10 +58,8 @@ export function App(props: AppTypes.AppProps) {
 	const [help, setHelp] = createSignal(false);
 	const [peek, setPeek] = createSignal(false);
 	const [palette, setPalette] = createSignal(false);
-	const [settingsPage, setSettingsPage] = createSignal(false);
-	const [vimMode, setVimMode] = createSignal<VimMode | null>(
-		props.initialConfig.vim ? 'normal' : null,
-	);
+	const [settingsPage, setSettingsPage] = createSignal<'user' | 'project' | null>(null);
+	const [vimMode, setVimMode] = createSignal<VimMode | null>(initialConfig.vim ? 'normal' : null);
 	const [reloadKey, setReloadKey] = createSignal(0);
 	const [conflict, setConflict] = createSignal<AppTypes.Conflict | null>(null);
 	const [search, setSearch] = createSignal<AppTypes.SearchState>(null);
@@ -85,9 +90,14 @@ export function App(props: AppTypes.AppProps) {
 	const { patchConfig, quit, say, whileFree } = createAppRuntime({
 		buffers,
 		busy,
+		rootDir,
+		userConfig,
+		projectConfig,
 		config,
 		renderer,
 		setConfig,
+		setUserConfig,
+		setProjectConfig,
 		setPrompt,
 		setStatus,
 	});
@@ -248,7 +258,7 @@ export function App(props: AppTypes.AppProps) {
 		conflict,
 		help,
 		search,
-		settingsPage,
+		settingsPage: () => settingsPage() !== null,
 		diff: gitCommands.diff,
 		update,
 		picker,
@@ -261,6 +271,7 @@ export function App(props: AppTypes.AppProps) {
 	});
 	const controls = createAppControls({
 		config,
+		configScope: () => settingsPage() ?? 'user',
 		prompt,
 		selectedNode,
 		setVimMode,
@@ -277,6 +288,7 @@ export function App(props: AppTypes.AppProps) {
 		toggleGitignored: controls.toggleGitignored,
 		toggleTrim: controls.toggleTrim,
 		patchConfig,
+		configScope: () => settingsPage() ?? 'user',
 	});
 	const commands = createAppCommands({
 		config,
@@ -308,7 +320,8 @@ export function App(props: AppTypes.AppProps) {
 		toggleGitignored: controls.toggleGitignored,
 		toggleTrim: controls.toggleTrim,
 		toggleAutoSave: controls.toggleAutoSave,
-		openSettings: () => setSettingsPage(true),
+		openSettings: () => setSettingsPage('user'),
+		openProjectSettings: () => setSettingsPage('project'),
 		setLineOp,
 		patchConfig,
 		gitCommands,
@@ -440,7 +453,8 @@ export function App(props: AppTypes.AppProps) {
 			picker={picker()}
 			gitPanel={gitCommands.panel()}
 			palette={palette()}
-			settingsPage={settingsPage()}
+			settingsPage={settingsPage() !== null}
+			settingsScope={settingsPage() ?? 'user'}
 			diff={gitCommands.diff()}
 			commands={commands()}
 			settingRows={settingRows()}
@@ -482,7 +496,7 @@ export function App(props: AppTypes.AppProps) {
 			onPickFile={(path: string) => void (setPicker(null), openFile(path))}
 			onClosePicker={() => setPicker(null)}
 			onClosePalette={() => setPalette(false)}
-			onCloseSettings={() => setSettingsPage(false)}
+			onCloseSettings={() => setSettingsPage(null)}
 			onCloseDiff={gitCommands.closeDiff}
 			onCommitFiles={gitCommands.startCommit}
 			onCancelCommit={gitCommands.cancelCommit}

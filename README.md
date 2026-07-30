@@ -98,6 +98,8 @@ copies, guarded deletes, git status marks, and dimming for gitignored paths. `Ct
 copies when text is selected and quits when it is not, so unsaved work is not thrown
 away. By default the tree lists dotfiles and gitignored files; use the View commands
 `Show dotfiles` and `Hide gitignored files` to change that per user config.
+Use `Settings: this project` to save overrides in `.dune/settings.json`; project values
+take precedence over `~/.config/dune/config.json` when that workspace opens.
 
 PNG and JPEG files open as read-only image tabs. They are rendered in the editor slot,
 restore with the rest of the session, and are never treated as editable buffers.

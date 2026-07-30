@@ -85,6 +85,7 @@ interface AppViewProps {
 	gitPanel: boolean;
 	palette: boolean;
 	settingsPage: boolean;
+	settingsScope: 'user' | 'project';
 	diff: DiffFile[] | null;
 	commands: Command[];
 	settingRows: SettingRow[];
@@ -131,7 +132,11 @@ interface AppViewProps {
 	onSkipUpdate: () => void;
 }
 
-function SettingsView(props: { rows: SettingRow[]; onClose: () => void }) {
+function SettingsView(props: {
+	rows: SettingRow[];
+	scope: 'user' | 'project';
+	onClose: () => void;
+}) {
 	const dimensions = useTerminalDimensions();
 	const [index, setIndex] = createSignal(0);
 	const width = () => modalWidth(dimensions().width, 0.64, 64, 96);
@@ -162,7 +167,7 @@ function SettingsView(props: { rows: SettingRow[]; onClose: () => void }) {
 				border
 				borderStyle="rounded"
 				borderColor={ui.accent}
-				title=" Settings "
+				title={` Settings — ${props.scope === 'project' ? 'Project' : 'User'} `}
 				titleColor={ui.text}
 				paddingLeft={PAD}
 				paddingRight={PAD}
@@ -403,7 +408,11 @@ export function AppView(props: AppViewProps) {
 				<CommandPalette commands={props.commands} onClose={() => props.onClosePalette()} />
 			</Show>
 			<Show when={props.settingsPage}>
-				<SettingsView rows={props.settingRows} onClose={() => props.onCloseSettings()} />
+				<SettingsView
+					rows={props.settingRows}
+					scope={props.settingsScope}
+					onClose={() => props.onCloseSettings()}
+				/>
 			</Show>
 			<Show when={props.diff}>
 				{(files: () => DiffFile[]) => (

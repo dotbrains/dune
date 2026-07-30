@@ -30,7 +30,8 @@ export function settingsRows(
 		toggleDotfiles: () => void;
 		toggleGitignored: () => void;
 		toggleTrim: () => void;
-		patchConfig: (patch: Partial<Config>) => void;
+		patchConfig: (patch: Partial<Config>, scope?: 'user' | 'project') => void;
+		configScope: () => 'user' | 'project';
 	},
 ): SettingRow[] {
 	const themes = Object.keys(themeLabels) as ThemeName[];
@@ -81,7 +82,11 @@ export function settingsRows(
 			section: 'Git',
 			label: 'Diff layout',
 			value: config.diffView,
-			change: (dir) => actions.patchConfig({ diffView: cycle(DIFF_VIEWS, config.diffView, dir) }),
+			change: (dir) =>
+				actions.patchConfig(
+					{ diffView: cycle(DIFF_VIEWS, config.diffView, dir) },
+					actions.configScope(),
+				),
 		},
 	];
 }

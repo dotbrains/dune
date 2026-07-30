@@ -4,7 +4,7 @@ import { render } from '@opentui/solid';
 
 import { App } from './app/App';
 import { flagOutput, resolveTarget } from './core/cli';
-import { loadConfig } from './core/config';
+import { loadConfig, loadProjectConfig, resolveConfig } from './core/config';
 import { runUpgrade } from './core/upgrade';
 import { setTheme } from './themes';
 
@@ -26,12 +26,21 @@ if (!target) {
 }
 const { rootDir, openFile } = target;
 
-// Apply the saved theme before the first render.
 const config = loadConfig();
-setTheme(config.theme);
+const projectConfig = loadProjectConfig(rootDir);
+// Apply the resolved theme before the first render.
+setTheme(resolveConfig(config, projectConfig).theme);
 
 await render(
-	() => <App rootDir={rootDir} openFile={openFile} openLine={target.line} initialConfig={config} />,
+	() => (
+		<App
+			rootDir={rootDir}
+			openFile={openFile}
+			openLine={target.line}
+			initialConfig={config}
+			projectConfig={projectConfig}
+		/>
+	),
 	{
 		useMouse: true,
 		// Without motion reporting the terminal never hands drags to the app, so every

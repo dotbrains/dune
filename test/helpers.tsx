@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { testRender } from '@opentui/solid';
 
 import { App } from '../src/app/App';
-import { DEFAULTS } from '../src/core/config';
+import { DEFAULTS, loadProjectConfig } from '../src/core/config';
 import type { Config } from '../src/core/config';
 
 export type Harness = Awaited<ReturnType<typeof launch>>;
@@ -38,6 +38,7 @@ export async function launch(
 				openFile: options.openFile ?? null,
 				openLine: options.openLine ?? null,
 				initialConfig: { ...DEFAULTS, ...config },
+				projectConfig: loadProjectConfig(dir),
 				// Off by default: the real check is unconditional, and without this every
 				// launch in the suite would hit the npm registry.
 				checkUpdates: options.checkUpdates ?? false,

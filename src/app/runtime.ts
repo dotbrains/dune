@@ -1,7 +1,7 @@
 import { basename } from 'node:path';
 import type { Accessor, Setter } from 'solid-js';
 import { unwrap } from 'solid-js/store';
-import { saveConfig } from '../core/config';
+import { resolveConfig, saveConfig, saveProjectConfig } from '../core/config';
 import type { Config } from '../core/config';
 import type { Tone } from '../ui/StatusBar';
 import type { BufferState, BusyState, Prompt } from './types';
@@ -9,9 +9,14 @@ import type { BufferState, BusyState, Prompt } from './types';
 export function createAppRuntime(deps: {
 	buffers: Record<string, BufferState>;
 	busy: Accessor<BusyState>;
+	rootDir: string;
+	userConfig: Config;
+	projectConfig: Partial<Config>;
 	config: Config;
 	renderer: { destroy: () => void };
 	setConfig: (patch: Partial<Config>) => void;
+	setUserConfig: (patch: Partial<Config>) => void;
+	setProjectConfig: (patch: Partial<Config>) => void;
 	setPrompt: Setter<Prompt>;
 	setStatus: Setter<{ msg: string; tone: Tone }>;
 }) {
@@ -35,9 +40,18 @@ export function createAppRuntime(deps: {
 		run();
 	};
 
-	const patchConfig = (patch: Partial<Config>) => {
-		deps.setConfig(patch);
-		saveConfig(unwrap(deps.config));
+	const patchConfig = (patch: Partial<Config>, scope: 'user' | 'project' = 'user') => {
+		if (scope === 'project') {
+			deps.setProjectConfig(patch);
+			const project = { ...unwrap(deps.projectConfig), ...patch };
+			deps.setConfig(resolveConfig(unwrap(deps.userConfig), project));
+			saveProjectConfig(deps.rootDir, project);
+			return;
+		}
+		deps.setUserConfig(patch);
+		const user = { ...unwrap(deps.userConfig), ...patch };
+		deps.setConfig(resolveConfig(user, unwrap(deps.projectConfig)));
+		saveConfig(user);
 	};
 
 	return { dirtyPaths, patchConfig, quit, say, whileFree };

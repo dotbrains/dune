@@ -1,9 +1,10 @@
 /**
  * User settings, persisted as JSON at `$XDG_CONFIG_HOME/dune/config.json`
- * (default `~/.config/dune/config.json`).
+ * (default `~/.config/dune/config.json`), plus project overrides at
+ * `<project>/.dune/settings.json`.
  *
  * To add a setting: add the field to `Config`, give it a value in `DEFAULTS`,
- * and validate it in `parse()`. Anything missing or invalid falls back to the
+ * and validate it in `parsePartial()`. Anything missing or invalid falls back to the
  * default, so a hand-edited config can never break startup.
  */
 import fs from 'node:fs';
@@ -18,6 +19,9 @@ export const CONFIG_FILE = join(
 	'dune',
 	'config.json',
 );
+export const PROJECT_CONFIG_DIR = '.dune';
+export const projectConfigFile = (rootDir: string): string =>
+	join(rootDir, PROJECT_CONFIG_DIR, 'settings.json');
 
 /** Narrow enough to still show a name, wide enough to leave the editor usable. */
 export const SIDEBAR_MIN = 15;
@@ -78,32 +82,36 @@ export const DEFAULTS: Config = {
 	diffView: 'inline',
 };
 
-function parse(raw: unknown): Config {
+function parsePartial(raw: unknown): Partial<Config> {
 	const obj = (raw ?? {}) as Partial<Record<keyof Config, unknown>>;
-	return {
-		theme: isThemeName(obj.theme) ? obj.theme : DEFAULTS.theme,
-		vim: typeof obj.vim === 'boolean' ? obj.vim : DEFAULTS.vim,
-		tabSize:
-			typeof obj.tabSize === 'number' && obj.tabSize >= 1 && obj.tabSize <= 16
-				? Math.floor(obj.tabSize)
-				: DEFAULTS.tabSize,
-		skipUpdate: typeof obj.skipUpdate === 'string' ? obj.skipUpdate : DEFAULTS.skipUpdate,
-		trimOnSave: typeof obj.trimOnSave === 'boolean' ? obj.trimOnSave : DEFAULTS.trimOnSave,
-		autoSaveOnBlur:
-			typeof obj.autoSaveOnBlur === 'boolean' ? obj.autoSaveOnBlur : DEFAULTS.autoSaveOnBlur,
-		showDotfiles: typeof obj.showDotfiles === 'boolean' ? obj.showDotfiles : DEFAULTS.showDotfiles,
-		respectGitignore:
-			typeof obj.respectGitignore === 'boolean' ? obj.respectGitignore : DEFAULTS.respectGitignore,
-		diffView:
-			obj.diffView === 'split' || obj.diffView === 'inline' ? obj.diffView : DEFAULTS.diffView,
-		sidebarWidth:
-			typeof obj.sidebarWidth === 'number' &&
-			obj.sidebarWidth >= SIDEBAR_MIN &&
-			obj.sidebarWidth <= SIDEBAR_MAX
-				? Math.floor(obj.sidebarWidth)
-				: // Anything else, `'auto'` included, is the default.
-					DEFAULTS.sidebarWidth,
-	};
+	const config: Partial<Config> = {};
+	if (isThemeName(obj.theme)) config.theme = obj.theme;
+	if (typeof obj.vim === 'boolean') config.vim = obj.vim;
+	if (typeof obj.tabSize === 'number' && obj.tabSize >= 1 && obj.tabSize <= 16) {
+		config.tabSize = Math.floor(obj.tabSize);
+	}
+	if (typeof obj.skipUpdate === 'string') config.skipUpdate = obj.skipUpdate;
+	if (typeof obj.trimOnSave === 'boolean') config.trimOnSave = obj.trimOnSave;
+	if (typeof obj.autoSaveOnBlur === 'boolean') config.autoSaveOnBlur = obj.autoSaveOnBlur;
+	if (typeof obj.showDotfiles === 'boolean') config.showDotfiles = obj.showDotfiles;
+	if (typeof obj.respectGitignore === 'boolean') config.respectGitignore = obj.respectGitignore;
+	if (obj.diffView === 'split' || obj.diffView === 'inline') config.diffView = obj.diffView;
+	if (
+		typeof obj.sidebarWidth === 'number' &&
+		obj.sidebarWidth >= SIDEBAR_MIN &&
+		obj.sidebarWidth <= SIDEBAR_MAX
+	) {
+		config.sidebarWidth = Math.floor(obj.sidebarWidth);
+	} else if (obj.sidebarWidth === 'auto') {
+		config.sidebarWidth = 'auto';
+	}
+	return config;
+}
+
+const parse = (raw: unknown): Config => ({ ...DEFAULTS, ...parsePartial(raw) });
+
+export function resolveConfig(user: Config, project: Partial<Config>): Config {
+	return { ...user, ...project };
 }
 
 /** Read the config file, falling back to defaults on any error or bad value. */
@@ -115,11 +123,29 @@ export function loadConfig(): Config {
 	}
 }
 
+export function loadProjectConfig(rootDir: string): Partial<Config> {
+	try {
+		return parsePartial(JSON.parse(fs.readFileSync(projectConfigFile(rootDir), 'utf8')));
+	} catch {
+		return {};
+	}
+}
+
 export function saveConfig(config: Config): void {
 	try {
 		fs.mkdirSync(dirname(CONFIG_FILE), { recursive: true });
 		fs.writeFileSync(CONFIG_FILE, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
 	} catch {
 		// best-effort — running without a writable home just means no persistence
+	}
+}
+
+export function saveProjectConfig(rootDir: string, config: Partial<Config>): void {
+	try {
+		const file = projectConfigFile(rootDir);
+		fs.mkdirSync(dirname(file), { recursive: true });
+		fs.writeFileSync(file, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
+	} catch {
+		// best-effort — an unwritable project just means overrides do not persist
 	}
 }

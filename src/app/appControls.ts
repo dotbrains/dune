@@ -14,41 +14,43 @@ import type { Focus, Prompt } from './types';
 
 export function createAppControls(deps: {
 	config: Config;
+	configScope: () => 'user' | 'project';
 	prompt: () => Prompt;
 	selectedNode: () => TreeNode | undefined;
 	setVimMode: (mode: 'normal' | null) => void;
-	patchConfig: (patch: Partial<Config>) => void;
+	patchConfig: (patch: Partial<Config>, scope?: 'user' | 'project') => void;
 	say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
 }) {
+	const patch = (change: Partial<Config>) => deps.patchConfig(change, deps.configScope());
 	const applyTheme = (name: ThemeName) => {
 		setTheme(name);
 		invalidateSyntaxStyle();
-		deps.patchConfig({ theme: name });
+		patch({ theme: name });
 		deps.say(`Theme: ${themeLabels[name]}`);
 	};
 	const applyTabSize = (size: number) => {
-		deps.patchConfig({ tabSize: size });
+		patch({ tabSize: size });
 		deps.say(`Tab size: ${size}`);
 	};
 	const applyVim = (enabled: boolean) => {
 		deps.setVimMode(enabled ? 'normal' : null);
-		deps.patchConfig({ vim: enabled });
+		patch({ vim: enabled });
 		deps.say(`Vim mode ${enabled ? 'on' : 'off'}`);
 	};
 	const toggleDotfiles = () => {
-		deps.patchConfig({ showDotfiles: !deps.config.showDotfiles });
+		patch({ showDotfiles: !deps.config.showDotfiles });
 		deps.say(`Dotfiles ${deps.config.showDotfiles ? 'shown' : 'hidden'}`);
 	};
 	const toggleGitignored = () => {
-		deps.patchConfig({ respectGitignore: !deps.config.respectGitignore });
+		patch({ respectGitignore: !deps.config.respectGitignore });
 		deps.say(`Gitignored files ${deps.config.respectGitignore ? 'hidden' : 'shown'}`);
 	};
 	const toggleTrim = () => {
-		deps.patchConfig({ trimOnSave: !deps.config.trimOnSave });
+		patch({ trimOnSave: !deps.config.trimOnSave });
 		deps.say(`Trim on save ${deps.config.trimOnSave ? 'on' : 'off'}`);
 	};
 	const toggleAutoSave = () => {
-		deps.patchConfig({ autoSaveOnBlur: !deps.config.autoSaveOnBlur });
+		patch({ autoSaveOnBlur: !deps.config.autoSaveOnBlur });
 		deps.say(`Auto-save on blur ${deps.config.autoSaveOnBlur ? 'on' : 'off'}`);
 	};
 	const withNode = (run: (node: TreeNode) => void) => () => {
