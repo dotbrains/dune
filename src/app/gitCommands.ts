@@ -2,11 +2,7 @@ import { relative } from 'node:path';
 import { createSignal } from 'solid-js';
 
 import {
-	branchBehindCount,
-	branchDiffFiles,
-	branchDiffCommits,
 	commitPaths,
-	commitDiffFiles,
 	createBranch,
 	defaultBranch,
 	deleteBranch,
@@ -28,8 +24,14 @@ import {
 	undoLastCommit,
 } from '../core/git';
 import { unifiedDiff } from '../core/diff';
+import {
+	branchBehindCount,
+	branchDiffCommits,
+	branchDiffFiles,
+	commitDiffFiles,
+} from '../core/gitDiff';
 import type { GitResult, Upstream } from '../core/git';
-import type { DiffFile } from '../core/git';
+import type { DiffFile } from '../core/gitDiff';
 import type { CommitFile } from '../ui/CommitModal';
 import type { Tone } from '../ui/StatusBar';
 import type { Prompt } from './types';

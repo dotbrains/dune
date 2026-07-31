@@ -25,6 +25,7 @@ const statusLabel: Record<FileStatus, string> = {
 	added: 'A',
 	deleted: 'D',
 	modified: 'M',
+	renamed: 'R',
 	untracked: 'U',
 };
 

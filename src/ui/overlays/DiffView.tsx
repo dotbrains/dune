@@ -3,7 +3,7 @@ import { useKeyboard, useTerminalDimensions } from '@opentui/solid';
 import { createMemo, createSignal, For, Show } from 'solid-js';
 
 import { splitText, unifiedDiff } from '../../core/diff';
-import type { DiffFile } from '../../core/git';
+import type { DiffFile } from '../../core/gitDiff';
 import { fuzzyScore } from '../../core/search';
 import { ui } from '../../themes';
 import { listRows, modalWidth, PAD } from '../modal';

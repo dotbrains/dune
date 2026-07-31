@@ -5,8 +5,6 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import {
-	branchDiffCommits,
-	branchDiffFiles,
 	createBranch,
 	currentBranch,
 	deleteBranch,
@@ -21,6 +19,7 @@ import {
 	statusMap,
 	switchBranch,
 } from '../src/core/git';
+import { branchDiffCommits, branchDiffFiles } from '../src/core/gitDiff';
 import { git as runGit } from './git-fixture';
 import { F1, launch, press, pressEscape, runCommand, settle, type Harness } from './helpers';
 
@@ -415,7 +414,7 @@ test('a rename is keyed by the path that exists on disk', () => {
 	// `-z` emits `R  new\0old\0`, so the second field must be skipped rather than
 	// read as its own entry — otherwise the mark lands on the path that is gone.
 	const statuses = statusMap(dir);
-	expect(statuses.get(join(dir, 'renamed.ts'))).toBe('modified');
+	expect(statuses.get(join(dir, 'renamed.ts'))).toBe('renamed');
 	expect(statuses.has(join(dir, 'a.ts'))).toBe(false);
 });
 

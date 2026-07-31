@@ -257,6 +257,20 @@ test('source control comparison filters changed files', async () => {
 	expect(frame).not.toContain('readme.md');
 });
 
+test('source control panel marks renamed files distinctly', async () => {
+	const dir = repo('one\n');
+	execFileSync('git', ['mv', 'a.ts', 'renamed.ts'], { cwd: dir });
+
+	const t = await launch(dir);
+	await runCommand(t, 'Source Control');
+
+	const row = t
+		.captureCharFrame()
+		.split('\n')
+		.find((line) => line.includes('renamed.ts'))!;
+	expect(row).toContain('R');
+});
+
 test('rename branch command renames the selected local branch', async () => {
 	const dir = repo('main\n');
 	const git = (...args: string[]) => runGit(dir, ...args);

@@ -7,7 +7,7 @@ import { For, Show } from 'solid-js';
 import type { Config } from '../core/config';
 import type { TreeNode } from '../core/fs';
 import type { FileStatus, LineChange, Upstream } from '../core/git';
-import type { DiffFile } from '../core/git';
+import type { DiffFile } from '../core/gitDiff';
 import { isImagePath } from '../core/image';
 import type { Match } from '../core/search';
 import type { ProblemSeverity } from '../lsp/protocol';

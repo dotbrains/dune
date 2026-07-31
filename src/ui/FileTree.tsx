@@ -55,6 +55,7 @@ export const MARKS: Record<FileStatus, string> = {
 	added: 'A',
 	modified: 'M',
 	deleted: 'D',
+	renamed: 'R',
 };
 
 export const statusColor = (status: FileStatus) =>

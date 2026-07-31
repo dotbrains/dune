@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -8,6 +9,7 @@ import type { CommandActions } from '../src/app/commands';
 import { unifiedDiff } from '../src/core/diff';
 import { readFile } from '../src/core/fs';
 import { defaultBranch } from '../src/core/git';
+import { branchDiffFiles } from '../src/core/gitDiff';
 import { searchProject, searchText } from '../src/core/search';
 import { isNewer } from '../src/core/update';
 import { THEMES } from '../src/themes';
@@ -90,6 +92,30 @@ describe('git defaults', () => {
 		local.git('config', 'init.defaultBranch', 'trunk');
 		expect(defaultBranch(local.dir)).toBe('trunk');
 		expect(defaultBranch(gitRepo('topic').dir)).toBeNull();
+	});
+});
+
+describe('git branch diffs', () => {
+	test('preserves renamed file status and old path', () => {
+		const { dir, git } = gitRepo('main');
+		writeFileSync(join(dir, 'old-name.txt'), 'one\ntwo\nthree\nfour\nfive\n');
+		git('add', '.');
+		git('commit', '-q', '-m', 'old name');
+		git('switch', '-q', '-c', 'feature');
+		execFileSync('git', ['mv', 'old-name.txt', 'renamed.txt'], { cwd: dir });
+		writeFileSync(join(dir, 'renamed.txt'), 'ONE\ntwo\nthree\nfour\nfive\n');
+		git('add', '.');
+		git('commit', '-q', '-m', 'rename file');
+
+		const files = branchDiffFiles(dir, 'main');
+		expect(files).toHaveLength(1);
+		expect(files[0]).toMatchObject({
+			rel: 'renamed.txt',
+			oldRel: 'old-name.txt',
+			status: 'renamed',
+			oldText: 'one\ntwo\nthree\nfour\nfive\n',
+			newText: 'ONE\ntwo\nthree\nfour\nfive\n',
+		});
 	});
 });
 

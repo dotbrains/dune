@@ -2,16 +2,10 @@ import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 
-export type LineChange = 'added' | 'modified' | 'deleted';
-export type FileStatus = 'untracked' | 'added' | 'modified' | 'deleted';
+import type { DiffFile } from './gitDiff';
 
-export interface DiffFile {
-	path: string;
-	rel: string;
-	status: FileStatus;
-	oldText: string;
-	newText: string;
-}
+export type LineChange = 'added' | 'modified' | 'deleted';
+export type FileStatus = 'untracked' | 'added' | 'modified' | 'deleted' | 'renamed';
 
 export interface Branch {
 	name: string;
@@ -19,8 +13,6 @@ export interface Branch {
 	remote: boolean;
 	upstream: string | null;
 }
-
-export type BranchCommit = { oid: string; shortOid: string; subject: string; authorName: string };
 
 /**
  * Queries run synchronously because they sit behind gutter marks, tree marks and
@@ -140,11 +132,28 @@ const STATUS_BY_CODE: Record<string, FileStatus> = {
 	'?': 'untracked',
 	A: 'added',
 	M: 'modified',
-	R: 'modified',
+	R: 'renamed',
 	C: 'modified',
 	U: 'modified',
 	D: 'deleted',
 };
+
+interface StatusEntry {
+	path: string;
+	status: FileStatus;
+	oldRel?: string;
+}
+
+const changedPath = (
+	base: string,
+	rel: string,
+	status: FileStatus,
+	oldRel?: string,
+): StatusEntry => ({
+	path: join(base, rel),
+	status,
+	oldRel,
+});
 
 /**
  * Working-tree status per absolute path. Staged and unstaged changes collapse to
@@ -152,6 +161,12 @@ const STATUS_BY_CODE: Record<string, FileStatus> = {
  */
 export function statusMap(cwd: string, ref: string | null = null): Map<string, FileStatus> {
 	const statuses = new Map<string, FileStatus>();
+	for (const entry of statusEntries(cwd, ref)) statuses.set(entry.path, entry.status);
+	return statuses;
+}
+
+function statusEntries(cwd: string, ref: string | null = null): StatusEntry[] {
+	const statuses: StatusEntry[] = [];
 	const base = keyBase(cwd);
 	if (base === null) return statuses;
 	if (ref !== null) return statusAgainst(cwd, ref, base);
@@ -170,9 +185,9 @@ export function statusMap(cwd: string, ref: string | null = null): Map<string, F
 		// Both porcelain columns mean "differs from HEAD"; staged wins when both are set.
 		const code = entry[0] !== ' ' ? entry[0]! : entry[1]!;
 		// A rename or copy spends a second field on the path it came from.
-		if (entry[0] === 'R' || entry[0] === 'C') i++;
+		const oldRel = entry[0] === 'R' || entry[0] === 'C' ? entries[++i] : undefined;
 		const status = STATUS_BY_CODE[code];
-		if (status) statuses.set(join(base, entry.slice(3)), status);
+		if (status) statuses.push(changedPath(base, entry.slice(3), status, oldRel));
 	}
 	return statuses;
 }
@@ -190,33 +205,33 @@ function textAtRef(cwd: string, ref: string, rel: string): string | null {
 	return run.status === 0 ? run.stdout : null;
 }
 
-function statusAgainst(cwd: string, ref: string, base: string): Map<string, FileStatus> {
-	const statuses = new Map<string, FileStatus>();
-	const run = git(cwd, ['diff', '--name-status', '-z', ref]);
+function statusAgainst(cwd: string, ref: string, base: string): StatusEntry[] {
+	const statuses: StatusEntry[] = [];
+	const run = git(cwd, ['diff', '--name-status', '-M', '-z', ref]);
 	if (run.status !== 0) return statuses;
 	const fields = run.stdout.split('\0');
 	for (let i = 0; i < fields.length; i += 2) {
 		const code = fields[i];
 		if (!code) continue;
-		if (code[0] === 'R' || code[0] === 'C') i++;
+		const oldRel = code[0] === 'R' || code[0] === 'C' ? fields[++i] : undefined;
 		const path = fields[i + 1];
 		const status = STATUS_BY_CODE[code[0]!];
-		if (status && path) statuses.set(join(base, path), status);
+		if (status && path) statuses.push(changedPath(base, path, status, oldRel));
 	}
 	const others = git(cwd, ['ls-files', '--others', '--exclude-standard', '-z']);
 	if (others.status === 0) {
 		for (const rel of others.stdout.split('\0')) {
-			if (rel.length > 0) statuses.set(join(base, rel), 'untracked');
+			if (rel.length > 0) statuses.push(changedPath(base, rel, 'untracked'));
 		}
 	}
 	return statuses;
 }
 
 export function diffFiles(cwd: string, only?: string, ref: string | null = null): DiffFile[] {
-	const statuses = statusMap(cwd, ref);
+	const statuses = statusEntries(cwd, ref);
 	const files: DiffFile[] = [];
 	const base = keyBase(cwd) ?? cwd;
-	for (const [path, status] of statuses) {
+	for (const { path, status, oldRel } of statuses) {
 		if (only && path !== only) continue;
 		if (!existsSync(path) && status !== 'deleted') continue;
 		let newText = '';
@@ -229,89 +244,15 @@ export function diffFiles(cwd: string, only?: string, ref: string | null = null)
 			path,
 			rel: relative(base, path),
 			status,
+			oldRel,
 			oldText:
-				status === 'untracked' ? '' : (textAtRef(cwd, ref ?? 'HEAD', relative(base, path)) ?? ''),
+				status === 'untracked'
+					? ''
+					: (textAtRef(cwd, ref ?? 'HEAD', oldRel ?? relative(base, path)) ?? ''),
 			newText,
 		});
 	}
 	return files.toSorted((a, b) => a.rel.localeCompare(b.rel));
-}
-
-const BRANCH_STATUS_BY_CODE: Record<string, FileStatus> = {
-	A: 'added',
-	M: 'modified',
-	R: 'modified',
-	C: 'modified',
-	D: 'deleted',
-};
-
-export function branchDiffFiles(cwd: string, baseBranch = defaultBranch(cwd)): DiffFile[] {
-	const base = keyBase(cwd);
-	if (base === null || !baseBranch) return [];
-	const mergeBase = git(cwd, ['merge-base', baseBranch, 'HEAD'], 5000);
-	if (mergeBase.status !== 0) return [];
-	return refDiffFiles(cwd, base, mergeBase.stdout.trim(), 'HEAD');
-}
-
-function refDiffFiles(cwd: string, base: string, from: string, to: string): DiffFile[] {
-	const names = git(cwd, ['diff', '--name-status', '-z', from, to], 5000);
-	if (names.status !== 0 || !names.stdout) return [];
-	const parts = names.stdout.split('\0');
-	const files: DiffFile[] = [];
-	for (let i = 0; i < parts.length;) {
-		const code = parts[i++]?.[0] ?? '';
-		const status = BRANCH_STATUS_BY_CODE[code];
-		if (!status) continue;
-		const oldRel = code === 'R' || code === 'C' ? parts[i++] : parts[i];
-		const rel = parts[i++];
-		if (!rel) continue;
-		const oldText = status === 'added' ? '' : (textAtRef(cwd, from, oldRel ?? rel) ?? '');
-		const newText = status === 'deleted' ? '' : textAtRef(cwd, to, rel);
-		if (newText === null && status !== 'deleted') continue;
-		files.push({
-			path: join(base, rel),
-			rel,
-			status,
-			oldText,
-			newText: newText ?? '',
-		});
-	}
-	return files.toSorted((a, b) => a.rel.localeCompare(b.rel));
-}
-
-export function branchDiffCommits(cwd: string, baseBranch = defaultBranch(cwd)): BranchCommit[] {
-	if (!baseBranch) return [];
-	const format = '%H%x00%h%x00%s%x00%an';
-	const run = git(cwd, ['log', '-z', `--format=${format}`, `${baseBranch}..HEAD`], 5000);
-	if (run.status !== 0 || !run.stdout) return [];
-	const fields = run.stdout.split('\0');
-	if (fields.at(-1) === '') fields.pop();
-	const commits: BranchCommit[] = [];
-	for (let i = 0; i + 3 < fields.length; i += 4) {
-		commits.push({
-			oid: fields[i]!,
-			shortOid: fields[i + 1]!,
-			subject: fields[i + 2]!,
-			authorName: fields[i + 3]!,
-		});
-	}
-	return commits;
-}
-
-export function branchBehindCount(cwd: string, baseBranch = defaultBranch(cwd)): number {
-	if (!baseBranch) return 0;
-	const run = git(cwd, ['rev-list', '--count', `HEAD..${baseBranch}`], 5000);
-	return run.status === 0 ? Number(run.stdout.trim()) || 0 : 0;
-}
-
-export function commitDiffFiles(cwd: string, oid: string): DiffFile[] {
-	const base = keyBase(cwd);
-	if (base === null) return [];
-	const commit = git(cwd, ['rev-parse', '--verify', `${oid}^{commit}`], 5000);
-	if (commit.status !== 0) return [];
-	const parent = git(cwd, ['rev-parse', '--verify', `${commit.stdout.trim()}^`], 5000);
-	const emptyTree = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
-	return refDiffFiles(cwd, base, parent.status === 0 ? parent.stdout.trim() : emptyTree, oid);
 }
 
 export function ignoredAmong(cwd: string, paths: string[]): Set<string> {
