@@ -5,10 +5,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import {
+	branchDiffCommits,
 	branchDiffFiles,
 	createBranch,
 	currentBranch,
-	defaultBranch,
 	deleteBranch,
 	diffFiles,
 	diffLines,
@@ -30,7 +30,6 @@ interface Frame {
 	lines: { spans: { text: string; fg?: { buffer: Uint8Array } }[] }[];
 }
 
-/** A real repository with one committed file. */
 function repo(committed: string) {
 	const dir = mkdtempSync(join(tmpdir(), 'dune-git-'));
 	const git = (...args: string[]) => runGit(dir, ...args);
@@ -69,7 +68,6 @@ test('is empty outside a repository', () => {
 	expect(currentBranch(dir)).toBeNull();
 });
 
-// A repo with no remote at all, which the gitremote footer tests cannot cover.
 test('a branch with no upstream shows without ahead/behind arrows', async () => {
 	const t = await launch(repo('one\n'));
 	await press(t, (i) => i.pressArrow('down'));
@@ -114,9 +112,10 @@ test('branchDiffFiles returns snapshots introduced since the base branch', () =>
 	git('add', '.');
 	git('commit', '-q', '-m', 'feature work');
 
-	expect(defaultBranch(dir)).toBe('main');
 	const files = branchDiffFiles(dir, 'main');
+	const commits = branchDiffCommits(dir, 'main');
 	expect(files.map((file) => file.rel)).toEqual(['a.ts', 'fresh.ts']);
+	expect(commits[0]).toMatchObject({ subject: 'feature work', authorName: 'Test' });
 	expect(files[0]).toMatchObject({ oldText: 'one\n', newText: 'two\n', status: 'modified' });
 	expect(files[1]).toMatchObject({ oldText: '', newText: 'new\n', status: 'added' });
 });

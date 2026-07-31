@@ -20,11 +20,7 @@ export interface Branch {
 	upstream: string | null;
 }
 
-export interface BranchCommit {
-	oid: string;
-	shortOid: string;
-	subject: string;
-}
+export type BranchCommit = { oid: string; shortOid: string; subject: string; authorName: string };
 
 /**
  * Queries run synchronously because they sit behind gutter marks, tree marks and
@@ -288,13 +284,19 @@ function refDiffFiles(cwd: string, base: string, from: string, to: string): Diff
 
 export function branchDiffCommits(cwd: string, baseBranch = defaultBranch(cwd)): BranchCommit[] {
 	if (!baseBranch) return [];
-	const run = git(cwd, ['log', '-z', '--format=%H%x00%h%x00%s', `${baseBranch}..HEAD`], 5000);
+	const format = '%H%x00%h%x00%s%x00%an';
+	const run = git(cwd, ['log', '-z', `--format=${format}`, `${baseBranch}..HEAD`], 5000);
 	if (run.status !== 0 || !run.stdout) return [];
 	const fields = run.stdout.split('\0');
 	if (fields.at(-1) === '') fields.pop();
 	const commits: BranchCommit[] = [];
-	for (let i = 0; i + 2 < fields.length; i += 3) {
-		commits.push({ oid: fields[i]!, shortOid: fields[i + 1]!, subject: fields[i + 2]! });
+	for (let i = 0; i + 3 < fields.length; i += 4) {
+		commits.push({
+			oid: fields[i]!,
+			shortOid: fields[i + 1]!,
+			subject: fields[i + 2]!,
+			authorName: fields[i + 3]!,
+		});
 	}
 	return commits;
 }

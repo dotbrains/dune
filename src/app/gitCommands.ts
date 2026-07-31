@@ -152,7 +152,7 @@ export function createGitCommands(deps: {
 		setBranchChoices(
 			commits.map((commit) => ({
 				id: commit.oid,
-				label: `${commit.shortOid}  ${commit.subject}`,
+				label: `${commit.shortOid}  ${commit.subject}  ${commit.authorName}`,
 			})),
 		);
 	};
