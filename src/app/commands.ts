@@ -47,6 +47,7 @@ export const KEYBINDABLE_COMMANDS: ReadonlyArray<{ id: string; label: string }> 
 export interface CommandActions {
 	save: () => void;
 	openFile: () => void;
+	openPathUnderCursor: () => void;
 	switchTab: () => void;
 	closeOthers: () => void;
 	closeAll: () => void;
@@ -160,6 +161,7 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 			label: 'File',
 			children: [
 				{ id: 'file.new', label: 'New file', hint: 'Ctrl+N', run: actions.newFile },
+				{ id: 'open.cursor', label: 'Open file under cursor', run: actions.openPathUnderCursor },
 				{ id: 'file.newDir', label: 'New folder', hint: `Ctrl+${ALT}+N`, run: actions.newFolder },
 				{ id: 'file.rename', label: 'Rename…', hint: 'r', run: actions.rename },
 				{ id: 'file.cut', label: 'Cut for moving', hint: 'x', run: actions.cutForMove },

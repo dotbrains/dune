@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { fixture, launch, press } from './helpers';
+import { fixture, launch, press, runCommand } from './helpers';
 
 const PROJECT = {
 	'src/deeply/nested/target.ts': 'const found = 1\n',
@@ -37,4 +37,37 @@ test('go to line moves the cursor there', async () => {
 	await press(t, (i) => i.pressKey('s', { ctrl: true }));
 
 	expect(readFileSync(join(dir, 'notes.md'), 'utf8')).toBe('one\ntwo\nthree\nXfour\nfive\n');
+});
+
+test('open file under cursor follows import paths', async () => {
+	const dir = fixture({
+		'src/main.ts': "import target from './target'\nconsole.log(target)\n",
+		'src/target.ts': 'export default 1\n',
+	});
+	const t = await launch(dir, {}, {}, { openFile: join(dir, 'src/main.ts') });
+
+	await press(t, (i) => {
+		for (let n = 0; n < 22; n++) i.pressArrow('right');
+	});
+	await runCommand(t, 'Open file under cursor');
+
+	expect(t.captureCharFrame()).toContain('export default 1');
+	expect(t.captureCharFrame()).toContain('target.ts');
+});
+
+test('open file under cursor follows tsconfig aliases', async () => {
+	const dir = fixture({
+		'src/main.ts': "import target from '@/target'\nconsole.log(target)\n",
+		'src/target.ts': 'export default 1\n',
+		'tsconfig.json': '{"compilerOptions":{"baseUrl":".","paths":{"@/*":["src/*"]}}}',
+	});
+	const t = await launch(dir, {}, {}, { openFile: join(dir, 'src/main.ts') });
+
+	await press(t, (i) => {
+		for (let n = 0; n < 22; n++) i.pressArrow('right');
+	});
+	await runCommand(t, 'Open file under cursor');
+
+	expect(t.captureCharFrame()).toContain('export default 1');
+	expect(t.captureCharFrame()).toContain('target.ts');
 });

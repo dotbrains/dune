@@ -6,7 +6,6 @@ import { resolveConfig, resolvedTheme, type Config } from '../core/config';
 import { flattenVisible } from '../core/fs';
 import { currentBranch, type FileStatus, type LineChange, type Upstream } from '../core/git';
 import { invalidateSyntaxStyle } from '../languages/highlight';
-import { isMarkdownPath } from '../core/markdown';
 import { checkForUpdate } from '../core/update';
 import { setTheme, setTransparency } from '../themes';
 import type { VimMode } from '../editor/vim';
@@ -22,6 +21,7 @@ import { useAppLifecycle } from './lifecycle';
 import { createAppLsp, problemFrom, wireAppLspEffects } from './lsp/index';
 import { createCompletionActions } from './lsp/completionActions';
 import { createProblemUi } from './lsp/view';
+import { createMarkdownView } from './markdownView';
 import { createFileOpener } from './openFile';
 import { createOverlayOpen } from './overlayState';
 import { restoreAppState } from './restore';
@@ -94,18 +94,6 @@ export function App(props: AppTypes.AppProps) {
 		flattenVisible(rootDir, expanded(), hiddenTreeNodes(rootDir, config)),
 	);
 	const activeBuffer = () => (activePath() ? buffers[activePath()!] : undefined);
-	const renderedMarkdownPath = () => {
-		const path = activePath();
-		return path && renderedMarkdown().includes(path) && isMarkdownPath(path) ? path : null;
-	};
-	const toggleMarkdown = () => {
-		const path = activePath();
-		if (!path || !isMarkdownPath(path)) return say('Not a markdown file', 'warn');
-		const rendered = !renderedMarkdown().includes(path);
-		setRenderedMarkdown((prev) => (rendered ? [...prev, path] : prev.filter((p) => p !== path)));
-		setFocus('editor');
-		say(rendered ? `Rendering ${path.slice(path.lastIndexOf('/') + 1)}` : 'Markdown source');
-	};
 	const { patchConfig, quit, say, whileFree } = createAppRuntime({
 		buffers,
 		busy,
@@ -121,6 +109,13 @@ export function App(props: AppTypes.AppProps) {
 		setStatus,
 	});
 	const refreshTree = () => setExpanded((prev) => new Set(prev));
+	const { renderedMarkdownPath, toggleMarkdown } = createMarkdownView({
+		activePath,
+		renderedMarkdown,
+		setRenderedMarkdown,
+		setFocus,
+		say,
+	});
 	const lsp = createAppLsp({ rootDir, config, say });
 	wireAppLspEffects({ lsp, config, tabs, buffers });
 	const expand = (path: string) => setExpanded((prev) => new Set(prev).add(path));
@@ -344,6 +339,9 @@ export function App(props: AppTypes.AppProps) {
 		saveActive,
 		setPicker,
 		activePath,
+		activeLine: () => activeBuffer()?.content.split('\n')[cursor().line] ?? null,
+		cursor,
+		openResolvedFile: openFile,
 		tabs,
 		closeTabs,
 		setPrompt,
