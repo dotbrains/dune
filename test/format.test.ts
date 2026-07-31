@@ -30,20 +30,20 @@ test('formatter args append or replace the edited path', () => {
 	expect(formatArgs(['fmt', '--flag={}.tmp'], '/tmp/a.ts')).toEqual(['--flag=/tmp/a.ts.tmp']);
 });
 
-test('formatter process reports failures and missing binaries', () => {
+test('formatter process reports failures and missing binaries', async () => {
 	const dir = fixture({});
 	const file = join(dir, 'a.ts');
 	writeFileSync(file, 'one\n');
 	const fail = join(dir, 'fail.js');
 	writeFileSync(fail, "console.error('boom: bad syntax'); process.exit(2);\n");
 
-	expect(runFormatter([process.execPath, fail], file, dir)).toBe('boom: bad syntax');
-	expect(runFormatter(['definitely-not-a-dune-test-binary'], file, dir)).toBe(
+	expect(await runFormatter([process.execPath, fail], file, dir)).toBe('boom: bad syntax');
+	expect(await runFormatter(['definitely-not-a-dune-test-binary'], file, dir)).toBe(
 		'definitely-not-a-dune-test-binary is not installed, or not on PATH',
 	);
 });
 
-test('formatter process rewrites the target file', () => {
+test('formatter process rewrites the target file', async () => {
 	const dir = fixture({});
 	const file = join(dir, 'a.ts');
 	const script = join(dir, 'upper.js');
@@ -54,6 +54,6 @@ test('formatter process rewrites the target file', () => {
 	);
 	chmodSync(script, 0o755);
 
-	expect(runFormatter([process.execPath, script], file, dir)).toBeNull();
+	expect(await runFormatter([process.execPath, script], file, dir)).toBeNull();
 	expect(readFileSync(file, 'utf8')).toBe('ONE\n');
 });

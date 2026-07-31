@@ -72,7 +72,7 @@ export function createDocumentActions(deps: {
 	whileFree: (run: () => void) => void;
 	rootDir: string;
 }) {
-	const writeBuffer = (path: string, content: string): boolean => {
+	const writeBuffer = async (path: string, content: string): Promise<boolean> => {
 		const final = deps.config.trimOnSave ? trimTrailing(content) : content;
 		const err = writeFile(path, final);
 		if (err) {
@@ -82,7 +82,7 @@ export function createDocumentActions(deps: {
 		let saved = final;
 		const formatter = deps.config.formatOnSave ? formatterFor(path, deps.config.formatters) : null;
 		if (formatter) {
-			const formatError = runFormatter(formatter, path, deps.rootDir);
+			const formatError = await runFormatter(formatter, path, deps.rootDir);
 			if (formatError) {
 				deps.setBuffers(path, { content: final, dirty: false, mtime: mtimeOf(path) });
 				if (final !== content && path === deps.activePath()) deps.pushEdit(final);
@@ -103,7 +103,7 @@ export function createDocumentActions(deps: {
 		deps.say(formatter ? `Formatted ${basename(path)}` : `Saved ${basename(path)}`);
 		return true;
 	};
-	const saveActive = () => {
+	const saveActive = async () => {
 		const path = deps.activePath();
 		const buffer = deps.activeBuffer();
 		if (!path || !buffer) return;
@@ -115,9 +115,9 @@ export function createDocumentActions(deps: {
 			} catch {}
 			if (disk !== buffer.content) return deps.setConflict({ path, disk, deleted: false });
 		}
-		writeBuffer(path, buffer.content);
+		await writeBuffer(path, buffer.content);
 	};
-	const saveDirtyPaths = (paths: string[]) => {
+	const saveDirtyPaths = async (paths: string[]) => {
 		const skipped: string[] = [];
 		const failed: string[] = [];
 		let saved = 0;
@@ -128,20 +128,20 @@ export function createDocumentActions(deps: {
 				skipped.push(basename(path));
 				continue;
 			}
-			if (writeBuffer(path, buffer.content)) saved++;
+			if (await writeBuffer(path, buffer.content)) saved++;
 			else failed.push(basename(path));
 		}
 		if (saved > 1) deps.say(`Saved ${saved} files`);
 		if (skipped.length > 0) deps.say(`${CLASH_CHANGED}${skipped.join(', ')}`, 'warn');
 		if (failed.length > 0) deps.say(`Save failed: ${failed.join(', ')}`, 'error');
 	};
-	const saveDirtyOnBlur = () => saveDirtyPaths(Object.keys(deps.buffers));
+	const saveDirtyOnBlur = () => void saveDirtyPaths(Object.keys(deps.buffers));
 	const resolveConflict = (choice: string) => {
 		const c = deps.conflict();
 		deps.setConflict(null);
 		if (!c) return;
 		if (choice === 'overwrite' && deps.buffers[c.path])
-			writeBuffer(c.path, deps.buffers[c.path]!.content);
+			void writeBuffer(c.path, deps.buffers[c.path]!.content);
 		else if (choice === 'reload') {
 			deps.setBuffers(c.path, { content: c.disk, dirty: false, mtime: mtimeOf(c.path) });
 			deps.setReloadKey((k) => k + 1);

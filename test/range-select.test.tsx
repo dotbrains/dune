@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { fixture, launch, press, pressEscape, settle } from './helpers';
+import { fixture, launch, press, pressEscape, settle, until } from './helpers';
 import type { Harness } from './helpers';
 
 const PROJECT = {
@@ -55,7 +55,13 @@ describe('Shift+↑/↓ in the tree', () => {
 		expect(t.captureCharFrame()).toContain('Delete these 3 items');
 
 		await press(t, (input) => input.pressEnter());
-		await settle(t);
+		await until(
+			t,
+			() =>
+				!existsSync(join(dir, 'a.ts')) &&
+				!existsSync(join(dir, 'b.ts')) &&
+				!existsSync(join(dir, 'c.ts')),
+		);
 		expect(existsSync(join(dir, 'a.ts'))).toBe(false);
 		expect(existsSync(join(dir, 'b.ts'))).toBe(false);
 		expect(existsSync(join(dir, 'c.ts'))).toBe(false);

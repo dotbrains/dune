@@ -1,5 +1,6 @@
-import { spawnSync } from 'node:child_process';
 import { extname } from 'node:path';
+
+import { firstLine, notInstalled, run } from './process';
 
 export type Formatters = Record<string, string[]>;
 
@@ -46,16 +47,26 @@ export function formatArgs(command: string[], path: string): string[] {
 	return [...args, path];
 }
 
-export function runFormatter(command: string[], path: string, cwd: string): string | null {
+const FORMAT_TIMEOUT_MS = 10_000;
+
+export async function runFormatter(
+	command: string[],
+	path: string,
+	cwd: string,
+): Promise<string | null> {
 	const program = command[0];
 	if (!program) return null;
-	const result = spawnSync(program, formatArgs(command, path), {
+	const result = await run(program, formatArgs(command, path), {
 		cwd,
-		encoding: 'utf8',
-		shell: false,
+		timeout: FORMAT_TIMEOUT_MS,
 	});
-	if (result.error) return `${program} is not installed, or not on PATH`;
+	if (result.error)
+		return notInstalled(result)
+			? `${program} is not installed, or not on PATH`
+			: result.error.message;
+	if (result.timedOut) return `${program} timed out`;
 	if (result.status === 0) return null;
-	const stderr = result.stderr.trim().split(/\r?\n/, 1)[0]?.trim();
-	return stderr || `${program} exited with status ${result.status ?? 'unknown'}`;
+	return (
+		firstLine(result.stderr || result.stdout) || `${program} exited with status ${result.status}`
+	);
 }

@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { fixture, launch, press } from './helpers';
+import { fixture, launch, press, until } from './helpers';
 
 async function openSave(dir: string) {
 	const t = await launch(dir, {
@@ -23,6 +23,7 @@ test('format on save reloads the formatted file into the editor', async () => {
 	});
 
 	const t = await openSave(dir);
+	await until(t, () => readFileSync(join(dir, 'a.ts'), 'utf8') === 'CONST A = 1\n');
 
 	expect(readFileSync(join(dir, 'a.ts'), 'utf8')).toBe('CONST A = 1\n');
 	expect(t.captureCharFrame()).toContain('CONST A = 1');
@@ -43,6 +44,7 @@ test('failed format leaves the saved contents clean and reports the formatter er
 	await press(t, (i) => i.pressEnter());
 	await press(t, (i) => void i.typeText('// edited\n'));
 	await press(t, (i) => i.pressKey('s', { ctrl: true }));
+	await until(t, () => t.captureCharFrame().includes('Format failed: boom: bad syntax'));
 
 	expect(readFileSync(join(dir, 'a.ts'), 'utf8')).toContain('// edited');
 	expect(t.captureCharFrame()).toContain('Format failed: boom: bad syntax');
@@ -63,6 +65,7 @@ test('unmatched files still save without running a formatter', async () => {
 	await press(t, (i) => i.pressEnter());
 	await press(t, (i) => void i.typeText('!'));
 	await press(t, (i) => i.pressKey('s', { ctrl: true }));
+	await until(t, () => t.captureCharFrame().includes('Saved a.md'));
 
 	expect(readFileSync(join(dir, 'a.md'), 'utf8')).toBe('!hello\n');
 	expect(t.captureCharFrame()).toContain('Saved a.md');
