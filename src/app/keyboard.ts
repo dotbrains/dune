@@ -33,6 +33,8 @@ export function useAppKeyboard(deps: {
 	nudgeSidebar: (delta: number) => void;
 	paste: () => void;
 	quit: () => void;
+	navigateBack: () => void;
+	navigateForward: () => void;
 	reopenTab: () => void;
 	saveActive: () => void;
 	say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
@@ -66,6 +68,8 @@ export function useAppKeyboard(deps: {
 		open: () => deps.setPicker('files'),
 		save: deps.saveActive,
 		'tabs.switch': () => deps.setPicker('tabs'),
+		'navigation.back': deps.navigateBack,
+		'navigation.forward': deps.navigateForward,
 		'tabs.reopen': deps.reopenTab,
 		goto: () => deps.setPrompt({ kind: 'gotoLine' }),
 		'find.file': () => deps.setSearch({ scope: 'file' }),
@@ -120,6 +124,10 @@ export function useAppKeyboard(deps: {
 		if (key.ctrl && k === 'o' && !customizes('open')) return claim(() => deps.setPicker('files'));
 		if (key.ctrl && chord(key) && k === 't' && !customizes('tabs.reopen'))
 			return claim(deps.reopenTab);
+		if (key.ctrl && chord(key) && k === 'z' && !customizes('navigation.back'))
+			return claim(deps.navigateBack);
+		if (key.ctrl && chord(key) && k === 'y' && !customizes('navigation.forward'))
+			return claim(deps.navigateForward);
 		if (key.ctrl && (k === 't' || k === 'up') && !customizes('tabs.switch'))
 			return claim(() => deps.setPicker('tabs'));
 		if (key.ctrl && chord(key) && k === 'g' && !customizes('git.sourceControl'))

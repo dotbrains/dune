@@ -116,6 +116,7 @@ export const KEYS: KeyInfo[] = [
 	{ key: 'Ctrl+W', label: 'Close tab', section: 'Files & tabs', where: 'all' },
 	{ key: `Ctrl+${ALT}+T`, label: 'Reopen closed tab', section: 'Files & tabs', where: 'all' },
 	{ key: 'Ctrl+T', label: 'Switch to open tab', section: 'Files & tabs', where: 'all' },
+	{ key: `Ctrl+${ALT}+Z / Y`, label: 'Go back / forward', section: 'Files & tabs', where: 'all' },
 	{ key: `Ctrl+${ALT}+← / →`, label: 'Previous / next tab', section: 'Files & tabs', where: 'all' },
 
 	{

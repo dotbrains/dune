@@ -15,8 +15,12 @@ export interface TabInfo {
 export interface TabsProps {
 	tabs: TabInfo[];
 	activePath: string | null;
+	canBack: boolean;
+	canForward: boolean;
 	onSelect: (path: string) => void;
 	onClose: (path: string) => void;
+	onBack: () => void;
+	onForward: () => void;
 	/** Clicking an overflow counter asks for the full list of open tabs. */
 	onOverflow: () => void;
 }
@@ -24,6 +28,7 @@ export interface TabsProps {
 const MAX_LABEL = 18;
 /** Padding, the dirty/close glyph and the separator around a label. */
 const CHROME = 5;
+const NAV_CHROME = 6;
 
 const shorten = (name: string) =>
 	name.length <= MAX_LABEL ? name : `${name.slice(0, MAX_LABEL - 1)}…`;
@@ -38,7 +43,7 @@ export function Tabs(props: TabsProps) {
 	const visible = createMemo(() => {
 		// The bar spans the terminal: the tree sits below it, not beside it. Taking
 		// the sidebar's width off the budget made tabs reflow on every resize.
-		const budget = dimensions().width;
+		const budget = Math.max(0, dimensions().width - NAV_CHROME);
 		const width = (tab: TabInfo) => shorten(tab.name).length + CHROME;
 
 		const active = Math.max(
@@ -72,9 +77,10 @@ export function Tabs(props: TabsProps) {
 	return (
 		<box flexDirection="column" flexShrink={0}>
 			<box height={1} flexDirection="row" backgroundColor={ui.barBg}>
+				<text bg={ui.bg} content=" " />
 				<Show
 					when={props.tabs.length > 0}
-					fallback={<text fg={ui.faint} bg={ui.barBg} content="  no open files" />}
+					fallback={<text fg={ui.faint} bg={ui.barBg} content=" no open files" />}
 				>
 					<Show when={visible().before > 0}>
 						<box paddingLeft={1} backgroundColor={ui.barBg} onMouseDown={() => props.onOverflow()}>
@@ -133,6 +139,17 @@ export function Tabs(props: TabsProps) {
 							<text fg={ui.dim} bg={ui.barBg} content={`${visible().after}›`} />
 						</box>
 					</Show>
+					<box paddingLeft={1} backgroundColor={ui.barBg} onMouseDown={() => props.onBack()}>
+						<text fg={props.canBack ? ui.dim : ui.faint} bg={ui.barBg} content="‹" />
+					</box>
+					<box
+						paddingLeft={1}
+						paddingRight={1}
+						backgroundColor={ui.barBg}
+						onMouseDown={() => props.onForward()}
+					>
+						<text fg={props.canForward ? ui.dim : ui.faint} bg={ui.barBg} content="›" />
+					</box>
 				</Show>
 				<box flexGrow={1} backgroundColor={ui.barBg} />
 			</box>

@@ -110,8 +110,12 @@ interface AppViewProps {
 	peek: boolean;
 	help: boolean;
 	selection: string;
+	canNavigateBack: boolean;
+	canNavigateForward: boolean;
 	onSelectTab: (path: string) => void;
 	onCloseTab: (path: string) => void;
+	onNavigateBack: () => void;
+	onNavigateForward: () => void;
 	onOverflowTabs: () => void;
 	onResizeDrag: (event: MouseEvent) => void;
 	onResizeEnd: () => void;
@@ -173,8 +177,12 @@ export function AppView(props: AppViewProps) {
 					preview: p === props.previewPath,
 				}))}
 				activePath={props.activePath}
+				canBack={props.canNavigateBack}
+				canForward={props.canNavigateForward}
 				onSelect={props.onSelectTab}
 				onClose={props.onCloseTab}
+				onBack={props.onNavigateBack}
+				onForward={props.onNavigateForward}
 				onOverflow={() => props.onOverflowTabs()}
 			/>
 			{/* Drag capture lives on the row, not the divider: the pointer leaves a

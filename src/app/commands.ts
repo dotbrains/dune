@@ -26,6 +26,8 @@ export const KEYBINDABLE_COMMANDS: ReadonlyArray<{ id: string; label: string }> 
 	{ id: 'open', label: 'Open file…' },
 	{ id: 'save', label: 'Save file' },
 	{ id: 'tabs.switch', label: 'Switch to…' },
+	{ id: 'navigation.back', label: 'Go back' },
+	{ id: 'navigation.forward', label: 'Go forward' },
 	{ id: 'tabs.reopen', label: 'Reopen closed tab' },
 	{ id: 'goto', label: 'Go to line…' },
 	{ id: 'find.file', label: 'In current file' },
@@ -50,6 +52,8 @@ export interface CommandActions {
 	openFile: () => void;
 	openPathUnderCursor: () => void;
 	goToDefinition: () => void;
+	navigateBack: () => void;
+	navigateForward: () => void;
 	switchTab: () => void;
 	closeOthers: () => void;
 	closeAll: () => void;
@@ -189,6 +193,18 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 				{ id: 'tabs.closeAll', label: 'Close all tabs', run: actions.closeAll },
 				{ id: 'tabs.next', label: 'Next tab', hint: `Ctrl+${ALT}+→`, run: actions.nextTab },
 				{ id: 'tabs.prev', label: 'Previous tab', hint: `Ctrl+${ALT}+←`, run: actions.prevTab },
+				{
+					id: 'navigation.back',
+					label: 'Go back',
+					hint: `Ctrl+${ALT}+Z`,
+					run: actions.navigateBack,
+				},
+				{
+					id: 'navigation.forward',
+					label: 'Go forward',
+					hint: `Ctrl+${ALT}+Y`,
+					run: actions.navigateForward,
+				},
 			],
 		},
 		{

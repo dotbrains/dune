@@ -17,6 +17,7 @@ export function createAppCommands(deps: {
 	activeLine: () => string | null;
 	cursor: () => { line: number; col: number };
 	openResolvedFile: (path: string) => void;
+	navigation: { back: () => void; forward: () => void; mark: () => void };
 	tabs: () => string[];
 	closeTabs: (paths: string[], done: string) => void;
 	setPrompt: (prompt: Prompt) => void;
@@ -101,9 +102,12 @@ export function createAppCommands(deps: {
 					const token = pathTokenAt(line, deps.cursor().col);
 					if (!token) return deps.say('No file path under cursor', 'warn');
 					const target = resolvePathToken(token, dirname(path), deps.targetDir());
+					deps.navigation.mark();
 					if (target) return deps.openResolvedFile(target);
 					void deps.completion.goToDefinition();
 				},
+				navigateBack: deps.navigation.back,
+				navigateForward: deps.navigation.forward,
 				switchTab: () => deps.setPicker('tabs'),
 				closeOthers: () => {
 					const keep = deps.activePath();

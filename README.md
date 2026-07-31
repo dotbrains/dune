@@ -88,6 +88,7 @@ dune update           # upgrade this installation
 | `Ctrl+G`                             | Go to line             |
 | `Ctrl+Opt+G`                         | Source control panel   |
 | `Ctrl+Opt+M`                         | Markdown render/source |
+| `Ctrl+Opt+Z` / `Ctrl+Opt+Y`          | Navigate back/forward  |
 | `Ctrl+N`                             | New file               |
 | `Ctrl+W`                             | Close tab              |
 | `Ctrl+B`                             | Toggle sidebar         |

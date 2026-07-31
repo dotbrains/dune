@@ -9,9 +9,9 @@ import { invalidateSyntaxStyle } from '../languages/highlight';
 import { checkForUpdate } from '../core/update';
 import { setTheme, setTransparency } from '../themes';
 import type { VimMode } from '../editor/vim';
-import { createAppCommands } from './appCommands';
 import { createAppControls } from './appControls';
 import { AppView } from './AppView';
+import { createAppCommandTree } from './commands/tree';
 import { READY } from './constants';
 import { createDocumentActions } from './documentActions';
 import { createFileActions } from './fileActions';
@@ -22,6 +22,7 @@ import { createAppLsp, problemFrom, wireAppLspEffects } from './lsp/index';
 import { createCompletionActions } from './lsp/completionActions';
 import { createProblemUi } from './lsp/view';
 import { createMarkdownView } from './markdown/view';
+import { createNavigation } from './navigation';
 import { createFileOpener } from './openFile';
 import { createOverlayOpen } from './overlayState';
 import { restoreAppState } from './restore';
@@ -237,6 +238,7 @@ export function App(props: AppTypes.AppProps) {
 		setGoto,
 		say,
 	);
+	const navigation = createNavigation({ activePath, cursor, openFile, setFocus, setGoto, say });
 	const gitCommands = createGitCommands({
 		rootDir,
 		branch,
@@ -331,23 +333,22 @@ export function App(props: AppTypes.AppProps) {
 		patchConfig,
 		configScope: () => settingsPage() ?? 'user',
 	});
-	const commands = createAppCommands({
+	const commands = createAppCommandTree({
 		config,
+		buffers,
 		saveActive,
 		setPicker,
 		activePath,
-		activeLine: () => activeBuffer()?.content.split('\n')[cursor().line] ?? null,
 		cursor,
-		openResolvedFile: openFile,
+		openFile,
+		navigation,
 		tabs,
 		closeTabs,
 		setPrompt,
 		setHistory,
 		setSearch,
 		targetDir,
-		withNode: controls.withNode,
 		actionTargets,
-		say,
 		takeForPaste,
 		paste,
 		closeTab,
@@ -358,27 +359,17 @@ export function App(props: AppTypes.AppProps) {
 		focusTree,
 		toggleSidebar,
 		toggleMarkdown,
-		applyVim: controls.applyVim,
-		applyTabSize: controls.applyTabSize,
-		applyTheme: controls.applyTheme,
-		toggleDotfiles: controls.toggleDotfiles,
-		toggleGitignored: controls.toggleGitignored,
-		toggleTrim: controls.toggleTrim,
-		toggleFormat: controls.toggleFormat,
-		toggleAutoSave: controls.toggleAutoSave,
-		toggleTransparent: controls.toggleTransparent,
+		controls,
 		openSettings: () => setSettingsPage('user'),
 		openProjectSettings: () => setSettingsPage('project'),
-		problemsList: problemUi.list,
-		problemsNext: () => problemUi.next(1),
-		problemsPrev: () => problemUi.next(-1),
-		problemsRestart: () =>
-			say(lsp.restart() ? 'Restarted language servers' : 'No language servers running'),
+		problemUi,
+		lspRestart: lsp.restart,
 		completion,
 		setLineOp,
 		patchConfig,
 		gitCommands,
 		setHelp,
+		say,
 		quit,
 	});
 	useAppLifecycle({
@@ -445,6 +436,8 @@ export function App(props: AppTypes.AppProps) {
 		nudgeSidebar,
 		paste,
 		quit,
+		navigateBack: navigation.back,
+		navigateForward: navigation.forward,
 		reopenTab,
 		saveActive,
 		say,
@@ -545,8 +538,12 @@ export function App(props: AppTypes.AppProps) {
 			peek={peek()}
 			help={help()}
 			selection={selection()}
+			canNavigateBack={navigation.canBack()}
+			canNavigateForward={navigation.canForward()}
 			onSelectTab={openFile}
 			onCloseTab={closeTab}
+			onNavigateBack={navigation.back}
+			onNavigateForward={navigation.forward}
 			onOverflowTabs={() => setPicker('tabs')}
 			onResizeDrag={(event) => resizing() && resizeSidebar(event.x)}
 			onResizeEnd={() => setResizing(false)}
@@ -569,7 +566,10 @@ export function App(props: AppTypes.AppProps) {
 			onComplete={completion.complete}
 			onResolveCompletion={completion.resolve}
 			onQuit={quit}
-			onSubmitPrompt={submitPrompt}
+			onSubmitPrompt={(value) => {
+				if (prompt()?.kind === 'gotoLine') navigation.mark();
+				submitPrompt(value);
+			}}
 			onCancelPrompt={() => setPrompt(null)}
 			onConfirmPrompt={confirmPrompt}
 			onPickSearch={jumpTo}

@@ -10,7 +10,7 @@ A TUI code editor built on [OpenTUI](https://github.com/anomalyco/opentui) (Soli
 reconciler on a native Zig core). Shipped as a standalone binary — GitHub Packages,
 Homebrew, a curl installer — and run as a CLI.
 
-Features: file tree with bulk file operations, preview/pinned tabs, git status marks and
+Features: file tree with bulk file operations, preview/pinned tabs, editor navigation history, git status marks and
 gitignored dimming, tree-sitter syntax highlighting, rendered markdown tabs, search (current file and
 project-wide), command palette, themes with transparent-background mode, vim mode, git marks in tree/gutter/status bar,
 file watching with conflict prompts, per-project session restore, and a startup update
