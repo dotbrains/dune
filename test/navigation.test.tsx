@@ -71,3 +71,20 @@ test('open file under cursor follows tsconfig aliases', async () => {
 	expect(t.captureCharFrame()).toContain('export default 1');
 	expect(t.captureCharFrame()).toContain('target.ts');
 });
+
+test('open file under cursor follows tsconfig baseUrl', async () => {
+	const dir = fixture({
+		'src/main.ts': "import target from 'shared/target'\nconsole.log(target)\n",
+		'src/shared/target.ts': 'export default 1\n',
+		'tsconfig.json': '{"compilerOptions":{"baseUrl":"src"}}',
+	});
+	const t = await launch(dir, {}, {}, { openFile: join(dir, 'src/main.ts') });
+
+	await press(t, (i) => {
+		for (let n = 0; n < 26; n++) i.pressArrow('right');
+	});
+	await runCommand(t, 'Open file under cursor');
+
+	expect(t.captureCharFrame()).toContain('export default 1');
+	expect(t.captureCharFrame()).toContain('target.ts');
+});

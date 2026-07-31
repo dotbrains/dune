@@ -24,21 +24,26 @@ export function pathTokenAt(line: string, col: number): string | null {
 }
 
 export function resolvePathToken(token: string, fromDir: string, rootDir: string): string | null {
-	if (!isPathLike(token)) return null;
-	for (const base of baseCandidates(token, fromDir, rootDir)) {
-		const found = firstExisting(expandFileCandidates(base));
-		if (found) return found;
-	}
-	for (const base of aliasCandidates(token, rootDir)) {
-		const found = firstExisting(expandFileCandidates(base));
-		if (found) return found;
+	if (!isIgnoredSpecifier(token)) {
+		if (isPathLike(token)) {
+			for (const base of baseCandidates(token, fromDir, rootDir)) {
+				const found = firstExisting(expandFileCandidates(base));
+				if (found) return found;
+			}
+		}
+		for (const base of aliasCandidates(token, rootDir)) {
+			const found = firstExisting(expandFileCandidates(base));
+			if (found) return found;
+		}
 	}
 	return null;
 }
 
+function isIgnoredSpecifier(token: string) {
+	return /^[A-Za-z][A-Za-z0-9+.-]*:\/\//.test(token) || token.startsWith('#');
+}
+
 function isPathLike(token: string) {
-	if (/^[A-Za-z][A-Za-z0-9+.-]*:\/\//.test(token)) return false;
-	if (token.startsWith('#')) return false;
 	return (
 		token.startsWith('.') ||
 		token.startsWith('/') ||
@@ -83,16 +88,16 @@ type TsConfig = {
 
 function aliasCandidates(token: string, rootDir: string) {
 	const config = readTsConfig(rootDir);
-	const paths = config?.compilerOptions?.paths;
-	if (!paths) return [];
+	if (!config) return [];
 	const baseUrl = config.compilerOptions?.baseUrl ?? '.';
 	const baseDir = resolve(rootDir, baseUrl);
 	const candidates: string[] = [];
-	for (const [pattern, targets] of Object.entries(paths)) {
+	for (const [pattern, targets] of Object.entries(config?.compilerOptions?.paths ?? {})) {
 		const match = aliasMatch(pattern, token);
 		if (match === null) continue;
 		for (const target of targets) candidates.push(resolve(baseDir, target.replace('*', match)));
 	}
+	if (config?.compilerOptions?.baseUrl) candidates.push(resolve(baseDir, token));
 	return candidates;
 }
 

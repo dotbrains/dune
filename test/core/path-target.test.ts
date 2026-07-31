@@ -39,3 +39,14 @@ test('resolvePathToken handles relative, root, index, and tsconfig alias paths',
 	);
 	expect(resolvePathToken('react', fromDir, dir)).toBe(null);
 });
+
+test('resolvePathToken follows baseUrl without paths aliases', () => {
+	const dir = fixture({
+		'src/shared/util.ts': '',
+		'tsconfig.json': '{"compilerOptions":{"baseUrl":"src"}}',
+	});
+
+	expect(resolvePathToken('shared/util', join(dir, 'src'), dir)).toBe(
+		join(dir, 'src/shared/util.ts'),
+	);
+});
