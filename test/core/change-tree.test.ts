@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { changeRows } from '../src/core/changeTree';
+import { changeRows } from '../../src/core/changeTree';
 
 const changes = (...rels: string[]) =>
 	rels
