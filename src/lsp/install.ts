@@ -20,7 +20,7 @@ export function installedCommand(command: string[], root = SERVER_ROOT): string[
 
 export function hasNodeRuntime(): boolean {
 	try {
-		const child = spawnSync('node', ['--version'], { stdout: 'ignore', stderr: 'ignore' });
+		const child = spawnSync('node', ['--version'], { stdio: 'ignore' });
 		return child.status === 0;
 	} catch {
 		return false;
