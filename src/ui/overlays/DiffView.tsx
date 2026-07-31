@@ -78,6 +78,8 @@ function split(file: DiffFile, width: number): DiffLine[] {
 const diffFor = (file: DiffFile) =>
 	file.binary ? { patch: '', adds: 0, dels: 0 } : unifiedDiff(file.rel, file.oldText, file.newText);
 
+const displayPath = (file: DiffFile) => (file.oldRel ? `${file.oldRel} -> ${file.rel}` : file.rel);
+
 export function DiffView(props: { files: DiffFile[]; mode: DiffMode; onClose: () => void }) {
 	const dimensions = useTerminalDimensions();
 	const [index, setIndex] = createSignal(0);
@@ -189,7 +191,7 @@ export function DiffView(props: { files: DiffFile[]; mode: DiffMode; onClose: ()
 					fallback={
 						<>
 							<box flexDirection="row" backgroundColor={ui.panelBg}>
-								<text fg={ui.text} bg={ui.panelBg} content={`${file().rel} `} />
+								<text fg={ui.text} bg={ui.panelBg} content={`${displayPath(file())} `} />
 								<text fg={ui.gitAdded} bg={ui.panelBg} content={`+${counts().adds} `} />
 								<text fg={ui.gitDeleted} bg={ui.panelBg} content={`-${counts().dels} `} />
 								<text fg={ui.dim} bg={ui.panelBg} content={`${mode()} `} />
@@ -247,7 +249,7 @@ export function DiffView(props: { files: DiffFile[]; mode: DiffMode; onClose: ()
 							const bg = () => (active() ? ui.treeSelectedBg : ui.panelBg);
 							const prefix = () => (active() ? '▌ ' : '  ');
 							const label = () =>
-								`${prefix()}${row.file.rel} ${
+								`${prefix()}${displayPath(row.file)} ${
 									row.file.binary ? 'binary' : `+${row.diff.adds} -${row.diff.dels}`
 								}`.slice(0, width() - PAD * 2 - 2);
 							return <text fg={active() ? ui.text : ui.dim} bg={bg()} content={label()} />;
