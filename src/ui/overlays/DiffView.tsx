@@ -80,7 +80,12 @@ const diffFor = (file: DiffFile) =>
 
 const displayPath = (file: DiffFile) => (file.oldRel ? `${file.oldRel} -> ${file.rel}` : file.rel);
 
-export function DiffView(props: { files: DiffFile[]; mode: DiffMode; onClose: () => void }) {
+export function DiffView(props: {
+	files: DiffFile[];
+	mode: DiffMode;
+	title?: string | null;
+	onClose: () => void;
+}) {
 	const dimensions = useTerminalDimensions();
 	const [index, setIndex] = createSignal(0);
 	const [pickIndex, setPickIndex] = createSignal(0);
@@ -190,6 +195,15 @@ export function DiffView(props: { files: DiffFile[]; mode: DiffMode; onClose: ()
 					when={picker()}
 					fallback={
 						<>
+							<Show when={props.title}>
+								{() => (
+									<text
+										fg={ui.dim}
+										bg={ui.panelBg}
+										content={(props.title ?? '').slice(0, width() - PAD * 2 - 2)}
+									/>
+								)}
+							</Show>
 							<box flexDirection="row" backgroundColor={ui.panelBg}>
 								<text fg={ui.text} bg={ui.panelBg} content={`${displayPath(file())} `} />
 								<text fg={ui.gitAdded} bg={ui.panelBg} content={`+${counts().adds} `} />

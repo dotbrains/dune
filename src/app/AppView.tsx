@@ -98,6 +98,7 @@ interface AppViewProps {
 	settingsPage: boolean;
 	settingsScope: 'user' | 'project';
 	diff: DiffFile[] | null;
+	diffTitle: string | null;
 	commands: Command[];
 	settingRows: SettingRow[];
 	commitFiles: CommitFile[] | null;
@@ -409,7 +410,12 @@ export function AppView(props: AppViewProps) {
 			</Show>
 			<Show when={props.diff}>
 				{(files: () => DiffFile[]) => (
-					<DiffView files={files()} mode={props.config.diffView} onClose={props.onCloseDiff} />
+					<DiffView
+						files={files()}
+						mode={props.config.diffView}
+						title={props.diffTitle}
+						onClose={props.onCloseDiff}
+					/>
 				)}
 			</Show>
 			<Show when={props.branchChoices}>

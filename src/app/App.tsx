@@ -36,8 +36,7 @@ export function App(props: AppTypes.AppProps) {
 	const renderer = useRenderer();
 	const dimensions = useTerminalDimensions();
 	const rootDir = props.rootDir;
-	const single = props.openFile ?? null;
-	const restored = restoreAppState(rootDir, single);
+	const restored = restoreAppState(rootDir, props.openFile ?? null);
 	const initialProjectConfig = props.projectConfig ?? {};
 	const initialConfig = resolveConfig(props.initialConfig, initialProjectConfig);
 	const initialAppearance = detectAppearance();
@@ -387,7 +386,7 @@ export function App(props: AppTypes.AppProps) {
 	});
 	useAppLifecycle({
 		rootDir,
-		single,
+		single: props.openFile ?? null,
 		openLine: props.openLine,
 		initialConfig: props.initialConfig,
 		checkUpdates: props.checkUpdates,
@@ -534,6 +533,7 @@ export function App(props: AppTypes.AppProps) {
 			settingsPage={settingsPage() !== null}
 			settingsScope={settingsPage() ?? 'user'}
 			diff={gitCommands.diff()}
+			diffTitle={gitCommands.diffTitle()}
 			commands={commands()}
 			settingRows={settingRows()}
 			commitFiles={gitCommands.commitFiles()}

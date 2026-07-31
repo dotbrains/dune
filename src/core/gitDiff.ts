@@ -106,6 +106,15 @@ export function branchDiffCommits(cwd: string, baseBranch = defaultBranch(cwd)):
 	return commits;
 }
 
+export function commitSummary(cwd: string, oid: string): BranchCommit | null {
+	const format = '%H%x00%h%x00%s%x00%an';
+	const run = git(cwd, ['show', '-s', `--format=${format}`, oid], 5000);
+	if (run.status !== 0 || !run.stdout) return null;
+	const [fullOid, shortOid, subject, authorName] = run.stdout.trimEnd().split('\0');
+	if (!fullOid || !shortOid || !subject || !authorName) return null;
+	return { oid: fullOid, shortOid, subject, authorName };
+}
+
 export function branchBehindCount(cwd: string, baseBranch = defaultBranch(cwd)): number {
 	if (!baseBranch) return 0;
 	const run = git(cwd, ['rev-list', '--count', `HEAD..${baseBranch}`], 5000);

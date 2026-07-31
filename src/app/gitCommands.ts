@@ -29,6 +29,7 @@ import {
 	branchDiffCommits,
 	branchDiffFiles,
 	commitDiffFiles,
+	commitSummary,
 } from '../core/gitDiff';
 import type { GitResult, Upstream } from '../core/git';
 import type { DiffFile } from '../core/gitDiff';
@@ -54,6 +55,7 @@ export function createGitCommands(deps: {
 	const [commitFiles, setCommitFiles] = createSignal<CommitFile[] | null>(null);
 	const [commitSelection, setCommitSelection] = createSignal<string[]>([]);
 	const [diff, setDiff] = createSignal<DiffFile[] | null>(null);
+	const [diffTitle, setDiffTitle] = createSignal<string | null>(null);
 	const [panel, setPanel] = createSignal(false);
 	const [branchMode, setBranchMode] = createSignal<
 		| 'commitDiff'
@@ -106,6 +108,7 @@ export function createGitCommands(deps: {
 		const files = diffFiles(deps.rootDir, path ?? undefined, diffBase());
 		if (files.length === 0)
 			return deps.say(path ? 'No changes in current file' : 'No changes', 'warn');
+		setDiffTitle(null);
 		setDiff(files);
 	};
 
@@ -125,6 +128,7 @@ export function createGitCommands(deps: {
 			);
 		const binary = files.filter((file) => file.binary).length;
 		const binaryPart = binary === 0 ? '' : `, ${binary} binary`;
+		setDiffTitle(`Comparing against ${base}`);
 		setDiff(files);
 		deps.say(
 			`Comparing against ${base}: ↑${commits.length} ↓${behind}, ${files.length} files${binaryPart}, +${stats.adds} -${stats.dels}`,
@@ -161,6 +165,10 @@ export function createGitCommands(deps: {
 	const openCommitDiff = (oid: string) => {
 		const files = commitDiffFiles(deps.rootDir, oid);
 		if (files.length === 0) return deps.say('No files changed in that commit', 'warn');
+		const commit = commitSummary(deps.rootDir, oid);
+		setDiffTitle(
+			commit ? `${commit.shortOid} ${commit.subject} by ${commit.authorName}` : `Commit ${oid}`,
+		);
 		setDiff(files);
 	};
 
@@ -293,9 +301,13 @@ export function createGitCommands(deps: {
 		commitFiles,
 		branchChoices,
 		diff,
+		diffTitle,
 		panel,
 		togglePanel: () => setPanel((open) => !open),
-		closeDiff: () => setDiff(null),
+		closeDiff: () => {
+			setDiff(null);
+			setDiffTitle(null);
+		},
 		cancelCommit: () => setCommitFiles(null),
 		closeBranchChoices: () => setBranchChoices(null),
 		branchChoiceTitle: () =>

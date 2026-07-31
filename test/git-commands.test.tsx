@@ -189,6 +189,9 @@ test('branch commit comparison opens a selected commit diff', async () => {
 	git('switch', '-q', '-c', 'feature');
 	writeFileSync(join(dir, 'a.ts'), 'two\n');
 	git('commit', '-qam', 'change a');
+	const shortOid = execFileSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: dir })
+		.toString()
+		.trim();
 
 	const t = await launch(dir);
 	await runCommand(t, 'Compare branch commits');
@@ -198,6 +201,7 @@ test('branch commit comparison opens a selected commit diff', async () => {
 	await press(t, (input) => input.pressEnter());
 
 	const frame = t.captureCharFrame();
+	expect(frame).toContain(`${shortOid} change a by Test`);
 	expect(frame).toContain('- one');
 	expect(frame).toContain('+ two');
 });
