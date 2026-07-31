@@ -292,6 +292,24 @@ test('branch comparison reports binary files instead of rendering bytes', async 
 	expect(t.captureCharFrame()).toContain('text.ts +1 -0');
 });
 
+test('diff overlay toggles layout while viewing a branch comparison', async () => {
+	const dir = repo('one\ntwo\n');
+	const git = (...args: string[]) => runGit(dir, ...args);
+	git('switch', '-q', '-c', 'feature');
+	writeFileSync(join(dir, 'a.ts'), 'one\nTWO\nthree\n');
+	git('commit', '-qam', 'change a');
+
+	const t = await launch(dir);
+	await runCommand(t, 'Compare branches');
+	await press(t, (input) => input.pressEnter());
+	expect(t.captureCharFrame()).toContain('inline');
+
+	await press(t, (input) => void input.typeText('d'));
+	const frame = t.captureCharFrame();
+	expect(frame).toContain('split');
+	expect(frame).toContain('│');
+});
+
 test('rename branch command renames the selected local branch', async () => {
 	const dir = repo('main\n');
 	const git = (...args: string[]) => runGit(dir, ...args);

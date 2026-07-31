@@ -85,6 +85,7 @@ export function DiffView(props: { files: DiffFile[]; mode: DiffMode; onClose: ()
 	const [picker, setPicker] = createSignal(false);
 	const [filter, setFilter] = createSignal('');
 	const [top, setTop] = createSignal(0);
+	const [mode, setMode] = createSignal<DiffMode>(props.mode);
 	const width = () => modalWidth(dimensions().width, 0.82, 76, 120);
 	const visibleRows = () => listRows(dimensions().height, 7, 24);
 	const file = () => props.files[index()] ?? props.files[0]!;
@@ -92,7 +93,7 @@ export function DiffView(props: { files: DiffFile[]; mode: DiffMode; onClose: ()
 	const body = createMemo(() =>
 		file().binary
 			? [{ text: 'Binary file: textual diff is not available.', kind: 'meta' as const }]
-			: props.mode === 'split'
+			: mode() === 'split'
 				? split(file(), width())
 				: unified(file()),
 	);
@@ -156,6 +157,9 @@ export function DiffView(props: { files: DiffFile[]; mode: DiffMode; onClose: ()
 		} else if (key.name === 'escape' || key.name === 'q') props.onClose();
 		else if (key.name === 'f' && props.files.length > 1) {
 			openPicker();
+		} else if (key.name === 'd') {
+			setMode((current) => (current === 'inline' ? 'split' : 'inline'));
+			setTop(0);
 		} else if (key.name === 'up') page(-1);
 		else if (key.name === 'down') page(1);
 		else if (key.name === 'pageup') page(-visibleRows());
@@ -188,7 +192,7 @@ export function DiffView(props: { files: DiffFile[]; mode: DiffMode; onClose: ()
 								<text fg={ui.text} bg={ui.panelBg} content={`${file().rel} `} />
 								<text fg={ui.gitAdded} bg={ui.panelBg} content={`+${counts().adds} `} />
 								<text fg={ui.gitDeleted} bg={ui.panelBg} content={`-${counts().dels} `} />
-								<text fg={ui.dim} bg={ui.panelBg} content={`${props.mode} `} />
+								<text fg={ui.dim} bg={ui.panelBg} content={`${mode()} `} />
 								<Show when={props.files.length > 1}>
 									<text
 										fg={ui.dim}
@@ -217,7 +221,7 @@ export function DiffView(props: { files: DiffFile[]; mode: DiffMode; onClose: ()
 							<text
 								fg={ui.dim}
 								bg={ui.panelBg}
-								content="↑↓ scroll · ←→ file · F files · Esc close"
+								content="↑↓ scroll · ←→ file · D layout · F files · Esc close"
 							/>
 						</>
 					}
