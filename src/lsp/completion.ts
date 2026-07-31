@@ -62,34 +62,48 @@ export function wordStart(text: string, col: number): number {
 	return at;
 }
 
+export function extendsWord(text: string, from: number, to: number): boolean {
+	if (to < from) return false;
+	for (let at = from; at < to; at++) {
+		if (!isWordChar(text[at] ?? ' ')) return false;
+	}
+	return true;
+}
+
+const SEPARATORS = new Set(['_', '-', '.', '/', '\\', ':', ' ']);
+
 export function fuzzyMatch(
 	query: string,
 	text: string,
 ): { score: number; positions: number[] } | null {
 	if (query.length === 0) return { score: 0, positions: [] };
-	const lowerQuery = query.toLowerCase();
 	const lowerText = text.toLowerCase();
+	const lowerQuery = query.toLowerCase();
 	const positions: number[] = [];
 	let score = 0;
-	let searchAt = 0;
+	let at = 0;
 	for (let q = 0; q < lowerQuery.length; q++) {
-		const found = lowerText.indexOf(lowerQuery[q]!, searchAt);
+		const found = lowerText.indexOf(lowerQuery[q]!, at);
 		if (found < 0) return null;
+		const char = text[found]!;
 		const prev = text[found - 1];
-		const boundary =
-			found === 0 ||
-			prev === '_' ||
-			prev === '-' ||
-			prev === '.' ||
-			(Boolean(prev) && text[found]! >= 'A' && text[found]! <= 'Z' && prev! >= 'a' && prev! <= 'z');
-		if (boundary) score += 8;
-		if (positions.at(-1) === found - 1) score += 6;
-		if (text[found] === query[q]) score += 1;
-		score -= found - searchAt;
+		const hump = char >= 'A' && char <= 'Z' && !(prev! >= 'A' && prev! <= 'Z');
+		const strong = found === q || hump || (prev !== undefined && SEPARATORS.has(prev));
+		let step = strong ? (char === query[q] ? 7 : 5) : 1;
+		if (positions.length > 0 && found === positions.at(-1)! + 1) step += 2;
+		score += step - (found - at);
 		positions.push(found);
-		searchAt = found + 1;
+		at = found + 1;
 	}
-	return { score: score - Math.floor(text.length / 8), positions };
+	return { score, positions };
+}
+
+function serverOrder(a: CompletionItem, b: CompletionItem): number {
+	const aSort = (a.sortText ?? a.label).toLowerCase();
+	const bSort = (b.sortText ?? b.label).toLowerCase();
+	if (aSort !== bSort) return aSort < bSort ? -1 : 1;
+	if (a.label !== b.label) return a.label < b.label ? -1 : 1;
+	return (a.kind ?? 0) - (b.kind ?? 0);
 }
 
 export function filterCompletions(items: CompletionItem[], prefix: string): CompletionMatch[] {
@@ -104,12 +118,7 @@ export function filterCompletions(items: CompletionItem[], prefix: string): Comp
 			positions: target === item.label ? match.positions : [],
 		});
 	}
-	return matches.toSorted(
-		(a, b) =>
-			b.score - a.score ||
-			(a.item.sortText ?? a.item.label).localeCompare(b.item.sortText ?? b.item.label) ||
-			a.item.label.length - b.item.label.length,
-	);
+	return matches.toSorted((a, b) => b.score - a.score || serverOrder(a.item, b.item));
 }
 
 export function kindInfo(kind: number | undefined): { glyph: string; group: KindGroup } {

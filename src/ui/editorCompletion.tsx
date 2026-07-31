@@ -2,7 +2,13 @@ import type { KeyEvent, TextareaRenderable } from '@opentui/core';
 import { useKeyboard, useTerminalDimensions } from '@opentui/solid';
 import { createEffect, createMemo, createSignal, on, onCleanup } from 'solid-js';
 
-import { applyCompletion, filterCompletions, isWordChar, wordStart } from '../lsp/completion';
+import {
+	applyCompletion,
+	extendsWord,
+	filterCompletions,
+	isWordChar,
+	wordStart,
+} from '../lsp/completion';
 import type { CompletionReply } from '../lsp/completion';
 import type { CompletionItem } from '../lsp/protocol';
 import { CompletionMenu, completionMenuWidth } from './CompletionMenu';
@@ -63,9 +69,14 @@ export function createEditorCompletion(
 		const generation = ++requestGeneration;
 		const path = props.path;
 		const at = editor.logicalCursor;
-		const start = wordStart(lineText(editor.plainText, at.row), at.col);
+		const text = lineText(editor.plainText, at.row);
+		const start = wordStart(text, at.col);
 		const reply = await props.complete(at.row, at.col);
 		if (generation !== requestGeneration || deps.editor() !== editor || props.path !== path) return;
+		const now = editor.logicalCursor;
+		if (now.row !== at.row || !extendsWord(lineText(editor.plainText, now.row), at.col, now.col)) {
+			return;
+		}
 		if (!reply?.items.length) return close();
 		setAnchor({ row: at.row, col: at.col, start });
 		setItems(reply.items);

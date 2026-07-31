@@ -3,6 +3,7 @@ import { pathToFileURL } from 'node:url';
 
 import {
 	applyCompletion,
+	extendsWord,
 	filterCompletions,
 	fuzzyMatch,
 	matchRuns,
@@ -87,6 +88,12 @@ describe('completion prefix matching', () => {
 		expect(wordStart('client.', 7)).toBe(7);
 	});
 
+	test('recognizes when a completion reply still extends the same word', () => {
+		expect(extendsWord('duneAlpha', 4, 9)).toBe(true);
+		expect(extendsWord('dune(', 4, 5)).toBe(false);
+		expect(extendsWord('dune', 4, 2)).toBe(false);
+	});
+
 	test('scores tight and boundary matches above scattered ones', () => {
 		expect(fuzzyMatch('rf', 'readFile')!.score).toBeGreaterThan(
 			fuzzyMatch('rf', 'roughFactor')!.score,
@@ -111,6 +118,20 @@ describe('completion prefix matching', () => {
 				'',
 			).map((match) => match.item.label),
 		).toEqual(['a', 'b']);
+	});
+
+	test('server order wins when prefix quality ties', () => {
+		expect(fuzzyMatch('tab', 'table')!.score).toBe(fuzzyMatch('tab', 'tableOfContents')!.score);
+		expect(
+			filterCompletions(
+				[
+					{ label: 'TableAliasProxyHandler', sortText: '16' },
+					{ label: 'tableName', sortText: '16' },
+					{ label: 'table', sortText: '11' },
+				],
+				'tab',
+			).map((match) => match.item.label),
+		).toEqual(['table', 'tableName', 'TableAliasProxyHandler']);
 	});
 
 	test('filterText can match without pretending label positions are known', () => {

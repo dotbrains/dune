@@ -15,7 +15,7 @@ describe('LSP completions in the editor', () => {
 		const t = await launch(dir, lspConfig, {}, { openFile: join(dir, 'a.ts') });
 
 		await press(t, (input) => void input.typeText('dune'));
-		await until(t, () => frame(t).includes('duneAlpha'));
+		await until(t, () => frame(t).includes('duneAlpha'), 40);
 
 		expect(frame(t)).toContain('duneAlpha');
 	});
@@ -44,5 +44,28 @@ describe('LSP completions in the editor', () => {
 		await press(t, (input) => input.pressEnter());
 		expect(frame(t)).toContain('import { duneLazy } from "dune"');
 		expect(frame(t)).toContain('duneLazy');
+	});
+
+	test('scope triggers replace the global list with member completions', async () => {
+		const dir = fixture({ 'a.ts': '' });
+		const t = await launch(dir, lspConfig, {}, { openFile: join(dir, 'a.ts') });
+
+		await press(t, (input) => void input.typeText('dune.'));
+		await until(t, () => frame(t).includes('memberTable'));
+
+		expect(frame(t)).toContain('memberOther');
+		expect(frame(t)).not.toContain('duneAlpha');
+	});
+
+	test('stale global replies are dropped after a scope-changing keystroke', async () => {
+		const dir = fixture({ 'a.ts': '' });
+		const t = await launch(dir, lspConfig, {}, { openFile: join(dir, 'a.ts') });
+
+		await press(t, (input) => void input.typeText('dune'));
+		await new Promise((resolve) => setTimeout(resolve, 150));
+		await press(t, (input) => void input.typeText('('));
+		await new Promise((resolve) => setTimeout(resolve, 600));
+
+		expect(frame(t)).not.toContain('duneAlpha');
 	});
 });

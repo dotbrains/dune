@@ -35,6 +35,16 @@ const COMPLETIONS: CompletionItem[] = [
 	{ label: 'duneBeta', kind: 6, detail: 'number' },
 	{ label: 'duneLazy', kind: 7, detail: 'resolve-import' },
 ];
+const MEMBER_COMPLETIONS: CompletionItem[] = [
+	{ label: 'memberTable', kind: 10 },
+	{ label: 'memberOther', kind: 10 },
+];
+
+function completionsAt(uri: string, line: number, character: number): CompletionItem[] {
+	const text = documents.get(uri) ?? '';
+	const lineText = text.split('\n')[line] ?? '';
+	return lineText[character - 1] === '.' ? MEMBER_COMPLETIONS : COMPLETIONS;
+}
 
 process.stdin.on(
 	'data',
@@ -66,7 +76,24 @@ process.stdin.on(
 				result: { kind: 'full', items: diagnosticsFor(text) },
 			});
 		} else if (message.method === 'textDocument/completion') {
-			send({ jsonrpc: '2.0', id: message.id, result: { isIncomplete: false, items: COMPLETIONS } });
+			const params = message.params as {
+				textDocument: { uri: string };
+				position: { line: number; character: number };
+			};
+			const items = completionsAt(
+				params.textDocument.uri,
+				params.position.line,
+				params.position.character,
+			);
+			setTimeout(
+				() =>
+					send({
+						jsonrpc: '2.0',
+						id: message.id,
+						result: { isIncomplete: false, items },
+					}),
+				items === COMPLETIONS ? 400 : 0,
+			);
 		} else if (message.method === 'textDocument/definition') {
 			send({
 				jsonrpc: '2.0',
