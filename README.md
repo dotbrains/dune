@@ -112,6 +112,8 @@ Global shortcuts can be customized in JSON with `keybindings`, keyed by command 
 `{ "keybindings": { "open": "Ctrl+Alt+O", "git.sourceControl": "F2" } }`.
 The `Transparent background` setting leaves the editor and tab strip unpainted for
 translucent terminal themes.
+Set `gitPanelView` to `list` to show changed files as flat paths in the source control
+panel instead of the default folder tree.
 
 PNG and JPEG files open as read-only image tabs. They are rendered in the editor slot,
 restore with the rest of the session, and are never treated as editable buffers.

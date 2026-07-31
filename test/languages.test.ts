@@ -1,7 +1,13 @@
 import { describe, expect, test } from 'bun:test';
 
 import { LANGUAGES, languageFor, languageLabel } from '../src/languages';
-import { computeHighlights, getSyntaxStyle, segmentsIn, STALE } from '../src/languages/highlight';
+import {
+	computeHighlights,
+	filetypeForPath,
+	getSyntaxStyle,
+	segmentsIn,
+	STALE,
+} from '../src/languages/highlight';
 import type { Highlighted } from '../src/languages/highlight';
 import { allSegments, parseHighlights, WHOLE } from './syntax';
 
@@ -10,6 +16,7 @@ const SAMPLES: Record<string, string> = {
 	rust: 'fn main() {\n    let x: i32 = 1; // c\n}\n',
 	go: 'package main\n// c\nfunc main() { return }\n',
 	typescriptreact: '// c\nconst A = () => <div className="a">{1}</div>\n',
+	tsrx: '// c\n@if (ready()) { <div>{value()}</div> }\n',
 	vue: '<template>\n  <!-- c -->\n  <div class="a">x</div>\n</template>\n',
 	css: '.a { color: #fff; }\n/* c */\n',
 	scss: '/* c */\n$brand: #f00;\n.a { color: $brand; &:hover { top: 1px } }\n',
@@ -69,6 +76,17 @@ describe('languages', () => {
 	test('ids are unique', () => {
 		const ids = LANGUAGES.map((l) => l.id);
 		expect(new Set(ids).size).toBe(ids.length);
+	});
+
+	test('tsrx files use the tsrx language', () => {
+		expect(filetypeForPath('component.tsrx')).toBe('tsrx');
+		expect(languageFor('tsrx')).toBeDefined();
+	});
+
+	test('tsrx directives layer over the tsx grammar', async () => {
+		const segs = await allSegments('@if (ready()) { <div>{value()}</div> }\n', 'tsrx');
+		const keyword = getSyntaxStyle().getStyleId('keyword');
+		expect(segs.some((s) => s.start === 0 && s.end >= 3 && s.styleId === keyword)).toBe(true);
 	});
 
 	for (const [filetype, source] of Object.entries(SAMPLES)) {

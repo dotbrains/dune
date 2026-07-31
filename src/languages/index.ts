@@ -47,6 +47,16 @@ export const LANGUAGES: Language[] = [
 	{ id: 'html', ...GRAMMARS.html },
 	{ id: 'typescriptreact', label: 'tsx', ...GRAMMARS.tsx },
 	{ id: 'javascriptreact', label: 'jsx', ...GRAMMARS.tsx },
+	{
+		id: 'tsrx',
+		...GRAMMARS.tsx,
+		patterns: [
+			{
+				group: 'keyword.directive',
+				re: /@(?:if|else|for|empty|switch|case|default|try|pending|catch)\b|@(?=\{)|(?<=;[ \t]*)key\b(?=[ \t]+[\w$.[\]]+[ \t]*\))/g,
+			},
+		],
+	},
 	{ id: 'vue', ...GRAMMARS.vue },
 	{ id: 'css', ...GRAMMARS.css },
 	{ id: 'scss', ...GRAMMARS.css },
@@ -156,6 +166,7 @@ const LINE_COMMENTS: Record<string, string> = {
 	typescript: '//',
 	javascriptreact: '//',
 	typescriptreact: '//',
+	tsrx: '//',
 	zig: '//',
 	scss: '//',
 	less: '//',

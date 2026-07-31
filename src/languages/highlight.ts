@@ -64,6 +64,7 @@ export function filetypeForPath(path: string): string | undefined {
 	const name = path.slice(Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\')) + 1);
 	if (BY_NAME[name]) return BY_NAME[name];
 	if (DOTENV.test(name)) return 'dotenv';
+	if (name.endsWith('.tsrx')) return 'tsrx';
 	return pathToFiletype(path) ?? undefined;
 }
 
@@ -154,6 +155,21 @@ function highlightWithPatterns(content: string, patterns: NonNullable<Language['
 	return out;
 }
 
+function outsideProse(
+	content: string,
+	overlay: readonly RawHighlight[],
+	claimed: ReadonlyArray<readonly [number, number, string, ...unknown[]]>,
+): readonly RawHighlight[] {
+	if (overlay.length === 0) return overlay;
+	const prose = new Uint8Array(content.length);
+	for (const [start, end, group] of claimed) {
+		if (group.startsWith('comment') || group.startsWith('string')) prose.fill(1, start, end);
+	}
+	return overlay.filter(([start, end]) =>
+		prose.subarray(start, end).every((covered) => covered === 0),
+	);
+}
+
 /** Answered instead of segments when `isStale` says the text moved on. */
 export const STALE = Symbol('stale');
 
@@ -199,19 +215,25 @@ export async function computeHighlights(
 	isStale?: () => boolean,
 ): Promise<Highlighted | typeof STALE> {
 	const guides = indentGuides(content, tabSize);
-	const patterns = filetype ? languageFor(filetype)?.patterns : undefined;
-	if (patterns) {
-		return prepare(content, [...highlightWithPatterns(content, patterns), ...guides]);
+	const lang = filetype ? languageFor(filetype) : undefined;
+	const overlay = lang?.patterns ? highlightWithPatterns(content, lang.patterns) : [];
+	if (lang?.patterns && !lang.wasm && !lang.bundled) {
+		return prepare(content, [...overlay, ...guides]);
 	}
 
 	const client = filetype ? await ensureClient() : null;
-	if (!client) return prepare(content, guides);
+	if (!client) return prepare(content, [...overlay, ...guides]);
 	try {
 		const res = await client.highlightOnce(content, filetype!);
 		if (isStale?.()) return STALE;
-		return prepare(content, [...(res.highlights ?? []), ...guides]);
+		const highlights = res.highlights ?? [];
+		return prepare(content, [
+			...highlights,
+			...outsideProse(content, overlay, highlights),
+			...guides,
+		]);
 	} catch {
-		return prepare(content, guides);
+		return prepare(content, [...overlay, ...guides]);
 	}
 }
 
