@@ -115,6 +115,33 @@ test('branch switch picker checks out the selected branch', async () => {
 	expect(readFileSync(join(dir, 'a.ts'), 'utf8')).toBe('feature\n');
 });
 
+test('branch pickers filter choices as they are typed', async () => {
+	const dir = repo('main\n');
+	const git = (...args: string[]) => runGit(dir, ...args);
+	git('switch', '-q', '-c', 'alpha');
+	git('switch', '-q', 'main');
+	git('switch', '-q', '-c', 'zebra');
+	git('switch', '-q', 'main');
+
+	const t = await launch(dir);
+	await runCommand(t, 'Switch branch');
+	expect(t.captureCharFrame()).toContain('alpha');
+	expect(t.captureCharFrame()).toContain('zebra');
+
+	await press(t, (input) => void input.typeText('ze'));
+	const filtered = t.captureCharFrame();
+	expect(filtered).toContain('filter: ze');
+	expect(filtered).toContain('zebra');
+	expect(filtered).not.toContain('alpha');
+	await press(t, (input) => input.pressEnter());
+
+	await until(
+		t,
+		() =>
+			execFileSync('git', ['branch', '--show-current'], { cwd: dir }).toString().trim() === 'zebra',
+	);
+});
+
 test('new branch prompt creates and checks out a branch', async () => {
 	const dir = repo('main\n');
 
