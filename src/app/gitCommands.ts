@@ -111,9 +111,12 @@ export function createGitCommands(deps: {
 
 	const compareWith = (base: string) => {
 		const files = branchDiffFiles(deps.rootDir, base);
-		if (files.length === 0) return deps.say(`No differences from ${base}`, 'warn');
 		const commits = branchDiffCommits(deps.rootDir, base);
 		const behind = branchBehindCount(deps.rootDir, base);
+		if (files.length === 0) {
+			deps.say(`No differences from ${base}: ↑${commits.length} ↓${behind}, 0 files`);
+			return;
+		}
 		const stats = files
 			.map((file) => unifiedDiff(file.rel, file.oldText, file.newText))
 			.reduce(

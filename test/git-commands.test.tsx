@@ -221,6 +221,18 @@ test('branch comparison reports commit and file totals', async () => {
 	expect(t.captureCharFrame()).toContain('↑1 ↓1, 1 files, +1 -1');
 });
 
+test('branch comparison reports a clean zero-file state', async () => {
+	const dir = repo('one\n');
+	const git = (...args: string[]) => runGit(dir, ...args);
+	git('switch', '-q', '-c', 'feature');
+
+	const t = await launch(dir);
+	await runCommand(t, 'Compare branches');
+	await press(t, (input) => input.pressEnter());
+
+	expect(t.captureCharFrame()).toContain('No differences from main: ↑0 ↓0, 0 files');
+});
+
 test('source control comparison opens commits for its base', async () => {
 	const dir = repo('one\n');
 	const git = (...args: string[]) => runGit(dir, ...args);
