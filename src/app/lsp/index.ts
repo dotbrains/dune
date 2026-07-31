@@ -135,6 +135,13 @@ export function createAppLsp(deps: {
 		for (const path of Object.keys(problems)) clearProblems(path);
 	};
 
+	const restart = (): boolean => {
+		const running = clients.size > 0;
+		dispose();
+		setGeneration((current) => current + 1);
+		return running;
+	};
+
 	const install = async (id: string, name: string, packages: string[]) => {
 		deps.say(`Installing ${name}...`);
 		const error = await installServer(packages);
@@ -194,6 +201,7 @@ export function createAppLsp(deps: {
 		definition,
 		generation,
 		install,
+		restart,
 		setFlushEdit: (flush: (path: string) => void) => {
 			flushEdit = flush;
 		},
@@ -265,6 +273,15 @@ export function wireAppLspEffects(deps: {
 				client.openDocument(path, filetypeForPath(path) ?? 'plaintext', buffer.content);
 				client.pullDiagnostics(path);
 				synced.set(path, { client, text: buffer.content, dirty: buffer.dirty });
+				continue;
+			}
+
+			const current = deps.lsp.clientFor(path);
+			if (!current) continue;
+			if (current !== known.client) {
+				current.openDocument(path, filetypeForPath(path) ?? 'plaintext', buffer.content);
+				current.pullDiagnostics(path);
+				synced.set(path, { client: current, text: buffer.content, dirty: buffer.dirty });
 				continue;
 			}
 

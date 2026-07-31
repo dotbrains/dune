@@ -39,6 +39,7 @@ export const KEYBINDABLE_COMMANDS: ReadonlyArray<{ id: string; label: string }> 
 	{ id: 'problems.list', label: 'List problems' },
 	{ id: 'problems.next', label: 'Next problem' },
 	{ id: 'problems.prev', label: 'Previous problem' },
+	{ id: 'problems.restart', label: 'Restart language servers' },
 	{ id: 'editor.complete', label: 'Show completions' },
 	{ id: 'help', label: 'Keyboard shortcuts' },
 	{ id: 'quit', label: 'Quit' },
@@ -87,6 +88,7 @@ export interface CommandActions {
 	problemsList: () => void;
 	problemsNext: () => void;
 	problemsPrev: () => void;
+	problemsRestart: () => void;
 	completion: () => void;
 	commit: () => void;
 	sourceControl: () => void;
@@ -326,6 +328,7 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 				{ id: 'problems.list', label: 'List problems', run: actions.problemsList },
 				{ id: 'problems.next', label: 'Next problem', run: actions.problemsNext },
 				{ id: 'problems.prev', label: 'Previous problem', run: actions.problemsPrev },
+				{ id: 'problems.restart', label: 'Restart language servers', run: actions.problemsRestart },
 			],
 		},
 		{

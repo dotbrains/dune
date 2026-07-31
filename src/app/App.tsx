@@ -373,6 +373,8 @@ export function App(props: AppTypes.AppProps) {
 		problemsList: problemUi.list,
 		problemsNext: () => problemUi.next(1),
 		problemsPrev: () => problemUi.next(-1),
+		problemsRestart: () =>
+			say(lsp.restart() ? 'Restarted language servers' : 'No language servers running'),
 		completion,
 		setLineOp,
 		patchConfig,
@@ -468,6 +470,8 @@ export function App(props: AppTypes.AppProps) {
 		problemsList: problemUi.list,
 		problemsNext: () => problemUi.next(1),
 		problemsPrev: () => problemUi.next(-1),
+		problemsRestart: () =>
+			say(lsp.restart() ? 'Restarted language servers' : 'No language servers running'),
 		completion: completion.show,
 		expanded,
 	});

@@ -97,6 +97,19 @@ test('completion resolve asks servers for lazy edits', async () => {
 	expect(resolved?.additionalTextEdits?.[0]?.newText).toContain('duneLazy');
 });
 
+test('restart clears clients and resyncs open documents', async () => {
+	const { path, lsp } = runLsp();
+	await waitFor(() => lsp.clientFor(path)?.ready() === true);
+	const before = lsp.clientFor(path);
+
+	expect(lsp.restart()).toBe(true);
+	await waitFor(() => lsp.clientFor(path)?.ready() === true);
+	await waitFor(() => lsp.problems[path]?.[0]?.message === 'found oops');
+
+	expect(lsp.clientFor(path)).not.toBe(before);
+	expect(lsp.problems[path]?.[0]?.message).toBe('found oops');
+});
+
 test('settings gate LSP clients and completion separately', async () => {
 	const { dir, path } = project();
 	createRoot((dispose) => {
