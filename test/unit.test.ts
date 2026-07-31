@@ -7,12 +7,26 @@ import { buildCommands, flattenCommands } from '../src/app/commands';
 import type { CommandActions } from '../src/app/commands';
 import { unifiedDiff } from '../src/core/diff';
 import { readFile } from '../src/core/fs';
+import { defaultBranch } from '../src/core/git';
 import { searchProject, searchText } from '../src/core/search';
 import { isNewer } from '../src/core/update';
 import { THEMES } from '../src/themes';
+import { git as runGit } from './git-fixture';
 
 const hexChannels = (hex: string) =>
 	[0, 2, 4].map((i) => Number.parseInt(hex.replace('#', '').slice(i, i + 2), 16));
+
+const gitRepo = (initial = 'trunk') => {
+	const dir = mkdtempSync(join(tmpdir(), 'dune-default-branch-'));
+	const git = (...args: string[]) => runGit(dir, ...args);
+	git('init', '-q', '-b', initial);
+	git('config', 'user.email', 'test@example.com');
+	git('config', 'user.name', 'Test');
+	writeFileSync(join(dir, 'seed.txt'), 'seed\n');
+	git('add', '.');
+	git('commit', '-q', '-m', 'seed');
+	return { dir, git };
+};
 
 describe('search', () => {
 	const text = 'const alpha = 1\nlet beta = 2\n// alpha again\n';
@@ -58,6 +72,24 @@ describe('diffs', () => {
 		expect(diff.patch).toContain('+inserted');
 		expect(diff.patch).toContain(' two');
 		expect(diff.patch).not.toContain('-two');
+	});
+});
+
+describe('git defaults', () => {
+	test('follows configured remote HEAD before local fallback', () => {
+		const { dir, git } = gitRepo('trunk');
+		git('config', 'init.defaultBranch', 'main');
+		git('remote', 'add', 'origin', dir);
+		git('fetch', '-q', 'origin');
+		git('symbolic-ref', 'refs/remotes/origin/HEAD', 'refs/remotes/origin/trunk');
+		expect(defaultBranch(dir)).toBe('origin/trunk');
+	});
+
+	test('uses existing init.defaultBranch and otherwise returns null', () => {
+		const local = gitRepo('trunk');
+		local.git('config', 'init.defaultBranch', 'trunk');
+		expect(defaultBranch(local.dir)).toBe('trunk');
+		expect(defaultBranch(gitRepo('topic').dir)).toBeNull();
 	});
 });
 
