@@ -305,7 +305,7 @@ test('compare against branch changes source-control diffs', async () => {
 	await press(t, (input) => input.pressEnter());
 	await press(t, (input) => void input.pressKeys([`${ESC}${String.fromCharCode(7)}`]));
 
-	expect(t.captureCharFrame()).toContain('a.ts');
+	expect(t.captureCharFrame()).toContain('vs feature');
 	await press(t, (input) => input.pressEnter());
 	expect(t.captureCharFrame()).toContain('- two');
 	expect(t.captureCharFrame()).toContain('+ one');

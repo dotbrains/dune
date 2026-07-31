@@ -13,6 +13,7 @@ import { MARKS, statusColor } from '../FileTree';
 export function GitPanel(props: {
 	rootDir: string;
 	branch: string | null;
+	base: string | null;
 	upstream: { ahead: number; behind: number } | null;
 	width: number;
 	focused: boolean;
@@ -86,7 +87,11 @@ export function GitPanel(props: {
 		>
 			<box height={2} flexDirection="column" backgroundColor={ui.panelBg} paddingLeft={2}>
 				<text fg={props.focused ? ui.text : ui.dim} bg={ui.panelBg} content={headline()} />
-				<text fg={ui.faint} bg={ui.panelBg} content="source control" />
+				<text
+					fg={props.base ? ui.dirty : ui.faint}
+					bg={ui.panelBg}
+					content={props.base ? `vs ${props.base}` : 'source control'}
+				/>
 			</box>
 			<Show
 				when={rows().length > 0}

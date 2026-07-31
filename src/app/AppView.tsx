@@ -85,6 +85,7 @@ interface AppViewProps {
 	cursor: { line: number; col: number };
 	vimMode: VimMode | null;
 	branch: string | null;
+	diffBase: string | null;
 	upstream: Upstream | null;
 	busy: { label: string; done: number; total: number } | null;
 	promptTitle: string | undefined;
@@ -209,6 +210,7 @@ export function AppView(props: AppViewProps) {
 						<GitPanel
 							rootDir={props.rootDir}
 							branch={props.branch}
+							base={props.diffBase}
 							upstream={props.upstream}
 							width={props.treeWidth}
 							focused={props.focus === 'tree' && !props.blocked}

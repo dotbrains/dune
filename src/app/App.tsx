@@ -7,7 +7,6 @@ import { flattenVisible } from '../core/fs';
 import { currentBranch, type FileStatus, type LineChange, type Upstream } from '../core/git';
 import { invalidateSyntaxStyle } from '../languages/highlight';
 import { isMarkdownPath } from '../core/markdown';
-import type { Match } from '../core/search';
 import { checkForUpdate } from '../core/update';
 import { setTheme, setTransparency } from '../themes';
 import type { VimMode } from '../editor/vim';
@@ -215,7 +214,7 @@ export function App(props: AppTypes.AppProps) {
 		setBuffers(path, { content: next, dirty: true });
 		pushEdit(next);
 	};
-	const jumpTo = (match: Match) => {
+	const jumpTo = (match: { path: string | null; line: number; col: number }) => {
 		setSearch(null);
 		if (match.path && match.path !== activePath()) openFile(match.path);
 		setGoto((prev) => ({ line: match.line, col: match.col, key: (prev?.key ?? 0) + 1 }));
@@ -522,6 +521,7 @@ export function App(props: AppTypes.AppProps) {
 			cursor={cursor()}
 			vimMode={vimMode()}
 			branch={branch()}
+			diffBase={diffBase()}
 			upstream={upstream()}
 			busy={busy()}
 			promptTitle={controls.promptTitle()}
