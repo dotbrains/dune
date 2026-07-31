@@ -86,6 +86,8 @@ export interface Config {
 	lspCompletion: boolean;
 	/** Show the first diagnostic message beside each affected line. */
 	lspInline: boolean;
+	/** Offer to install missing npm-backed language servers into dune's data dir. */
+	lspAutoInstall: boolean;
 	/** TypeScript SDK path passed to typescript-language-server. Empty lets it choose. */
 	typescriptTsdk: string;
 	/** Per-server command override. An empty array disables that server. */
@@ -114,6 +116,7 @@ export const DEFAULTS: Config = {
 	lsp: false,
 	lspCompletion: true,
 	lspInline: true,
+	lspAutoInstall: true,
 	typescriptTsdk: '',
 	lspServers: {},
 	keybindings: {},
@@ -154,6 +157,7 @@ function parsePartial(raw: unknown): Partial<Config> {
 	if (typeof obj.lsp === 'boolean') config.lsp = obj.lsp;
 	if (typeof obj.lspCompletion === 'boolean') config.lspCompletion = obj.lspCompletion;
 	if (typeof obj.lspInline === 'boolean') config.lspInline = obj.lspInline;
+	if (typeof obj.lspAutoInstall === 'boolean') config.lspAutoInstall = obj.lspAutoInstall;
 	if (typeof obj.typescriptTsdk === 'string') config.typescriptTsdk = obj.typescriptTsdk;
 	if (obj.lspServers && typeof obj.lspServers === 'object' && !Array.isArray(obj.lspServers)) {
 		const lspServers: Record<string, string[]> = {};

@@ -5,6 +5,7 @@ import { join } from 'node:path';
 
 import { DEFAULTS, loadProjectConfig } from '../src/core/config';
 import { settingsRows } from '../src/app/settingsRows';
+import { installedCommand } from '../src/lsp/install';
 import { projectCommand, typescriptMajor } from '../src/lsp/project';
 import { installHint, resolveServer } from '../src/lsp/servers';
 import { fixture } from './helpers';
@@ -37,6 +38,7 @@ test('LSP settings parse and appear in settings rows', () => {
 			lsp: true,
 			lspCompletion: false,
 			lspInline: false,
+			lspAutoInstall: false,
 			typescriptTsdk: '/opt/typescript/lib',
 			lspServers: { typescript: ['deno', 'lsp'] },
 		},
@@ -62,6 +64,7 @@ test('LSP settings parse and appear in settings rows', () => {
 	expect(rows.find((row) => row.label === 'Language servers')?.value).toBe('on');
 	expect(rows.find((row) => row.label === 'Autocomplete')?.value).toBe('off');
 	expect(rows.find((row) => row.label === 'Inline problem text')?.value).toBe('off');
+	expect(rows.find((row) => row.label === 'Offer to install servers')?.value).toBe('off');
 	expect(rows.find((row) => row.label === 'TypeScript SDK')?.value).toBe('/opt/typescript/lib');
 	expect(rows.find((row) => row.label === 'Language server overrides')?.value).toBe('1 overridden');
 	expect(DEFAULTS.lsp).toBe(false);
@@ -74,6 +77,7 @@ test('LSP settings parse from project config', () => {
 			lsp: true,
 			lspCompletion: false,
 			lspInline: false,
+			lspAutoInstall: false,
 			typescriptTsdk: '/workspace/typescript/lib',
 			lspServers: { typescript: ['deno', 'lsp'], bogus: [1] },
 		}),
@@ -83,6 +87,7 @@ test('LSP settings parse from project config', () => {
 		lsp: true,
 		lspCompletion: false,
 		lspInline: false,
+		lspAutoInstall: false,
 		typescriptTsdk: '/workspace/typescript/lib',
 		lspServers: { typescript: ['deno', 'lsp'] },
 	});
@@ -123,6 +128,15 @@ test('typescript 5 projects do not use tsc as the language server', () => {
 	});
 
 	expect(projectCommand('typescript', ['typescript-language-server', '--stdio'], dir)).toBeNull();
+});
+
+test('installed language server commands resolve from dune data root', () => {
+	const dir = project({ 'node_modules/.bin/pyright-langserver': '' });
+	expect(installedCommand(['pyright-langserver', '--stdio'], dir)).toEqual([
+		join(dir, 'node_modules', '.bin', 'pyright-langserver'),
+		'--stdio',
+	]);
+	expect(installedCommand(['missing-language-server'], dir)).toBeNull();
 });
 
 function project(files: Record<string, string>): string {

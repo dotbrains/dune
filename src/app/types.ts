@@ -59,6 +59,7 @@ export type Prompt =
 	| { kind: 'renameBranch'; from: string }
 	| { kind: 'deleteBranch'; name: string; force: boolean }
 	| { kind: 'mergeBranch'; name: string }
+	| { kind: 'installServer'; id: string; name: string; packages: string[] }
 	| null;
 
 export type PromptKind = NonNullable<Prompt>['kind'];

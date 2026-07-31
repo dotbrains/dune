@@ -1,6 +1,7 @@
 import { basename } from 'node:path';
 
 import { isDirectory } from '../core/fs';
+import { SERVER_ROOT } from '../lsp/install';
 import type { Confirmation, Prompt } from './types';
 
 export function confirmationForPrompt(prompt: Prompt): Confirmation | null {
@@ -52,6 +53,13 @@ export function confirmationForPrompt(prompt: Prompt): Confirmation | null {
 				message: prompt.force
 					? `Delete "${prompt.name}" even if it has commits on no other branch? They are lost.`
 					: `Delete "${prompt.name}"? Git refuses if it has commits that are not merged.`,
+			};
+		case 'installServer':
+			return {
+				title: 'Language server missing',
+				verb: 'install it',
+				danger: false,
+				message: `${prompt.name} is not installed. Fetch it with npm into ${SERVER_ROOT}?`,
 			};
 		default:
 			return null;

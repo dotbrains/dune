@@ -116,7 +116,7 @@ export function App(props: AppTypes.AppProps) {
 		setFocus,
 		say,
 	});
-	const lsp = createAppLsp({ rootDir, config, say });
+	const lsp = createAppLsp({ rootDir, config, say, setPrompt });
 	wireAppLspEffects({ lsp, config, tabs, buffers });
 	const expand = (path: string) => setExpanded((prev) => new Set(prev).add(path));
 	const discardBuffer = (path: string) => setBuffers(produce((draft) => void delete draft[path]));
@@ -262,6 +262,7 @@ export function App(props: AppTypes.AppProps) {
 		tabs,
 		selectedPath,
 		gitCommands,
+		installLspServer: lsp.install,
 		closeTab,
 		expand,
 		movePath,

@@ -113,6 +113,13 @@ export function settingsRows(
 		},
 		{
 			section: 'Editor',
+			label: 'Offer to install servers',
+			value: onOff(config.lspAutoInstall),
+			change: () =>
+				actions.patchConfig({ lspAutoInstall: !config.lspAutoInstall }, actions.configScope()),
+		},
+		{
+			section: 'Editor',
 			label: 'Language server overrides',
 			value: `${Object.keys(config.lspServers).length} overridden`,
 			change: () => {},

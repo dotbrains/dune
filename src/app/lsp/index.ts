@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url';
 
-import { createEffect, onCleanup } from 'solid-js';
+import { createEffect, createSignal, onCleanup } from 'solid-js';
 import { createStore } from 'solid-js/store';
 
 import type { Config } from '../../core/config';
@@ -11,11 +11,12 @@ import { normalizeCompletion } from '../../lsp/completion';
 import type { CompletionReply } from '../../lsp/completion';
 import { normalizeDefinition } from '../../lsp/definition';
 import type { DefinitionTarget } from '../../lsp/definition';
+import { hasNodeRuntime, installedCommand, installServer, SERVER_ROOT } from '../../lsp/install';
 import { projectCommand } from '../../lsp/project';
 import { isUnnecessary, severityOf } from '../../lsp/protocol';
 import type { CompletionItem, Diagnostic, ProblemSeverity } from '../../lsp/protocol';
 import { installHint, resolveServer } from '../../lsp/servers';
-import type { BufferState, StatusMessage } from '../types';
+import type { BufferState, Prompt, StatusMessage } from '../types';
 
 export interface Problem {
 	path: string;
@@ -35,9 +36,12 @@ export function createAppLsp(deps: {
 	rootDir: string;
 	config: Config;
 	say: (msg: string, tone?: StatusMessage['tone']) => void;
+	setPrompt?: (prompt: Prompt) => void;
 }) {
 	const [problems, setProblems] = createStore<Record<string, Problem[]>>({});
+	const [generation, setGeneration] = createSignal(0);
 	const clients = new Map<string, LspClient | null>();
+	const offered = new Set<string>();
 
 	const onDiagnostics = (uri: string, diagnostics: Diagnostic[]) => {
 		let path: string;
@@ -81,13 +85,35 @@ export function createAppLsp(deps: {
 			: `LSP: ${name} is not installed, or not on PATH`;
 	};
 
+	const offerInstall = (resolved: NonNullable<ReturnType<typeof resolveServer>>): boolean => {
+		if (
+			resolved.install?.kind !== 'npm' ||
+			!deps.config.lspAutoInstall ||
+			!deps.setPrompt ||
+			offered.has(resolved.id) ||
+			!hasNodeRuntime()
+		) {
+			return false;
+		}
+		offered.add(resolved.id);
+		deps.setPrompt({
+			kind: 'installServer',
+			id: resolved.id,
+			name: resolved.command[0]!,
+			packages: resolved.install.packages,
+		});
+		return true;
+	};
+
 	const clientFor = (path: string): LspClient | null => {
 		if (!deps.config.lsp) return null;
 		const resolved = resolveServer(filetypeForPath(path), deps.config.lspServers);
 		if (!resolved) return null;
 		const known = clients.get(resolved.id);
 		if (known !== undefined) return known;
-		const command = projectCommand(resolved.id, resolved.command, deps.rootDir) ?? resolved.command;
+		const project = projectCommand(resolved.id, resolved.command, deps.rootDir);
+		const fetched = project ? null : installedCommand(resolved.command);
+		const command = project ?? fetched ?? resolved.command;
 		const client = spawnLspClient({
 			command,
 			rootDir: deps.rootDir,
@@ -95,6 +121,7 @@ export function createAppLsp(deps: {
 			onDiagnostics,
 			onFail: (reason, missing) => {
 				clients.set(resolved.id, null);
+				if (missing && offerInstall(resolved)) return;
 				deps.say(missing ? missingMessage(resolved) : `LSP: ${command[0]} ${reason}`, 'warn');
 			},
 		});
@@ -106,6 +133,18 @@ export function createAppLsp(deps: {
 		for (const client of clients.values()) client?.dispose();
 		clients.clear();
 		for (const path of Object.keys(problems)) clearProblems(path);
+	};
+
+	const install = async (id: string, name: string, packages: string[]) => {
+		deps.say(`Installing ${name}...`);
+		const error = await installServer(packages);
+		if (error) return deps.say(`Could not install ${name}: ${error}`, 'error');
+		if (!installedCommand([name])) {
+			return deps.say(`Installed ${name}, but no ${name} appeared in ${SERVER_ROOT}`, 'error');
+		}
+		clients.delete(id);
+		setGeneration((current) => current + 1);
+		deps.say(`Installed ${name}`);
 	};
 
 	let flushEdit: ((path: string) => void) | null = null;
@@ -153,6 +192,8 @@ export function createAppLsp(deps: {
 		complete,
 		resolveCompletion,
 		definition,
+		generation,
+		install,
 		setFlushEdit: (flush: (path: string) => void) => {
 			flushEdit = flush;
 		},
@@ -195,6 +236,7 @@ export function wireAppLspEffects(deps: {
 	};
 
 	createEffect(() => {
+		deps.lsp.generation();
 		if (!deps.config.lsp) {
 			pendingEdits.clear();
 			synced.clear();

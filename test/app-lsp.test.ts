@@ -7,7 +7,7 @@ import { createRoot, createSignal } from 'solid-js';
 import { createStore } from 'solid-js/store';
 
 import { createAppLsp, problemFrom, wireAppLspEffects } from '../src/app/lsp/index';
-import type { BufferState } from '../src/app/types';
+import type { BufferState, Prompt } from '../src/app/types';
 import { DEFAULTS } from '../src/core/config';
 
 const FAKE = join(import.meta.dir, 'fixtures', 'fake-lsp.ts');
@@ -122,6 +122,57 @@ test('missing default servers show install hints', async () => {
 			expect(warnings[0]).toBe(
 				'LSP: typescript-language-server not installed — npm i -g typescript-language-server typescript@5',
 			);
+		});
+	});
+});
+
+test('missing npm servers can prompt for installation', async () => {
+	const { dir, path } = project();
+	await createRoot((dispose) => {
+		disposers.push(dispose);
+		const warnings: string[] = [];
+		let prompt: Prompt = null;
+		const config = { ...DEFAULTS, lsp: true };
+		const lsp = createAppLsp({
+			rootDir: dir,
+			config,
+			say: (msg) => warnings.push(msg),
+			setPrompt: (next) => (prompt = next),
+		});
+
+		lsp.clientFor(path);
+
+		return waitFor(() => prompt?.kind === 'installServer').then(() => {
+			expect(warnings).toEqual([]);
+			expect(prompt).toEqual({
+				kind: 'installServer',
+				id: 'typescript',
+				name: 'typescript-language-server',
+				packages: ['typescript-language-server', 'typescript@5'],
+			});
+		});
+	});
+});
+
+test('auto-install can be disabled', async () => {
+	const { dir, path } = project();
+	await createRoot((dispose) => {
+		disposers.push(dispose);
+		const warnings: string[] = [];
+		let prompt: Prompt = null;
+		const config = { ...DEFAULTS, lsp: true, lspAutoInstall: false };
+		const lsp = createAppLsp({
+			rootDir: dir,
+			config,
+			say: (msg) => warnings.push(msg),
+			setPrompt: (next) => (prompt = next),
+		});
+
+		lsp.clientFor(path);
+
+		return waitFor(() => warnings.length > 0).then(() => {
+			expect(prompt).toBeNull();
+			expect(warnings[0]).toContain('npm i -g typescript-language-server typescript@5');
 		});
 	});
 });

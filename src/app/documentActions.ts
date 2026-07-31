@@ -40,6 +40,7 @@ export function createDocumentActions(deps: {
 		merge: (name: string) => void;
 		undoCommit: () => void;
 	};
+	installLspServer: (id: string, name: string, packages: string[]) => void;
 	closeTab: (path: string, discardUnsaved?: boolean) => void;
 	expand: (path: string) => void;
 	movePath: (from: string, to: string) => string | null;
@@ -336,6 +337,8 @@ export function createDocumentActions(deps: {
 				return deps.gitCommands.remove(p.name, p.force);
 			case 'mergeBranch':
 				return deps.gitCommands.merge(p.name);
+			case 'installServer':
+				return deps.installLspServer(p.id, p.name, p.packages);
 		}
 	};
 	return {
