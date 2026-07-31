@@ -68,6 +68,12 @@ export function createAppLsp(deps: {
 		if (problems[path]?.length) setProblems(path, []);
 	};
 
+	const initializationOptionsFor = (id: string): unknown => {
+		if (id !== 'typescript') return undefined;
+		const tsdk = deps.config.typescriptTsdk.trim();
+		return tsdk ? { tsserver: { path: tsdk } } : undefined;
+	};
+
 	const clientFor = (path: string): LspClient | null => {
 		if (!deps.config.lsp) return null;
 		const resolved = resolveServer(filetypeForPath(path), deps.config.lspServers);
@@ -78,6 +84,7 @@ export function createAppLsp(deps: {
 		const client = spawnLspClient({
 			command,
 			rootDir: deps.rootDir,
+			initializationOptions: initializationOptionsFor(resolved.id),
 			onDiagnostics,
 			onFail: (reason) => {
 				clients.set(resolved.id, null);

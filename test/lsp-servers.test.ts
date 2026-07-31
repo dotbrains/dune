@@ -27,6 +27,7 @@ test('LSP settings parse and appear in settings rows', () => {
 			...DEFAULTS,
 			lsp: true,
 			lspCompletion: false,
+			typescriptTsdk: '/opt/typescript/lib',
 			lspServers: { typescript: ['deno', 'lsp'] },
 		},
 		{
@@ -50,6 +51,7 @@ test('LSP settings parse and appear in settings rows', () => {
 
 	expect(rows.find((row) => row.label === 'Language servers')?.value).toBe('on');
 	expect(rows.find((row) => row.label === 'Autocomplete')?.value).toBe('off');
+	expect(rows.find((row) => row.label === 'TypeScript SDK')?.value).toBe('/opt/typescript/lib');
 	expect(rows.find((row) => row.label === 'Language server overrides')?.value).toBe('1 overridden');
 	expect(DEFAULTS.lsp).toBe(false);
 });
@@ -60,6 +62,7 @@ test('LSP settings parse from project config', () => {
 		'.dune/settings.json': JSON.stringify({
 			lsp: true,
 			lspCompletion: false,
+			typescriptTsdk: '/workspace/typescript/lib',
 			lspServers: { typescript: ['deno', 'lsp'], bogus: [1] },
 		}),
 	});
@@ -67,6 +70,7 @@ test('LSP settings parse from project config', () => {
 	expect(loadProjectConfig(dir)).toMatchObject({
 		lsp: true,
 		lspCompletion: false,
+		typescriptTsdk: '/workspace/typescript/lib',
 		lspServers: { typescript: ['deno', 'lsp'] },
 	});
 });

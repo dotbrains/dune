@@ -84,6 +84,8 @@ export interface Config {
 	lsp: boolean;
 	/** Completion menu while typing. Requires `lsp` to be enabled. */
 	lspCompletion: boolean;
+	/** TypeScript SDK path passed to typescript-language-server. Empty lets it choose. */
+	typescriptTsdk: string;
 	/** Per-server command override. An empty array disables that server. */
 	lspServers: Record<string, string[]>;
 	/** Custom global shortcuts by command id, e.g. `{ "open": "Ctrl+Alt+O" }`. */
@@ -109,6 +111,7 @@ export const DEFAULTS: Config = {
 	diffView: 'inline',
 	lsp: false,
 	lspCompletion: true,
+	typescriptTsdk: '',
 	lspServers: {},
 	keybindings: {},
 };
@@ -147,6 +150,7 @@ function parsePartial(raw: unknown): Partial<Config> {
 	if (obj.diffView === 'split' || obj.diffView === 'inline') config.diffView = obj.diffView;
 	if (typeof obj.lsp === 'boolean') config.lsp = obj.lsp;
 	if (typeof obj.lspCompletion === 'boolean') config.lspCompletion = obj.lspCompletion;
+	if (typeof obj.typescriptTsdk === 'string') config.typescriptTsdk = obj.typescriptTsdk;
 	if (obj.lspServers && typeof obj.lspServers === 'object' && !Array.isArray(obj.lspServers)) {
 		const lspServers: Record<string, string[]> = {};
 		for (const [id, value] of Object.entries(obj.lspServers)) {

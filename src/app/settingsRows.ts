@@ -113,6 +113,12 @@ export function settingsRows(
 		},
 		{
 			section: 'Editor',
+			label: 'TypeScript SDK',
+			value: config.typescriptTsdk || 'server default',
+			change: () => {},
+		},
+		{
+			section: 'Editor',
 			label: 'Add/update shortcut…',
 			value: `${Object.keys(config.keybindings).length} custom`,
 			change: actions.editKeybinding,

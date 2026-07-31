@@ -30,6 +30,7 @@ export interface LspClientOptions {
 	rootDir: string;
 	onDiagnostics: (uri: string, diagnostics: Diagnostic[]) => void;
 	onFail: (reason: string) => void;
+	initializationOptions?: unknown;
 }
 
 interface PendingRequest {
@@ -157,6 +158,7 @@ export function spawnLspClient(options: LspClientOptions) {
 			},
 		},
 		workspaceFolders: [{ uri: rootUri, name: 'workspace' }],
+		initializationOptions: options.initializationOptions,
 	})
 		.then((result) => {
 			if (state !== 'starting') return;

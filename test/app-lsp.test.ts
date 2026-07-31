@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -106,6 +106,36 @@ test('settings gate LSP clients and completion separately', async () => {
 		expect(lsp.clientFor(path)).toBeNull();
 		expect(lsp.complete(path, 0, 0)).resolves.toBeNull();
 	});
+});
+
+test('typescript sdk setting is handed to the language server', async () => {
+	const { dir, path } = project();
+	const dump = join(dir, 'init.json');
+	createRoot((dispose) => {
+		disposers.push(dispose);
+		const config = {
+			...DEFAULTS,
+			lsp: true,
+			typescriptTsdk: '/opt/typescript/lib',
+			lspServers: { typescript: ['bun', FAKE, dump] },
+		};
+		const lsp = createAppLsp({ rootDir: dir, config, say: () => {} });
+		lsp.clientFor(path);
+	});
+	await waitFor(() => existsSync(dump));
+	expect(JSON.parse(readFileSync(dump, 'utf8'))).toEqual({
+		tsserver: { path: '/opt/typescript/lib' },
+	});
+
+	rmSync(dump);
+	createRoot((dispose) => {
+		disposers.push(dispose);
+		const config = { ...DEFAULTS, lsp: true, lspServers: { typescript: ['bun', FAKE, dump] } };
+		const lsp = createAppLsp({ rootDir: dir, config, say: () => {} });
+		lsp.clientFor(path);
+	});
+	await waitFor(() => existsSync(dump));
+	expect(JSON.parse(readFileSync(dump, 'utf8'))).toBeNull();
 });
 
 test('problem navigation wraps in both directions', () => {
