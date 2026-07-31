@@ -22,7 +22,7 @@ export function GitPanel(props: {
 	onDiff: (path: string) => void;
 	onCommit: () => void;
 	onPush: () => void;
-	onBranchAction: (action: 'switch' | 'compare') => void;
+	onBranchAction: (action: 'switch' | 'compare' | 'commits') => void;
 }) {
 	const [index, setIndex] = createSignal(0);
 	const [collapsed, setCollapsed] = createSignal<Set<string>>(new Set());
@@ -68,8 +68,10 @@ export function GitPanel(props: {
 		} else if (key.name === 'right') {
 			const current = row();
 			if (current?.kind === 'dir' && current.collapsed) toggleDir(current.rel);
-		} else if (plain && key.name === 'c') props.onCommit();
-		else if (plain && key.name === 'p') props.onPush();
+		} else if (plain && key.name === 'c') {
+			if (props.base) props.onBranchAction('commits');
+			else props.onCommit();
+		} else if (plain && key.name === 'p') props.onPush();
 		else if (plain && key.name === 'b' && !key.shift) props.onBranchAction('switch');
 		else if (plain && ((key.name === 'b' && key.shift) || key.name === 'B'))
 			props.onBranchAction('compare');
@@ -172,7 +174,7 @@ export function GitPanel(props: {
 				<text
 					fg={ui.faint}
 					bg={ui.panelBg}
-					content="b branch · B compare · c commit · p push · enter diff · ←→ fold"
+					content={`b branch · B compare · c ${props.base ? 'commits' : 'commit'} · p push · enter diff · ←→ fold`}
 				/>
 			</box>
 		</box>

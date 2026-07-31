@@ -373,8 +373,14 @@ export function createGitCommands(deps: {
 		openBranchCommitComparison,
 		openDiffBasePicker,
 		resetDiffBase,
-		openPanelBranchAction: (action: 'switch' | 'compare') =>
-			action === 'switch' ? openBranchSwitch() : openBranchComparison(),
+		openPanelBranchAction: (action: 'switch' | 'compare' | 'commits') => {
+			if (action === 'switch') return openBranchSwitch();
+			if (action === 'commits') {
+				const base = diffBase();
+				return base ? showCommitChoices(base) : openBranchCommitComparison();
+			}
+			return openBranchComparison();
+		},
 		openBranchSwitch,
 		openBranchMerge,
 		openBranchRename,

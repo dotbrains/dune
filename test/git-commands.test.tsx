@@ -221,6 +221,21 @@ test('branch comparison reports commit and file totals', async () => {
 	expect(t.captureCharFrame()).toContain('↑1 ↓1, 1 files, +1 -1');
 });
 
+test('source control comparison opens commits for its base', async () => {
+	const dir = repo('one\n');
+	const git = (...args: string[]) => runGit(dir, ...args);
+	git('switch', '-q', '-c', 'feature');
+	writeFileSync(join(dir, 'a.ts'), 'two\n');
+	git('commit', '-qam', 'change a');
+
+	const t = await launch(dir);
+	await runCommand(t, 'Compare against branch');
+	await press(t, (input) => input.pressEnter());
+	await runCommand(t, 'Source Control');
+	await press(t, (input) => void input.typeText('c'));
+	expect(t.captureCharFrame()).toContain('change a');
+});
+
 test('rename branch command renames the selected local branch', async () => {
 	const dir = repo('main\n');
 	const git = (...args: string[]) => runGit(dir, ...args);
