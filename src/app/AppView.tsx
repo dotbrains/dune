@@ -213,6 +213,7 @@ export function AppView(props: AppViewProps) {
 							branch={props.branch}
 							base={props.diffBase}
 							upstream={props.upstream}
+							view={props.config.gitPanelView}
 							width={props.treeWidth}
 							focused={props.focus === 'tree' && !props.blocked}
 							status={props.gitStatus}

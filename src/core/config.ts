@@ -80,6 +80,8 @@ export interface Config {
 	respectGitignore: boolean;
 	/** Diff presentation in Git overlays. */
 	diffView: 'inline' | 'split';
+	/** Changed-files presentation in the source control panel. */
+	gitPanelView: 'tree' | 'list';
 	/** Language servers: spawn matching servers as files open. */
 	lsp: boolean;
 	/** Completion menu while typing. Requires `lsp` to be enabled. */
@@ -113,6 +115,7 @@ export const DEFAULTS: Config = {
 	showDotfiles: true,
 	respectGitignore: false,
 	diffView: 'inline',
+	gitPanelView: 'tree',
 	lsp: false,
 	lspCompletion: true,
 	lspInline: true,
@@ -154,6 +157,9 @@ function parsePartial(raw: unknown): Partial<Config> {
 	if (typeof obj.showDotfiles === 'boolean') config.showDotfiles = obj.showDotfiles;
 	if (typeof obj.respectGitignore === 'boolean') config.respectGitignore = obj.respectGitignore;
 	if (obj.diffView === 'split' || obj.diffView === 'inline') config.diffView = obj.diffView;
+	if (obj.gitPanelView === 'tree' || obj.gitPanelView === 'list') {
+		config.gitPanelView = obj.gitPanelView;
+	}
 	if (typeof obj.lsp === 'boolean') config.lsp = obj.lsp;
 	if (typeof obj.lspCompletion === 'boolean') config.lspCompletion = obj.lspCompletion;
 	if (typeof obj.lspInline === 'boolean') config.lspInline = obj.lspInline;

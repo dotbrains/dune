@@ -30,7 +30,14 @@ test('source-control rows join single-child folder chains', () => {
 });
 
 test('collapsed source-control folders keep their row and hide their files', () => {
-	const rows = changeRows(changes('src/a.ts', 'src/b.ts', 'c.ts'), new Set(['src']));
+	const rows = changeRows(changes('src/a.ts', 'src/b.ts', 'c.ts'), 'tree', new Set(['src']));
 	expect(shape(rows)).toEqual(['0:file:c.ts', '0:dir:src']);
 	expect(rows.find((row) => row.kind === 'dir')).toMatchObject({ collapsed: true, files: 2 });
+});
+
+test('source-control rows can stay flat', () => {
+	expect(shape(changeRows(changes('src/a.ts', 'src/b.ts'), 'list'))).toEqual([
+		'0:file:src/a.ts',
+		'0:file:src/b.ts',
+	]);
 });

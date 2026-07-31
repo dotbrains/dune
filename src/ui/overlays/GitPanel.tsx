@@ -16,6 +16,7 @@ export function GitPanel(props: {
 	branch: string | null;
 	base: string | null;
 	upstream: { ahead: number; behind: number } | null;
+	view: 'tree' | 'list';
 	width: number;
 	focused: boolean;
 	status: Map<string, FileStatus>;
@@ -38,7 +39,7 @@ export function GitPanel(props: {
 			})
 			.toSorted((a, b) => a.rel.localeCompare(b.rel)),
 	);
-	const rows = createMemo(() => changeRows(changes(), collapsed()));
+	const rows = createMemo(() => changeRows(changes(), props.view, collapsed()));
 	const selected = () => Math.min(index(), Math.max(0, rows().length - 1));
 	const headline = () => {
 		const parts = [props.branch ?? 'git'];
@@ -208,7 +209,7 @@ export function GitPanel(props: {
 				<text
 					fg={ui.faint}
 					bg={ui.panelBg}
-					content={`b branch · B compare · c ${props.base ? 'commits' : 'commit'} · ${props.base ? '/ filter · ' : ''}p push · enter diff · ←→ fold`}
+					content={`b branch · B compare · c ${props.base ? 'commits' : 'commit'} · ${props.base ? '/ filter · ' : ''}p push · enter diff${props.view === 'tree' ? ' · ←→ fold' : ''}`}
 				/>
 			</box>
 		</box>

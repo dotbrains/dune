@@ -31,8 +31,13 @@ export function ancestorDirs(rel: string): string[] {
 
 export function changeRows(
 	changes: readonly Change[],
+	mode: 'tree' | 'list' = 'tree',
 	collapsed: ReadonlySet<string> = new Set(),
 ): ChangeRow[] {
+	if (mode === 'list') {
+		return changes.map((change) => ({ kind: 'file', depth: 0, label: change.rel, change }));
+	}
+
 	const rows: ChangeRow[] = [];
 	const emitted = new Map<string, { depth: number }>();
 

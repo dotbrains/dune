@@ -8,6 +8,7 @@ export type { SettingRow } from '../ui/overlays/SettingsView';
 
 const TAB_SIZES = [2, 4, 8];
 const DIFF_VIEWS = ['inline', 'split'] as const;
+const GIT_PANEL_VIEWS = ['tree', 'list'] as const;
 
 const onOff = (value: boolean) => (value ? 'on' : 'off');
 
@@ -176,6 +177,16 @@ export function settingsRows(
 			change: (dir) =>
 				actions.patchConfig(
 					{ diffView: cycle(DIFF_VIEWS, config.diffView, dir) },
+					actions.configScope(),
+				),
+		},
+		{
+			section: 'Git',
+			label: 'Changed files',
+			value: config.gitPanelView === 'tree' ? 'tree' : 'flat list',
+			change: (dir) =>
+				actions.patchConfig(
+					{ gitPanelView: cycle(GIT_PANEL_VIEWS, config.gitPanelView, dir) },
 					actions.configScope(),
 				),
 		},

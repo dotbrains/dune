@@ -44,6 +44,7 @@ test('LSP settings parse and appear in settings rows', () => {
 			lspAutoInstall: false,
 			typescriptTsdk: '/opt/typescript/lib',
 			lspServers: { typescript: ['deno', 'lsp'] },
+			gitPanelView: 'list',
 		},
 		{
 			applyTheme: () => {},
@@ -72,6 +73,7 @@ test('LSP settings parse and appear in settings rows', () => {
 	expect(rows.find((row) => row.label === 'Inline problem text')?.value).toBe('off');
 	expect(rows.find((row) => row.label === 'Offer to install servers')?.value).toBe('off');
 	expect(rows.find((row) => row.label === 'TypeScript SDK')?.value).toBe('/opt/typescript/lib');
+	expect(rows.find((row) => row.label === 'Changed files')?.value).toBe('flat list');
 	const lspRow = rows.find((row) => row.label === 'Add/update language server…');
 	const tsdkRow = rows.find((row) => row.label === 'TypeScript SDK');
 	expect(lspRow?.value).toBe('1 overridden');
@@ -114,6 +116,7 @@ test('LSP settings parse from project config', () => {
 			lspInline: false,
 			lspAutoInstall: false,
 			typescriptTsdk: '/workspace/typescript/lib',
+			gitPanelView: 'list',
 			lspServers: { typescript: ['deno', 'lsp'], bogus: [1] },
 		}),
 	});
@@ -124,6 +127,7 @@ test('LSP settings parse from project config', () => {
 		lspInline: false,
 		lspAutoInstall: false,
 		typescriptTsdk: '/workspace/typescript/lib',
+		gitPanelView: 'list',
 		lspServers: { typescript: ['deno', 'lsp'] },
 	});
 });

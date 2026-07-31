@@ -73,10 +73,11 @@ describe('git work done in another terminal', () => {
 
 test('dependency writes are reported separately from ordinary tree changes', async () => {
 	const { dir } = repo();
+	mkdirSync(join(dir, 'node_modules', 'pkg'), { recursive: true });
 	const seen: Array<{ tree: boolean; git: boolean; deps: boolean }> = [];
 	const stop = watchTree(dir, (changed) => seen.push(changed));
 	try {
-		mkdirSync(join(dir, 'node_modules', 'pkg'), { recursive: true });
+		await new Promise((resolve) => setTimeout(resolve, 200));
 		writeFileSync(join(dir, 'node_modules', 'pkg', 'index.js'), 'module.exports = 1\n');
 		await new Promise((resolve) => setTimeout(resolve, 400));
 		expect(seen.some((changed) => changed.tree && changed.deps && !changed.git)).toBe(true);
