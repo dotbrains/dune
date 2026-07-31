@@ -20,6 +20,12 @@ export interface Branch {
 	upstream: string | null;
 }
 
+export interface BranchCommit {
+	oid: string;
+	shortOid: string;
+	subject: string;
+}
+
 /**
  * Queries run synchronously because they sit behind gutter marks, tree marks and
  * the status bar. Mutations run asynchronously below, so push/fetch/stash/commit
@@ -224,8 +230,11 @@ export function branchDiffFiles(cwd: string, baseBranch = defaultBranch(cwd)): D
 	if (base === null || !baseBranch) return [];
 	const mergeBase = git(cwd, ['merge-base', baseBranch, 'HEAD'], 5000);
 	if (mergeBase.status !== 0) return [];
-	const baseRef = mergeBase.stdout.trim();
-	const names = git(cwd, ['diff', '--name-status', '-z', `${baseRef}...HEAD`], 5000);
+	return refDiffFiles(cwd, base, mergeBase.stdout.trim(), 'HEAD');
+}
+
+function refDiffFiles(cwd: string, base: string, from: string, to: string): DiffFile[] {
+	const names = git(cwd, ['diff', '--name-status', '-z', from, to], 5000);
 	if (names.status !== 0 || !names.stdout) return [];
 	const parts = names.stdout.split('\0');
 	const files: DiffFile[] = [];
@@ -236,8 +245,8 @@ export function branchDiffFiles(cwd: string, baseBranch = defaultBranch(cwd)): D
 		const oldRel = code === 'R' || code === 'C' ? parts[i++] : parts[i];
 		const rel = parts[i++];
 		if (!rel) continue;
-		const oldText = status === 'added' ? '' : (textAtRef(cwd, baseRef, oldRel ?? rel) ?? '');
-		const newText = status === 'deleted' ? '' : textAtRef(cwd, 'HEAD', rel);
+		const oldText = status === 'added' ? '' : (textAtRef(cwd, from, oldRel ?? rel) ?? '');
+		const newText = status === 'deleted' ? '' : textAtRef(cwd, to, rel);
 		if (newText === null && status !== 'deleted') continue;
 		files.push({
 			path: join(base, rel),
@@ -248,6 +257,29 @@ export function branchDiffFiles(cwd: string, baseBranch = defaultBranch(cwd)): D
 		});
 	}
 	return files.toSorted((a, b) => a.rel.localeCompare(b.rel));
+}
+
+export function branchDiffCommits(cwd: string, baseBranch = defaultBranch(cwd)): BranchCommit[] {
+	if (!baseBranch) return [];
+	const run = git(cwd, ['log', '-z', '--format=%H%x00%h%x00%s', `${baseBranch}..HEAD`], 5000);
+	if (run.status !== 0 || !run.stdout) return [];
+	const fields = run.stdout.split('\0');
+	if (fields.at(-1) === '') fields.pop();
+	const commits: BranchCommit[] = [];
+	for (let i = 0; i + 2 < fields.length; i += 3) {
+		commits.push({ oid: fields[i]!, shortOid: fields[i + 1]!, subject: fields[i + 2]! });
+	}
+	return commits;
+}
+
+export function commitDiffFiles(cwd: string, oid: string): DiffFile[] {
+	const base = keyBase(cwd);
+	if (base === null) return [];
+	const commit = git(cwd, ['rev-parse', '--verify', `${oid}^{commit}`], 5000);
+	if (commit.status !== 0) return [];
+	const parent = git(cwd, ['rev-parse', '--verify', `${commit.stdout.trim()}^`], 5000);
+	const emptyTree = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
+	return refDiffFiles(cwd, base, parent.status === 0 ? parent.stdout.trim() : emptyTree, oid);
 }
 
 /** Which visible tree paths are excluded by gitignore. Empty outside a repository. */

@@ -91,6 +91,7 @@ export interface CommandActions {
 	diffCurrent: () => void;
 	diffAll: () => void;
 	compareBranches: () => void;
+	compareBranchCommits: () => void;
 	switchBranch: () => void;
 	newBranch: () => void;
 	newBranchFrom: () => void;
@@ -326,6 +327,11 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 				{ id: 'git.diffCurrent', label: 'Diff current file', run: actions.diffCurrent },
 				{ id: 'git.diffAll', label: 'Diff all changes', run: actions.diffAll },
 				{ id: 'git.compareBranches', label: 'Compare branches', run: actions.compareBranches },
+				{
+					id: 'git.compareBranchCommits',
+					label: 'Compare branch commits',
+					run: actions.compareBranchCommits,
+				},
 				{ id: 'git.switchBranch', label: 'Switch branch…', run: actions.switchBranch },
 				{ id: 'git.newBranch', label: 'New branch…', run: actions.newBranch },
 				{ id: 'git.newBranchFrom', label: 'New branch from…', run: actions.newBranchFrom },

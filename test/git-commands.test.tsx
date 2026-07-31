@@ -156,6 +156,25 @@ test('merge branch command merges the selected branch after confirmation', async
 	expect(readFileSync(join(dir, 'feature.ts'), 'utf8')).toBe('feature\n');
 });
 
+test('branch commit comparison opens a selected commit diff', async () => {
+	const dir = repo('one\n');
+	const git = (...args: string[]) => runGit(dir, ...args);
+	git('switch', '-q', '-c', 'feature');
+	writeFileSync(join(dir, 'a.ts'), 'two\n');
+	git('commit', '-qam', 'change a');
+
+	const t = await launch(dir);
+	await runCommand(t, 'Compare branch commits');
+	expect(t.captureCharFrame()).toContain('Compare commits against branch');
+	await press(t, (input) => input.pressEnter());
+	expect(t.captureCharFrame()).toContain('change a');
+	await press(t, (input) => input.pressEnter());
+
+	const frame = t.captureCharFrame();
+	expect(frame).toContain('- one');
+	expect(frame).toContain('+ two');
+});
+
 test('rename branch command renames the selected local branch', async () => {
 	const dir = repo('main\n');
 	const git = (...args: string[]) => runGit(dir, ...args);

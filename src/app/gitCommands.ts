@@ -3,7 +3,9 @@ import { createSignal } from 'solid-js';
 
 import {
 	branchDiffFiles,
+	branchDiffCommits,
 	commitPaths,
+	commitDiffFiles,
 	createBranch,
 	defaultBranch,
 	deleteBranch,
@@ -46,7 +48,15 @@ export function createGitCommands(deps: {
 	const [diff, setDiff] = createSignal<DiffFile[] | null>(null);
 	const [panel, setPanel] = createSignal(false);
 	const [branchMode, setBranchMode] = createSignal<
-		'compare' | 'delete' | 'deleteForce' | 'from' | 'merge' | 'rename' | 'switch'
+		| 'commitDiff'
+		| 'commits'
+		| 'compare'
+		| 'delete'
+		| 'deleteForce'
+		| 'from'
+		| 'merge'
+		| 'rename'
+		| 'switch'
 	>('compare');
 	const [branchChoices, setBranchChoices] = createSignal<{ id: string; label: string }[] | null>(
 		null,
@@ -105,6 +115,35 @@ export function createGitCommands(deps: {
 			return base ? compareWith(base) : deps.say('No branch to compare against', 'warn');
 		}
 		setBranchMode('compare');
+		setBranchChoices(branches.map((branch) => ({ id: branch.name, label: branch.name })));
+	};
+
+	const openCommitDiff = (oid: string) => {
+		const files = commitDiffFiles(deps.rootDir, oid);
+		if (files.length === 0) return deps.say('No files changed in that commit', 'warn');
+		setDiff(files);
+	};
+
+	const showCommitChoices = (base: string) => {
+		const commits = branchDiffCommits(deps.rootDir, base);
+		if (commits.length === 0) return deps.say(`No commits ahead of ${base}`, 'warn');
+		setBranchMode('commitDiff');
+		setBranchChoices(
+			commits.map((commit) => ({
+				id: commit.oid,
+				label: `${commit.shortOid}  ${commit.subject}`,
+			})),
+		);
+	};
+
+	const openBranchCommitComparison = () => {
+		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
+		const branches = listBranches(deps.rootDir).filter((branch) => branch.name !== deps.branch());
+		if (branches.length === 0) {
+			const base = defaultBranch(deps.rootDir);
+			return base ? showCommitChoices(base) : deps.say('No branch to compare against', 'warn');
+		}
+		setBranchMode('commits');
 		setBranchChoices(branches.map((branch) => ({ id: branch.name, label: branch.name })));
 	};
 
@@ -222,33 +261,43 @@ export function createGitCommands(deps: {
 		branchChoiceTitle: () =>
 			branchMode() === 'switch'
 				? 'Switch to branch'
-				: branchMode() === 'merge'
-					? 'Merge into current branch'
-					: branchMode() === 'rename'
-						? 'Rename branch'
-						: branchMode() === 'delete'
-							? 'Delete branch'
-							: branchMode() === 'deleteForce'
-								? 'Delete branch (force)'
-								: branchMode() === 'from'
-									? 'New branch from'
-									: 'Compare against branch',
+				: branchMode() === 'commits'
+					? 'Compare commits against branch'
+					: branchMode() === 'commitDiff'
+						? 'Open commit diff'
+						: branchMode() === 'merge'
+							? 'Merge into current branch'
+							: branchMode() === 'rename'
+								? 'Rename branch'
+								: branchMode() === 'delete'
+									? 'Delete branch'
+									: branchMode() === 'deleteForce'
+										? 'Delete branch (force)'
+										: branchMode() === 'from'
+											? 'New branch from'
+											: 'Compare against branch',
 		branchChoiceMessage: () =>
 			branchMode() === 'switch'
 				? 'Enter checks out the selected branch.'
-				: branchMode() === 'merge'
-					? 'Enter chooses a branch to merge into the current branch.'
-					: branchMode() === 'rename'
-						? 'Enter chooses a branch to rename.'
-						: branchMode() === 'delete'
-							? 'Enter chooses a branch to delete.'
-							: branchMode() === 'deleteForce'
-								? 'Enter chooses a branch to force delete.'
-								: branchMode() === 'from'
-									? 'Enter chooses the start point for a new branch.'
-									: 'Enter compares the current branch against the selected branch.',
+				: branchMode() === 'commits'
+					? 'Enter lists commits ahead of the selected branch.'
+					: branchMode() === 'commitDiff'
+						? 'Enter opens the selected commit diff.'
+						: branchMode() === 'merge'
+							? 'Enter chooses a branch to merge into the current branch.'
+							: branchMode() === 'rename'
+								? 'Enter chooses a branch to rename.'
+								: branchMode() === 'delete'
+									? 'Enter chooses a branch to delete.'
+									: branchMode() === 'deleteForce'
+										? 'Enter chooses a branch to force delete.'
+										: branchMode() === 'from'
+											? 'Enter chooses the start point for a new branch.'
+											: 'Enter compares the current branch against the selected branch.',
 		pickBranch: (name: string) => {
 			setBranchChoices(null);
+			if (branchMode() === 'commits') return showCommitChoices(name);
+			if (branchMode() === 'commitDiff') return openCommitDiff(name);
 			if (branchMode() === 'compare') return compareWith(name);
 			if (branchMode() === 'merge') return deps.setPrompt({ kind: 'mergeBranch', name });
 			if (branchMode() === 'rename') return deps.setPrompt({ kind: 'renameBranch', from: name });
@@ -279,6 +328,7 @@ export function createGitCommands(deps: {
 		pull: () => runGit('Pulling', () => gitPull(deps.rootDir), 'Pulled'),
 		openDiff,
 		openBranchComparison,
+		openBranchCommitComparison,
 		openBranchSwitch,
 		openBranchMerge,
 		openBranchRename,
