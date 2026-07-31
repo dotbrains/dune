@@ -31,6 +31,7 @@ export interface Problem {
 }
 
 const CHANGE_DEBOUNCE_MS = 150;
+const DEPENDENCY_QUIET_MS = 2_000;
 
 export function createAppLsp(deps: {
 	rootDir: string;
@@ -142,6 +143,17 @@ export function createAppLsp(deps: {
 		return running;
 	};
 
+	let depsTimer: ReturnType<typeof setTimeout> | null = null;
+
+	const dependenciesChanged = () => {
+		if (!deps.config.lsp) return;
+		if (depsTimer) clearTimeout(depsTimer);
+		depsTimer = setTimeout(() => {
+			depsTimer = null;
+			if (restart()) deps.say('Dependencies changed — restarted language servers');
+		}, DEPENDENCY_QUIET_MS);
+	};
+
 	const install = async (id: string, name: string, packages: string[]) => {
 		deps.say(`Installing ${name}...`);
 		const error = await installServer(packages);
@@ -190,7 +202,10 @@ export function createAppLsp(deps: {
 		return normalizeDefinition(await client.definition(path, { line, character: col }));
 	};
 
-	onCleanup(dispose);
+	onCleanup(() => {
+		if (depsTimer) clearTimeout(depsTimer);
+		dispose();
+	});
 
 	return {
 		problems,
@@ -200,6 +215,7 @@ export function createAppLsp(deps: {
 		resolveCompletion,
 		definition,
 		generation,
+		dependenciesChanged,
 		install,
 		restart,
 		setFlushEdit: (flush: (path: string) => void) => {

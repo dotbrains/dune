@@ -37,12 +37,11 @@ export function App(props: AppTypes.AppProps) {
 	const dimensions = useTerminalDimensions();
 	const rootDir = props.rootDir;
 	const restored = restoreAppState(rootDir, props.openFile ?? null);
-	const initialProjectConfig = props.projectConfig ?? {};
-	const initialConfig = resolveConfig(props.initialConfig, initialProjectConfig);
+	const initialConfig = resolveConfig(props.initialConfig, props.projectConfig ?? {});
 	const initialAppearance = detectAppearance();
 	initialConfig.theme = resolvedTheme(initialConfig, initialAppearance);
 	const [userConfig, setUserConfig] = createStore<Config>({ ...props.initialConfig });
-	const [projectConfig, setProjectConfig] = createStore<Partial<Config>>(initialProjectConfig);
+	const [projectConfig, setProjectConfig] = createStore<Partial<Config>>(props.projectConfig ?? {});
 	const [config, setConfig] = createStore<Config>(initialConfig);
 	setTheme(initialConfig.theme);
 	setTransparency(initialConfig.transparent);
@@ -411,6 +410,7 @@ export function App(props: AppTypes.AppProps) {
 		},
 		saveDirtyOnBlur,
 		syncFromDisk,
+		dependenciesChanged: lsp.dependenciesChanged,
 		say,
 		setGitRevision,
 		setGitLines,

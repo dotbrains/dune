@@ -42,6 +42,7 @@ export function useAppLifecycle(deps: {
 	onAppearance: (appearance: Appearance) => void;
 	saveDirtyOnBlur: () => void;
 	syncFromDisk: () => DiskSync;
+	dependenciesChanged: () => void;
 	say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
 	setGitRevision: (update: (n: number) => number) => void;
 	setGitLines: (lines: Map<number, LineChange>) => void;
@@ -93,6 +94,7 @@ export function useAppLifecycle(deps: {
 		onCleanup(
 			watchTree(deps.rootDir, (changed) => {
 				if (changed.git) deps.setGitRevision((n) => n + 1);
+				if (changed.deps) deps.dependenciesChanged();
 				if (!changed.tree) return;
 				const warning = clashWarning(deps.syncFromDisk());
 				if (warning) deps.say(warning, 'warn');

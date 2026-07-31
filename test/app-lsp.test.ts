@@ -110,6 +110,17 @@ test('restart clears clients and resyncs open documents', async () => {
 	expect(lsp.problems[path]?.[0]?.message).toBe('found oops');
 });
 
+test('dependency changes restart active language servers after a quiet period', async () => {
+	const { path, lsp, warnings } = runLsp();
+	await waitFor(() => lsp.clientFor(path)?.ready() === true);
+	const before = lsp.clientFor(path);
+
+	lsp.dependenciesChanged();
+	await waitFor(() => warnings.includes('Dependencies changed — restarted language servers'), 100);
+
+	expect(lsp.clientFor(path)).not.toBe(before);
+});
+
 test('settings gate LSP clients and completion separately', async () => {
 	const { dir, path } = project();
 	createRoot((dispose) => {

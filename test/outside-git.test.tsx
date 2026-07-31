@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -69,4 +69,18 @@ describe('git work done in another terminal', () => {
 		await watcherSettles(t);
 		expect(t.captureCharFrame()).toContain('sidequest');
 	});
+});
+
+test('dependency writes are reported separately from ordinary tree changes', async () => {
+	const { dir } = repo();
+	const seen: Array<{ tree: boolean; git: boolean; deps: boolean }> = [];
+	const stop = watchTree(dir, (changed) => seen.push(changed));
+	try {
+		mkdirSync(join(dir, 'node_modules', 'pkg'), { recursive: true });
+		writeFileSync(join(dir, 'node_modules', 'pkg', 'index.js'), 'module.exports = 1\n');
+		await new Promise((resolve) => setTimeout(resolve, 400));
+		expect(seen.some((changed) => changed.tree && changed.deps && !changed.git)).toBe(true);
+	} finally {
+		stop();
+	}
 });
