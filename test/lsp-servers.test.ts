@@ -1,7 +1,11 @@
 import { expect, test } from 'bun:test';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 import { DEFAULTS, loadProjectConfig } from '../src/core/config';
 import { settingsRows } from '../src/app/settingsRows';
+import { projectCommand, typescriptMajor } from '../src/lsp/project';
 import { resolveServer } from '../src/lsp/servers';
 import { fixture } from './helpers';
 
@@ -66,3 +70,50 @@ test('LSP settings parse from project config', () => {
 		lspServers: { typescript: ['deno', 'lsp'] },
 	});
 });
+
+test('language server resolution prefers project-local executables', () => {
+	const dir = project({
+		'node_modules/.bin/typescript-language-server': '',
+		'node_modules/typescript/package.json': '{"version":"5.9.2"}',
+	});
+
+	expect(typescriptMajor(dir)).toBe(5);
+	expect(projectCommand('typescript', ['typescript-language-server', '--stdio'], dir)).toEqual([
+		join(dir, 'node_modules', '.bin', 'typescript-language-server'),
+		'--stdio',
+	]);
+});
+
+test('typescript 7 projects use tsc as the language server', () => {
+	const dir = project({
+		'node_modules/.bin/tsc': '',
+		'node_modules/.bin/typescript-language-server': '',
+		'node_modules/typescript/package.json': '{"version":"7.0.2"}',
+	});
+
+	expect(typescriptMajor(dir)).toBe(7);
+	expect(projectCommand('typescript', ['typescript-language-server', '--stdio'], dir)).toEqual([
+		join(dir, 'node_modules', '.bin', 'tsc'),
+		'--lsp',
+		'--stdio',
+	]);
+});
+
+test('typescript 5 projects do not use tsc as the language server', () => {
+	const dir = project({
+		'node_modules/.bin/tsc': '',
+		'node_modules/typescript/package.json': '{"version":"5.9.2"}',
+	});
+
+	expect(projectCommand('typescript', ['typescript-language-server', '--stdio'], dir)).toBeNull();
+});
+
+function project(files: Record<string, string>): string {
+	const dir = mkdtempSync(join(tmpdir(), 'dune-lsp-project-'));
+	for (const [name, content] of Object.entries(files)) {
+		const path = join(dir, name);
+		mkdirSync(join(path, '..'), { recursive: true });
+		writeFileSync(path, content);
+	}
+	return dir;
+}

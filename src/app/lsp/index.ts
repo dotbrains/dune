@@ -11,6 +11,7 @@ import { normalizeCompletion } from '../../lsp/completion';
 import type { CompletionReply } from '../../lsp/completion';
 import { normalizeDefinition } from '../../lsp/definition';
 import type { DefinitionTarget } from '../../lsp/definition';
+import { projectCommand } from '../../lsp/project';
 import { isUnnecessary, severityOf } from '../../lsp/protocol';
 import type { CompletionItem, Diagnostic, ProblemSeverity } from '../../lsp/protocol';
 import { resolveServer } from '../../lsp/servers';
@@ -73,13 +74,14 @@ export function createAppLsp(deps: {
 		if (!resolved) return null;
 		const known = clients.get(resolved.id);
 		if (known !== undefined) return known;
+		const command = projectCommand(resolved.id, resolved.command, deps.rootDir) ?? resolved.command;
 		const client = spawnLspClient({
-			command: resolved.command,
+			command,
 			rootDir: deps.rootDir,
 			onDiagnostics,
 			onFail: (reason) => {
 				clients.set(resolved.id, null);
-				deps.say(`LSP: ${resolved.command[0]} ${reason}`, 'warn');
+				deps.say(`LSP: ${command[0]} ${reason}`, 'warn');
 			},
 		});
 		clients.set(resolved.id, client);
