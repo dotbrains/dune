@@ -13,6 +13,7 @@ import { MARKS, statusColor } from '../FileTree';
 export function GitPanel(props: {
 	rootDir: string;
 	branch: string | null;
+	upstream: { ahead: number; behind: number } | null;
 	width: number;
 	focused: boolean;
 	status: Map<string, FileStatus>;
@@ -20,6 +21,7 @@ export function GitPanel(props: {
 	onDiff: (path: string) => void;
 	onCommit: () => void;
 	onPush: () => void;
+	onCompare: () => void;
 }) {
 	const [index, setIndex] = createSignal(0);
 	const [collapsed, setCollapsed] = createSignal<Set<string>>(new Set());
@@ -30,6 +32,13 @@ export function GitPanel(props: {
 	);
 	const rows = createMemo(() => changeRows(changes(), collapsed()));
 	const selected = () => Math.min(index(), Math.max(0, rows().length - 1));
+	const headline = () => {
+		const parts = [props.branch ?? 'git'];
+		const upstream = props.upstream;
+		if (upstream?.ahead) parts.push(`↑${upstream.ahead}`);
+		if (upstream?.behind) parts.push(`↓${upstream.behind}`);
+		return parts.join(' ');
+	};
 	const toggleDir = (rel: string) =>
 		setCollapsed((prev) => {
 			const next = new Set(prev);
@@ -59,6 +68,7 @@ export function GitPanel(props: {
 			if (current?.kind === 'dir' && current.collapsed) toggleDir(current.rel);
 		} else if (key.name === 'c') props.onCommit();
 		else if (key.name === 'p') props.onPush();
+		else if ((key.name === 'b' && key.shift) || key.name === 'B') props.onCompare();
 		else return;
 		key.preventDefault();
 	});
@@ -72,11 +82,7 @@ export function GitPanel(props: {
 			onMouseDown={props.onFocus}
 		>
 			<box height={2} flexDirection="column" backgroundColor={ui.panelBg} paddingLeft={2}>
-				<text
-					fg={props.focused ? ui.text : ui.dim}
-					bg={ui.panelBg}
-					content={props.branch ?? 'git'}
-				/>
+				<text fg={props.focused ? ui.text : ui.dim} bg={ui.panelBg} content={headline()} />
 				<text fg={ui.faint} bg={ui.panelBg} content="source control" />
 			</box>
 			<Show
@@ -155,7 +161,11 @@ export function GitPanel(props: {
 				</box>
 			</Show>
 			<box height={1} backgroundColor={ui.panelBg} paddingLeft={1}>
-				<text fg={ui.faint} bg={ui.panelBg} content="enter diff · ←→ fold · c commit · p push" />
+				<text
+					fg={ui.faint}
+					bg={ui.panelBg}
+					content="B compare · c commit · p push · enter diff · ←→ fold"
+				/>
 			</box>
 		</box>
 	);

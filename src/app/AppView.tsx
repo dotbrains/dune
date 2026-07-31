@@ -119,6 +119,7 @@ interface AppViewProps {
 	onGitDiff: (path: string) => void;
 	onGitCommit: () => void;
 	onGitPush: () => void;
+	onGitCompare: () => void;
 	onResizeStart: (event: MouseEvent) => void;
 	onEditorChange: (text: string) => void;
 	onCursor: (pos: { line: number; col: number }) => void;
@@ -208,6 +209,7 @@ export function AppView(props: AppViewProps) {
 						<GitPanel
 							rootDir={props.rootDir}
 							branch={props.branch}
+							upstream={props.upstream}
 							width={props.treeWidth}
 							focused={props.focus === 'tree'}
 							status={props.gitStatus}
@@ -215,6 +217,7 @@ export function AppView(props: AppViewProps) {
 							onDiff={props.onGitDiff}
 							onCommit={props.onGitCommit}
 							onPush={props.onGitPush}
+							onCompare={props.onGitCompare}
 						/>
 					</Show>
 					{/* Drag handle: the whole column is the grab target, but only a short

@@ -6,8 +6,7 @@ import { resolveConfig, resolvedTheme } from '../core/config';
 import type { Config } from '../core/config';
 import type { TreeNode } from '../core/fs';
 import { flattenVisible } from '../core/fs';
-import { currentBranch } from '../core/git';
-import type { FileStatus, LineChange, Upstream } from '../core/git';
+import { currentBranch, type FileStatus, type LineChange, type Upstream } from '../core/git';
 import { invalidateSyntaxStyle } from '../languages/highlight';
 import { isMarkdownPath } from '../core/markdown';
 import type { Match } from '../core/search';
@@ -557,6 +556,7 @@ export function App(props: AppTypes.AppProps) {
 			onGitDiff={gitCommands.openDiff}
 			onGitCommit={gitCommands.openCommitPicker}
 			onGitPush={gitCommands.push}
+			onGitCompare={gitCommands.openBranchComparison}
 			onResizeStart={(event) => {
 				setResizing(true);
 				resizeSidebar(event.x);
