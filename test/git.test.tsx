@@ -349,6 +349,27 @@ test('source control panel lists changes from Ctrl+Opt+G', async () => {
 	expect(t.captureCharFrame()).toContain('Commit');
 });
 
+test('source control panel groups changed files by folder', async () => {
+	const dir = repo('one\n');
+	mkdirSync(join(dir, 'src'));
+	writeFileSync(join(dir, 'src/a.ts'), 'a\n');
+	writeFileSync(join(dir, 'src/b.ts'), 'b\n');
+
+	const t = await launch(dir);
+	await press(t, (input) => void input.pressKeys([`${ESC}${String.fromCharCode(7)}`]));
+
+	expect(t.captureCharFrame()).toContain('src');
+	expect(t.captureCharFrame()).toContain('a.ts');
+	expect(t.captureCharFrame()).toContain('b.ts');
+	await press(t, (input) => input.pressArrow('left'));
+	expect(t.captureCharFrame()).toContain('2');
+	expect(t.captureCharFrame()).not.toContain('a.ts');
+	expect(t.captureCharFrame()).not.toContain('b.ts');
+	await press(t, (input) => input.pressArrow('right'));
+	expect(t.captureCharFrame()).toContain('a.ts');
+	expect(t.captureCharFrame()).toContain('b.ts');
+});
+
 test('a folder inherits the status of its contents', async () => {
 	const dir = repo('one\n');
 	mkdirSync(join(dir, 'sub'));

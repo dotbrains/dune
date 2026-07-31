@@ -2,8 +2,10 @@ import { relative } from 'node:path';
 
 import type { KeyEvent } from '@opentui/core';
 import { useKeyboard } from '@opentui/solid';
-import { createSignal, For, Show } from 'solid-js';
+import { createMemo, createSignal, For, Show } from 'solid-js';
 
+import type { ChangeRow } from '../../core/changeTree';
+import { changeRows } from '../../core/changeTree';
 import type { FileStatus } from '../../core/git';
 import { ui } from '../../themes';
 import { MARKS, statusColor } from '../FileTree';
@@ -20,20 +22,41 @@ export function GitPanel(props: {
 	onPush: () => void;
 }) {
 	const [index, setIndex] = createSignal(0);
-	const changes = () =>
+	const [collapsed, setCollapsed] = createSignal<Set<string>>(new Set());
+	const changes = createMemo(() =>
 		[...props.status]
 			.map(([path, status]) => ({ path, status, rel: relative(props.rootDir, path) }))
-			.toSorted((a, b) => a.rel.localeCompare(b.rel));
-	const selected = () => Math.min(index(), Math.max(0, changes().length - 1));
+			.toSorted((a, b) => a.rel.localeCompare(b.rel)),
+	);
+	const rows = createMemo(() => changeRows(changes(), collapsed()));
+	const selected = () => Math.min(index(), Math.max(0, rows().length - 1));
+	const toggleDir = (rel: string) =>
+		setCollapsed((prev) => {
+			const next = new Set(prev);
+			if (next.has(rel)) next.delete(rel);
+			else next.add(rel);
+			return next;
+		});
+	const activate = (row: ChangeRow | undefined) => {
+		if (!row) return;
+		if (row.kind === 'dir') toggleDir(row.rel);
+		else props.onDiff(row.change.path);
+	};
 
 	useKeyboard((key: KeyEvent) => {
 		if (!props.focused) return;
-		const rows = Math.max(1, changes().length);
-		if (key.name === 'up') setIndex((at) => (at - 1 + rows) % rows);
-		else if (key.name === 'down') setIndex((at) => (at + 1) % rows);
+		const count = Math.max(1, rows().length);
+		const row = () => rows()[selected()];
+		if (key.name === 'up') setIndex((at) => (at - 1 + count) % count);
+		else if (key.name === 'down') setIndex((at) => (at + 1) % count);
 		else if (key.name === 'return' || key.name === 'enter') {
-			const change = changes()[selected()];
-			if (change) props.onDiff(change.path);
+			activate(row());
+		} else if (key.name === 'left') {
+			const current = row();
+			if (current?.kind === 'dir' && !current.collapsed) toggleDir(current.rel);
+		} else if (key.name === 'right') {
+			const current = row();
+			if (current?.kind === 'dir' && current.collapsed) toggleDir(current.rel);
 		} else if (key.name === 'c') props.onCommit();
 		else if (key.name === 'p') props.onPush();
 		else return;
@@ -57,7 +80,7 @@ export function GitPanel(props: {
 				<text fg={ui.faint} bg={ui.panelBg} content="source control" />
 			</box>
 			<Show
-				when={changes().length > 0}
+				when={rows().length > 0}
 				fallback={
 					<box flexGrow={1} backgroundColor={ui.panelBg} paddingLeft={2}>
 						<text fg={ui.faint} bg={ui.panelBg} content="no changes" />
@@ -65,8 +88,8 @@ export function GitPanel(props: {
 				}
 			>
 				<box flexGrow={1} flexDirection="column" backgroundColor={ui.panelBg}>
-					<For each={changes()}>
-						{(change, at) => {
+					<For each={rows()}>
+						{(row, at) => {
 							const active = () => at() === selected();
 							const bg = () => (active() ? ui.treeSelectedBg : ui.panelBg);
 							return (
@@ -74,17 +97,57 @@ export function GitPanel(props: {
 									height={1}
 									flexDirection="row"
 									backgroundColor={bg()}
-									onMouseDown={() => props.onDiff(change.path)}
+									onMouseDown={() => activate(row)}
 								>
-									<box flexGrow={1} backgroundColor={bg()}>
-										<text fg={active() ? ui.text : ui.dim} bg={bg()} content={` ${change.rel}`} />
-									</box>
 									<text
-										fg={statusColor(change.status)}
+										fg={ui.faint}
 										bg={bg()}
 										flexShrink={0}
-										content={`${MARKS[change.status]} `}
+										content={` ${'  '.repeat(row.depth)}`}
 									/>
+									<Show when={row.kind === 'dir'}>
+										{() =>
+											row.kind === 'dir' && (
+												<text
+													fg={ui.dim}
+													bg={bg()}
+													flexShrink={0}
+													content={row.collapsed ? '▸ ' : '▾ '}
+												/>
+											)
+										}
+									</Show>
+									<box flexGrow={1} backgroundColor={bg()}>
+										<text
+											fg={row.kind === 'dir' ? ui.folder : active() ? ui.text : ui.dim}
+											bg={bg()}
+											content={row.kind === 'dir' ? row.label : ` ${row.label}`}
+										/>
+									</box>
+									<Show when={row.kind === 'dir'}>
+										{() =>
+											row.kind === 'dir' && (
+												<text
+													fg={ui.faint}
+													bg={bg()}
+													flexShrink={0}
+													content={row.collapsed ? `${row.files} ` : ' '}
+												/>
+											)
+										}
+									</Show>
+									<Show when={row.kind === 'file'}>
+										{() =>
+											row.kind === 'file' && (
+												<text
+													fg={statusColor(row.change.status)}
+													bg={bg()}
+													flexShrink={0}
+													content={`${MARKS[row.change.status]} `}
+												/>
+											)
+										}
+									</Show>
 								</box>
 							);
 						}}
@@ -92,7 +155,7 @@ export function GitPanel(props: {
 				</box>
 			</Show>
 			<box height={1} backgroundColor={ui.panelBg} paddingLeft={1}>
-				<text fg={ui.faint} bg={ui.panelBg} content="enter diff · c commit · p push" />
+				<text fg={ui.faint} bg={ui.panelBg} content="enter diff · ←→ fold · c commit · p push" />
 			</box>
 		</box>
 	);
