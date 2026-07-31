@@ -23,6 +23,8 @@ export function settingsRows(
 		applyTabSize: (size: number) => void;
 		applyVim: (enabled: boolean) => void;
 		editFormatter: () => void;
+		editLspServer: () => void;
+		editTypescriptTsdk: () => void;
 		editKeybinding: () => void;
 		editSidebarWidth: () => void;
 		toggleThemeSync: () => void;
@@ -120,15 +122,15 @@ export function settingsRows(
 		},
 		{
 			section: 'Editor',
-			label: 'Language server overrides',
+			label: 'Add/update language server…',
 			value: `${Object.keys(config.lspServers).length} overridden`,
-			change: () => {},
+			change: actions.editLspServer,
 		},
 		{
 			section: 'Editor',
 			label: 'TypeScript SDK',
 			value: config.typescriptTsdk || 'server default',
-			change: () => {},
+			change: actions.editTypescriptTsdk,
 		},
 		{
 			section: 'Editor',

@@ -4,6 +4,7 @@ import { produce } from 'solid-js/store';
 
 import { removeAll } from '../core/bulk';
 import { formatterFor, parseFormatterEdit, runFormatter } from '../core/format';
+import { parseLspServerEdit } from '../core/lspSettings';
 import { SIDEBAR_MAX, SIDEBAR_MIN } from '../core/config';
 import type { Config } from '../core/config';
 import { createDir, createFile, exists, mtimeOf, readFile, writeFile } from '../core/fs';
@@ -192,11 +193,15 @@ export function createDocumentActions(deps: {
 		const p = deps.prompt();
 		deps.setPrompt(null);
 		if (!p || !isTextPrompt(p)) return;
-		if (!name) return deps.say('Nothing entered', 'warn');
 		if (p.kind === 'commitMessage') return deps.gitCommands.submitCommit(name);
 		if (p.kind === 'newBranch') return deps.gitCommands.submitBranch(name, p.from);
 		if (p.kind === 'renameBranch') return deps.gitCommands.rename(p.from, name);
+		if (p.kind === 'typescriptTsdk') {
+			deps.patchConfig({ typescriptTsdk: name });
+			return deps.say(name ? `TypeScript SDK: ${name}` : 'TypeScript SDK: server default');
+		}
 		if (p.kind === 'formatterCommand') {
+			if (!name) return deps.say('Nothing entered', 'warn');
 			const edit = parseFormatterEdit(name);
 			if (!edit.ok) return deps.say(edit.error, 'error');
 			const formatters = { ...deps.config.formatters };
@@ -209,7 +214,27 @@ export function createDocumentActions(deps: {
 			deps.patchConfig({ formatters });
 			return deps.say(`Formatter for "${edit.key}" removed`);
 		}
+		if (p.kind === 'lspServerCommand') {
+			if (!name) return deps.say('Nothing entered', 'warn');
+			const edit = parseLspServerEdit(name);
+			if (!edit.ok) return deps.say(edit.error, 'error');
+			const lspServers = { ...deps.config.lspServers };
+			if (edit.command?.length === 0) {
+				lspServers[edit.id] = [];
+				deps.patchConfig({ lspServers });
+				return deps.say(`LSP: ${edit.id} disabled`);
+			}
+			if (edit.command) {
+				lspServers[edit.id] = edit.command;
+				deps.patchConfig({ lspServers });
+				return deps.say(`LSP: ${edit.id} = ${edit.command.join(' ')}`);
+			}
+			delete lspServers[edit.id];
+			deps.patchConfig({ lspServers });
+			return deps.say(`LSP override for "${edit.id}" removed`);
+		}
 		if (p.kind === 'keybindingCommand') {
+			if (!name) return deps.say('Nothing entered', 'warn');
 			const edit = parseKeybindingEdit(name);
 			if (!edit.ok) return deps.say(edit.error, 'error');
 			const command = KEYBINDABLE_COMMANDS.find(
@@ -245,6 +270,7 @@ export function createDocumentActions(deps: {
 			return deps.say(`${shortcut} → ${command.label}`);
 		}
 		if (p.kind === 'sidebarWidth') {
+			if (!name) return deps.say('Nothing entered', 'warn');
 			if (name.toLowerCase() === 'auto') {
 				deps.patchConfig({ sidebarWidth: 'auto' });
 				return deps.say('Sidebar width: auto');
@@ -258,6 +284,7 @@ export function createDocumentActions(deps: {
 			return deps.say(`Sidebar width: ${width}`);
 		}
 		if (p.kind === 'gotoLine') {
+			if (!name) return deps.say('Nothing entered', 'warn');
 			const asked = Number.parseInt(name, 10);
 			if (!Number.isInteger(asked) || asked < 1)
 				return deps.say(`Not a line number: ${name}`, 'error');
@@ -268,6 +295,7 @@ export function createDocumentActions(deps: {
 			return deps.say(line === asked ? `Line ${line}` : `Line ${line} — the file ends there`);
 		}
 		if (p.kind === 'newFile') {
+			if (!name) return deps.say('Nothing entered', 'warn');
 			const path = join(p.dir, name);
 			const err = createFile(path);
 			if (err) return deps.say(err, 'error');
@@ -276,6 +304,7 @@ export function createDocumentActions(deps: {
 			return deps.say(`Created ${name}`);
 		}
 		if (p.kind === 'newFolder') {
+			if (!name) return deps.say('Nothing entered', 'warn');
 			const path = join(p.dir, name);
 			const err = createDir(path);
 			if (err) return deps.say(err, 'error');
@@ -284,6 +313,7 @@ export function createDocumentActions(deps: {
 			return deps.say(`Created ${name}/`);
 		}
 		if (p.kind === 'rename') {
+			if (!name) return deps.say('Nothing entered', 'warn');
 			const err = deps.movePath(p.target, join(dirname(p.target), name));
 			if (err) return deps.say(err, 'error');
 			deps.say(`Renamed to ${name}`);

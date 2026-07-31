@@ -32,6 +32,8 @@ function settingsRowOf(label: string): number {
 		applyTabSize: () => {},
 		applyVim: () => {},
 		editFormatter: () => {},
+		editLspServer: () => {},
+		editTypescriptTsdk: () => {},
 		editKeybinding: () => {},
 		editSidebarWidth: () => {},
 		toggleThemeSync: () => {},

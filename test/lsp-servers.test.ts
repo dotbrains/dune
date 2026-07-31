@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { DEFAULTS, loadProjectConfig } from '../src/core/config';
+import { parseLspServerEdit } from '../src/core/lspSettings';
 import { settingsRows } from '../src/app/settingsRows';
 import { installedCommand } from '../src/lsp/install';
 import { projectCommand, typescriptMajor } from '../src/lsp/project';
@@ -32,6 +33,8 @@ test('language server resolution applies overrides and disables empty commands',
 });
 
 test('LSP settings parse and appear in settings rows', () => {
+	let lspEditorOpened = false;
+	let tsdkEditorOpened = false;
 	const rows = settingsRows(
 		{
 			...DEFAULTS,
@@ -47,6 +50,8 @@ test('LSP settings parse and appear in settings rows', () => {
 			applyTabSize: () => {},
 			applyVim: () => {},
 			editFormatter: () => {},
+			editLspServer: () => (lspEditorOpened = true),
+			editTypescriptTsdk: () => (tsdkEditorOpened = true),
 			editKeybinding: () => {},
 			editSidebarWidth: () => {},
 			toggleThemeSync: () => {},
@@ -66,8 +71,37 @@ test('LSP settings parse and appear in settings rows', () => {
 	expect(rows.find((row) => row.label === 'Inline problem text')?.value).toBe('off');
 	expect(rows.find((row) => row.label === 'Offer to install servers')?.value).toBe('off');
 	expect(rows.find((row) => row.label === 'TypeScript SDK')?.value).toBe('/opt/typescript/lib');
-	expect(rows.find((row) => row.label === 'Language server overrides')?.value).toBe('1 overridden');
+	const lspRow = rows.find((row) => row.label === 'Add/update language server…');
+	const tsdkRow = rows.find((row) => row.label === 'TypeScript SDK');
+	expect(lspRow?.value).toBe('1 overridden');
+	expect(tsdkRow?.value).toBe('/opt/typescript/lib');
+	lspRow?.change(1);
+	tsdkRow?.change(1);
+	expect(lspEditorOpened).toBe(true);
+	expect(tsdkEditorOpened).toBe(true);
 	expect(DEFAULTS.lsp).toBe(false);
+});
+
+test('LSP server setting input parses add, disable, remove and invalid forms', () => {
+	expect(parseLspServerEdit('typescript = deno lsp')).toEqual({
+		ok: true,
+		id: 'typescript',
+		command: ['deno', 'lsp'],
+	});
+	expect(parseLspServerEdit('typescript = none')).toEqual({
+		ok: true,
+		id: 'typescript',
+		command: [],
+	});
+	expect(parseLspServerEdit('typescript =')).toEqual({
+		ok: true,
+		id: 'typescript',
+		command: null,
+	});
+	expect(parseLspServerEdit('typescript')).toEqual({
+		ok: false,
+		error: 'LSP override syntax: server = command',
+	});
 });
 
 test('LSP settings parse from project config', () => {

@@ -5,6 +5,8 @@ const PROMPT_TITLES: Partial<Record<NonNullable<Prompt>['kind'], string>> = {
 	newFolder: 'New folder name',
 	rename: 'Rename to',
 	formatterCommand: 'Formatter: extensions = command',
+	lspServerCommand: 'LSP override: server = command',
+	typescriptTsdk: 'TypeScript SDK path',
 	keybindingCommand: 'Shortcut: command = key',
 	sidebarWidth: 'Sidebar width: auto or columns',
 	gotoLine: 'Go to line',

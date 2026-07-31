@@ -10,6 +10,8 @@ export function createAppSettingRows(deps: {
 		| 'applyTabSize'
 		| 'applyVim'
 		| 'editFormatter'
+		| 'editLspServer'
+		| 'editTypescriptTsdk'
 		| 'editKeybinding'
 		| 'editSidebarWidth'
 		| 'toggleAutoSave'
@@ -29,6 +31,8 @@ export function createAppSettingRows(deps: {
 		applyTabSize: deps.controls.applyTabSize,
 		applyVim: deps.controls.applyVim,
 		editFormatter: deps.controls.editFormatter,
+		editLspServer: deps.controls.editLspServer,
+		editTypescriptTsdk: deps.controls.editTypescriptTsdk,
 		editKeybinding: deps.controls.editKeybinding,
 		editSidebarWidth: deps.controls.editSidebarWidth,
 		toggleAutoSave: deps.controls.toggleAutoSave,

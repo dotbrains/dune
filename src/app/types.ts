@@ -50,6 +50,8 @@ export type Prompt =
 	| { kind: 'newFolder'; dir: string }
 	| { kind: 'rename'; target: string }
 	| { kind: 'formatterCommand' }
+	| { kind: 'lspServerCommand' }
+	| { kind: 'typescriptTsdk' }
 	| { kind: 'keybindingCommand' }
 	| { kind: 'sidebarWidth' }
 	| { kind: 'delete'; targets: string[] }

@@ -68,6 +68,8 @@ export function createAppControls(deps: {
 		deps.say(`Format on save ${deps.config.formatOnSave ? 'on' : 'off'}`);
 	};
 	const editFormatter = () => deps.setPrompt({ kind: 'formatterCommand' });
+	const editLspServer = () => deps.setPrompt({ kind: 'lspServerCommand' });
+	const editTypescriptTsdk = () => deps.setPrompt({ kind: 'typescriptTsdk' });
 	const editKeybinding = () => deps.setPrompt({ kind: 'keybindingCommand' });
 	const editSidebarWidth = () => deps.setPrompt({ kind: 'sidebarWidth' });
 	const toggleAutoSave = () => {
@@ -99,6 +101,8 @@ export function createAppControls(deps: {
 		applyVim,
 		confirmation,
 		editFormatter,
+		editLspServer,
+		editTypescriptTsdk,
 		editKeybinding,
 		editSidebarWidth,
 		promptTitle,

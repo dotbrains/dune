@@ -75,3 +75,42 @@ test('bad formatter syntax warns and changes nothing', async () => {
 	expect(formatters).not.toHaveProperty('prettier --write');
 	expect(t.captureCharFrame()).toContain('0 configured');
 });
+
+test('settings can edit the TypeScript SDK path', async () => {
+	const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }));
+	await runCommand(t, 'Settings');
+	await gotoRow(t, 'TypeScript SDK');
+	await press(t, (input) => input.pressEnter());
+	await press(t, (input) => void input.typeText('/workspace/typescript/lib'));
+	await press(t, (input) => input.pressEnter());
+
+	expect(saved().typescriptTsdk).toBe('/workspace/typescript/lib');
+	expect(t.captureCharFrame()).toContain('/workspace/typescript/lib');
+});
+
+test('settings can add, disable and remove an LSP override', async () => {
+	const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }));
+	await runCommand(t, 'Settings');
+	await gotoRow(t, 'Add/update language server');
+	await press(t, (input) => input.pressEnter());
+	await press(t, (input) => void input.typeText('typescript = deno lsp'));
+	await press(t, (input) => input.pressEnter());
+
+	expect(saved().lspServers).toEqual({ typescript: ['deno', 'lsp'] });
+	expect(t.captureCharFrame()).toContain('1 overridden');
+
+	await gotoRow(t, 'Add/update language server');
+	await press(t, (input) => input.pressEnter());
+	await press(t, (input) => void input.typeText('typescript = none'));
+	await press(t, (input) => input.pressEnter());
+
+	expect(saved().lspServers).toEqual({ typescript: [] });
+
+	await gotoRow(t, 'Add/update language server');
+	await press(t, (input) => input.pressEnter());
+	await press(t, (input) => void input.typeText('typescript ='));
+	await press(t, (input) => input.pressEnter());
+
+	expect(saved().lspServers).toEqual({});
+	expect(t.captureCharFrame()).toContain('0 overridden');
+});
