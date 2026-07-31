@@ -56,9 +56,12 @@ function keyBase(cwd: string): string | null {
  * Lines changed against HEAD, keyed by 0-based line number. Returns an empty map
  * outside a repository, for untracked files, or when git is unavailable.
  */
-export function diffLines(path: string): Map<number, LineChange> {
+export function diffLines(path: string, ref: string | null = null): Map<number, LineChange> {
 	const marks = new Map<number, LineChange>();
-	const run = git(dirname(path), ['diff', '--no-color', '--unified=0', '--', path], 3000);
+	const args = ['diff', '--no-color', '--unified=0'];
+	if (ref !== null) args.push(ref);
+	args.push('--', path);
+	const run = git(dirname(path), args, 3000);
 	if (run.status !== 0 || !run.stdout) return marks;
 
 	for (const hunk of run.stdout.split('\n')) {
@@ -154,10 +157,11 @@ const STATUS_BY_CODE: Record<string, FileStatus> = {
  * Working-tree status per absolute path. Staged and unstaged changes collapse to
  * one mark — the tree only needs "this differs from HEAD".
  */
-export function statusMap(cwd: string): Map<string, FileStatus> {
+export function statusMap(cwd: string, ref: string | null = null): Map<string, FileStatus> {
 	const statuses = new Map<string, FileStatus>();
 	const base = keyBase(cwd);
 	if (base === null) return statuses;
+	if (ref !== null) return statusAgainst(cwd, ref, base);
 
 	// `-z` because the default output C-quotes and octal-escapes any path that is
 	// not plain ASCII; unquoting that by hand loses every accented or spaced name.
@@ -193,8 +197,30 @@ function textAtRef(cwd: string, ref: string, rel: string): string | null {
 	return run.status === 0 ? run.stdout : null;
 }
 
-export function diffFiles(cwd: string, only?: string): DiffFile[] {
-	const statuses = statusMap(cwd);
+function statusAgainst(cwd: string, ref: string, base: string): Map<string, FileStatus> {
+	const statuses = new Map<string, FileStatus>();
+	const run = git(cwd, ['diff', '--name-status', '-z', ref]);
+	if (run.status !== 0) return statuses;
+	const fields = run.stdout.split('\0');
+	for (let i = 0; i < fields.length; i += 2) {
+		const code = fields[i];
+		if (!code) continue;
+		if (code[0] === 'R' || code[0] === 'C') i++;
+		const path = fields[i + 1];
+		const status = STATUS_BY_CODE[code[0]!];
+		if (status && path) statuses.set(join(base, path), status);
+	}
+	const others = git(cwd, ['ls-files', '--others', '--exclude-standard', '-z']);
+	if (others.status === 0) {
+		for (const rel of others.stdout.split('\0')) {
+			if (rel.length > 0) statuses.set(join(base, rel), 'untracked');
+		}
+	}
+	return statuses;
+}
+
+export function diffFiles(cwd: string, only?: string, ref: string | null = null): DiffFile[] {
+	const statuses = statusMap(cwd, ref);
 	const files: DiffFile[] = [];
 	const base = keyBase(cwd) ?? cwd;
 	for (const [path, status] of statuses) {
@@ -210,7 +236,8 @@ export function diffFiles(cwd: string, only?: string): DiffFile[] {
 			path,
 			rel: relative(base, path),
 			status,
-			oldText: status === 'untracked' ? '' : textAtHead(cwd, path),
+			oldText:
+				status === 'untracked' ? '' : (textAtRef(cwd, ref ?? 'HEAD', relative(base, path)) ?? ''),
 			newText,
 		});
 	}

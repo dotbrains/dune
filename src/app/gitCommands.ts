@@ -35,7 +35,9 @@ import type { Prompt } from './types';
 export function createGitCommands(deps: {
 	rootDir: string;
 	branch: () => string | null;
+	diffBase: () => string | null;
 	upstream: () => Upstream | null;
+	setDiffBase: (base: string | null) => void;
 	setBusy: (busy: { label: string; done: number; total: number } | null) => void;
 	setGitRevision: (update: (n: number) => number) => void;
 	setPrompt: (prompt: Prompt) => void;
@@ -43,6 +45,8 @@ export function createGitCommands(deps: {
 	whileFree: (run: () => void) => void;
 	syncFromDisk: () => void;
 }) {
+	const diffBase = deps.diffBase;
+	const setDiffBase = deps.setDiffBase;
 	const [commitFiles, setCommitFiles] = createSignal<CommitFile[] | null>(null);
 	const [commitSelection, setCommitSelection] = createSignal<string[]>([]);
 	const [diff, setDiff] = createSignal<DiffFile[] | null>(null);
@@ -53,6 +57,7 @@ export function createGitCommands(deps: {
 		| 'compare'
 		| 'delete'
 		| 'deleteForce'
+		| 'diffBase'
 		| 'from'
 		| 'merge'
 		| 'rename'
@@ -94,7 +99,7 @@ export function createGitCommands(deps: {
 
 	const openDiff = (path?: string | null) => {
 		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
-		const files = diffFiles(deps.rootDir, path ?? undefined);
+		const files = diffFiles(deps.rootDir, path ?? undefined, diffBase());
 		if (files.length === 0)
 			return deps.say(path ? 'No changes in current file' : 'No changes', 'warn');
 		setDiff(files);
@@ -116,6 +121,22 @@ export function createGitCommands(deps: {
 		}
 		setBranchMode('compare');
 		setBranchChoices(branches.map((branch) => ({ id: branch.name, label: branch.name })));
+	};
+
+	const openDiffBasePicker = () => {
+		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
+		const branches = listBranches(deps.rootDir).filter((branch) => branch.name !== deps.branch());
+		if (branches.length === 0) return deps.say('No branch to compare against', 'warn');
+		setBranchMode('diffBase');
+		setBranchChoices(branches.map((branch) => ({ id: branch.name, label: branch.name })));
+	};
+
+	const resetDiffBase = () => {
+		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
+		if (diffBase() === null) return deps.say('Already comparing against HEAD');
+		setDiffBase(null);
+		deps.setGitRevision((n) => n + 1);
+		deps.say('Comparing against HEAD');
 	};
 
 	const openCommitDiff = (oid: string) => {
@@ -273,9 +294,11 @@ export function createGitCommands(deps: {
 									? 'Delete branch'
 									: branchMode() === 'deleteForce'
 										? 'Delete branch (force)'
-										: branchMode() === 'from'
-											? 'New branch from'
-											: 'Compare against branch',
+										: branchMode() === 'diffBase'
+											? 'Compare against branch'
+											: branchMode() === 'from'
+												? 'New branch from'
+												: 'Compare against branch',
 		branchChoiceMessage: () =>
 			branchMode() === 'switch'
 				? 'Enter checks out the selected branch.'
@@ -291,14 +314,21 @@ export function createGitCommands(deps: {
 									? 'Enter chooses a branch to delete.'
 									: branchMode() === 'deleteForce'
 										? 'Enter chooses a branch to force delete.'
-										: branchMode() === 'from'
-											? 'Enter chooses the start point for a new branch.'
-											: 'Enter compares the current branch against the selected branch.',
+										: branchMode() === 'diffBase'
+											? 'Enter makes the editor compare changes against this branch.'
+											: branchMode() === 'from'
+												? 'Enter chooses the start point for a new branch.'
+												: 'Enter compares the current branch against the selected branch.',
 		pickBranch: (name: string) => {
 			setBranchChoices(null);
 			if (branchMode() === 'commits') return showCommitChoices(name);
 			if (branchMode() === 'commitDiff') return openCommitDiff(name);
 			if (branchMode() === 'compare') return compareWith(name);
+			if (branchMode() === 'diffBase') {
+				setDiffBase(name);
+				deps.setGitRevision((n) => n + 1);
+				return deps.say(`Comparing against ${name}`);
+			}
 			if (branchMode() === 'merge') return deps.setPrompt({ kind: 'mergeBranch', name });
 			if (branchMode() === 'rename') return deps.setPrompt({ kind: 'renameBranch', from: name });
 			if (branchMode() === 'delete')
@@ -329,6 +359,8 @@ export function createGitCommands(deps: {
 		openDiff,
 		openBranchComparison,
 		openBranchCommitComparison,
+		openDiffBasePicker,
+		resetDiffBase,
 		openPanelBranchAction: (action: 'switch' | 'compare') =>
 			action === 'switch' ? openBranchSwitch() : openBranchComparison(),
 		openBranchSwitch,

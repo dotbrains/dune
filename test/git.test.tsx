@@ -22,8 +22,7 @@ import {
 	switchBranch,
 } from '../src/core/git';
 import { git as runGit } from './git-fixture';
-import { launch, press, pressEscape, runCommand, settle } from './helpers';
-import type { Harness } from './helpers';
+import { F1, launch, press, pressEscape, runCommand, settle, type Harness } from './helpers';
 
 const ESC = String.fromCharCode(27);
 
@@ -291,26 +290,30 @@ test('diff commands show current file and all changed files', async () => {
 	expect(t.captureCharFrame()).toContain('a.ts');
 });
 
-test('the branch comparison command opens a diff from the default branch', async () => {
+test('compare against branch changes source-control diffs', async () => {
 	const dir = repo('one\n');
 	const git = (...args: string[]) => runGit(dir, ...args);
 	git('switch', '-q', '-c', 'feature');
 	writeFileSync(join(dir, 'a.ts'), 'two\n');
-	writeFileSync(join(dir, 'fresh.ts'), 'new\n');
 	git('add', '.');
 	git('commit', '-q', '-m', 'feature work');
+	git('switch', '-q', 'main');
 
 	const t = await launch(dir);
-	await runCommand(t, 'Compare branches');
+	await runCommand(t, 'Compare against branch');
 	expect(t.captureCharFrame()).toContain('Compare against branch');
 	await press(t, (input) => input.pressEnter());
+	await press(t, (input) => void input.pressKeys([`${ESC}${String.fromCharCode(7)}`]));
 
-	const frame = t.captureCharFrame();
-	expect(frame).toContain('file 1/2');
-	expect(frame).toContain('- one');
-	expect(frame).toContain('+ two');
-	await press(t, (input) => void input.typeText('f'));
-	expect(t.captureCharFrame()).toContain('fresh.ts +1 -0');
+	expect(t.captureCharFrame()).toContain('a.ts');
+	await press(t, (input) => input.pressEnter());
+	expect(t.captureCharFrame()).toContain('- two');
+	expect(t.captureCharFrame()).toContain('+ one');
+	await pressEscape(t);
+	await press(t, (input) => void input.pressKeys([F1]));
+	await press(t, (input) => void input.typeText('Compare against HEAD'));
+	await press(t, (input) => input.pressEnter());
+	expect(t.captureCharFrame()).toContain('no changes');
 });
 
 test('diff commands can render split layout', async () => {

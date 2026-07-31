@@ -27,6 +27,7 @@ export function useAppLifecycle(deps: {
 	expanded: () => Set<string>;
 	nodes: () => TreeNode[];
 	gitRevision: () => number;
+	diffBase: () => string | null;
 	reloadKey: () => number;
 	sidebar: () => boolean;
 	tabs: () => string[];
@@ -105,8 +106,8 @@ export function useAppLifecycle(deps: {
 	);
 	createEffect(
 		on(
-			() => [deps.activePath(), deps.reloadKey(), deps.gitRevision()] as const,
-			([path]) => deps.setGitLines(path ? diffLines(path) : new Map()),
+			() => [deps.activePath(), deps.reloadKey(), deps.gitRevision(), deps.diffBase()] as const,
+			([path]) => deps.setGitLines(path ? diffLines(path, deps.diffBase()) : new Map()),
 		),
 	);
 	createEffect(
@@ -117,9 +118,9 @@ export function useAppLifecycle(deps: {
 	);
 	createEffect(
 		on(
-			() => [deps.nodes(), deps.gitRevision(), deps.reloadKey()] as const,
+			() => [deps.nodes(), deps.gitRevision(), deps.reloadKey(), deps.diffBase()] as const,
 			() => {
-				deps.setGitStatus(statusMap(deps.rootDir));
+				deps.setGitStatus(statusMap(deps.rootDir, deps.diffBase()));
 				deps.setGitIgnored(
 					ignoredAmong(
 						deps.rootDir,

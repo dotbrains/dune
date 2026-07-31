@@ -63,6 +63,8 @@ export function createAppCommands(deps: {
 		openDiff: (path?: string | null) => void;
 		openBranchComparison: () => void;
 		openBranchCommitComparison: () => void;
+		openDiffBasePicker: () => void;
+		resetDiffBase: () => void;
 		openBranchSwitch: () => void;
 		openBranchPrompt: () => void;
 		openBranchFrom: () => void;
@@ -141,6 +143,8 @@ export function createAppCommands(deps: {
 				diffAll: () => deps.gitCommands.openDiff(),
 				compareBranches: deps.gitCommands.openBranchComparison,
 				compareBranchCommits: deps.gitCommands.openBranchCommitComparison,
+				compareAgainstBranch: deps.gitCommands.openDiffBasePicker,
+				compareAgainstHead: deps.gitCommands.resetDiffBase,
 				switchBranch: deps.gitCommands.openBranchSwitch,
 				newBranch: deps.gitCommands.openBranchPrompt,
 				newBranchFrom: deps.gitCommands.openBranchFrom,

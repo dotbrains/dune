@@ -211,7 +211,7 @@ export function AppView(props: AppViewProps) {
 							branch={props.branch}
 							upstream={props.upstream}
 							width={props.treeWidth}
-							focused={props.focus === 'tree'}
+							focused={props.focus === 'tree' && !props.blocked}
 							status={props.gitStatus}
 							onFocus={() => props.onTreeFocus()}
 							onDiff={props.onGitDiff}

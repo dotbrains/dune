@@ -55,6 +55,7 @@ export function GitPanel(props: {
 	useKeyboard((key: KeyEvent) => {
 		if (!props.focused) return;
 		const count = Math.max(1, rows().length);
+		const plain = !key.ctrl && !key.meta && !key.option && key.sequence?.length === 1;
 		const row = () => rows()[selected()];
 		if (key.name === 'up') setIndex((at) => (at - 1 + count) % count);
 		else if (key.name === 'down') setIndex((at) => (at + 1) % count);
@@ -66,10 +67,11 @@ export function GitPanel(props: {
 		} else if (key.name === 'right') {
 			const current = row();
 			if (current?.kind === 'dir' && current.collapsed) toggleDir(current.rel);
-		} else if (key.name === 'c') props.onCommit();
-		else if (key.name === 'p') props.onPush();
-		else if (key.name === 'b' && !key.shift) props.onBranchAction('switch');
-		else if ((key.name === 'b' && key.shift) || key.name === 'B') props.onBranchAction('compare');
+		} else if (plain && key.name === 'c') props.onCommit();
+		else if (plain && key.name === 'p') props.onPush();
+		else if (plain && key.name === 'b' && !key.shift) props.onBranchAction('switch');
+		else if (plain && ((key.name === 'b' && key.shift) || key.name === 'B'))
+			props.onBranchAction('compare');
 		else return;
 		key.preventDefault();
 	});

@@ -2,17 +2,15 @@ import { useRenderer, useTerminalDimensions } from '@opentui/solid';
 import { createMemo, createSignal } from 'solid-js';
 import { createStore, produce } from 'solid-js/store';
 import { detectAppearance } from '../core/appearance';
-import { resolveConfig, resolvedTheme } from '../core/config';
-import type { Config } from '../core/config';
-import type { TreeNode } from '../core/fs';
+import { resolveConfig, resolvedTheme, type Config } from '../core/config';
 import { flattenVisible } from '../core/fs';
 import { currentBranch, type FileStatus, type LineChange, type Upstream } from '../core/git';
 import { invalidateSyntaxStyle } from '../languages/highlight';
 import { isMarkdownPath } from '../core/markdown';
 import type { Match } from '../core/search';
 import { checkForUpdate } from '../core/update';
-import type { VimMode } from '../editor/vim';
 import { setTheme, setTransparency } from '../themes';
+import type { VimMode } from '../editor/vim';
 import { createAppCommands } from './appCommands';
 import { createAppControls } from './appControls';
 import { AppView } from './AppView';
@@ -46,9 +44,7 @@ export function App(props: AppTypes.AppProps) {
 	const initialAppearance = detectAppearance();
 	initialConfig.theme = resolvedTheme(initialConfig, initialAppearance);
 	const [userConfig, setUserConfig] = createStore<Config>({ ...props.initialConfig });
-	const [projectConfig, setProjectConfig] = createStore<Partial<Config>>({
-		...initialProjectConfig,
-	});
+	const [projectConfig, setProjectConfig] = createStore<Partial<Config>>(initialProjectConfig);
 	const [config, setConfig] = createStore<Config>(initialConfig);
 	setTheme(initialConfig.theme);
 	setTransparency(initialConfig.transparent);
@@ -85,6 +81,7 @@ export function App(props: AppTypes.AppProps) {
 	const [gitStatus, setGitStatus] = createSignal<Map<string, FileStatus>>(new Map());
 	const [gitIgnored, setGitIgnored] = createSignal<Set<string>>(new Set());
 	const [branch, setBranch] = createSignal(currentBranch(rootDir));
+	const [diffBase, setDiffBase] = createSignal<string | null>(null);
 	const [upstream, setUpstream] = createSignal<Upstream | null>(null);
 	const [resizing, setResizing] = createSignal(false);
 	const [history, setHistory] = createSignal<AppTypes.HistoryRequest>(null);
@@ -242,7 +239,9 @@ export function App(props: AppTypes.AppProps) {
 	const gitCommands = createGitCommands({
 		rootDir,
 		branch,
+		diffBase,
 		upstream,
+		setDiffBase,
 		setBusy,
 		setGitRevision,
 		setPrompt,
@@ -399,6 +398,7 @@ export function App(props: AppTypes.AppProps) {
 		expanded,
 		nodes,
 		gitRevision,
+		diffBase,
 		reloadKey,
 		sidebar,
 		tabs,
@@ -551,7 +551,7 @@ export function App(props: AppTypes.AppProps) {
 			onResizeDrag={(event) => resizing() && resizeSidebar(event.x)}
 			onResizeEnd={() => setResizing(false)}
 			onActivateNode={activateNode}
-			onPinNode={(node: TreeNode) => pinTab(node.path)}
+			onPinNode={(node) => pinTab(node.path)}
 			onTreeFocus={() => setFocus('tree')}
 			onGitDiff={gitCommands.openDiff}
 			onGitCommit={gitCommands.openCommitPicker}
