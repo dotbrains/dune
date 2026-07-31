@@ -10,6 +10,16 @@ const lspConfig = { lsp: true, lspServers: { typescript: [process.execPath, FAKE
 const frame = (t: Awaited<ReturnType<typeof launch>>) => t.captureCharFrame();
 
 describe('LSP completions in the editor', () => {
+	test('auto-triggers completions while typing a word', async () => {
+		const dir = fixture({ 'a.ts': '' });
+		const t = await launch(dir, lspConfig, {}, { openFile: join(dir, 'a.ts') });
+
+		await press(t, (input) => void input.typeText('dune'));
+		await until(t, () => frame(t).includes('duneAlpha'));
+
+		expect(frame(t)).toContain('duneAlpha');
+	});
+
 	test('shows and accepts completions from the command palette', async () => {
 		const dir = fixture({ 'a.ts': '' });
 		const t = await launch(dir, lspConfig, {}, { openFile: join(dir, 'a.ts') });

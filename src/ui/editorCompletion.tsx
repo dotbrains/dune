@@ -1,11 +1,14 @@
 import type { KeyEvent, TextareaRenderable } from '@opentui/core';
 import { useKeyboard, useTerminalDimensions } from '@opentui/solid';
-import { createEffect, createMemo, createSignal, on } from 'solid-js';
+import { createEffect, createMemo, createSignal, on, onCleanup } from 'solid-js';
 
-import { applyCompletion, filterCompletions, wordStart } from '../lsp/completion';
+import { applyCompletion, filterCompletions, isWordChar, wordStart } from '../lsp/completion';
 import type { CompletionReply } from '../lsp/completion';
 import type { CompletionItem } from '../lsp/protocol';
 import { CompletionMenu, completionMenuWidth } from './CompletionMenu';
+
+const COMPLETION_DEBOUNCE_MS = 80;
+const TRIGGER_CHARS = new Set(['.', ':', '/', '@']);
 
 interface CompletionAnchor {
 	row: number;
@@ -36,6 +39,8 @@ export function createEditorCompletion(
 	const [items, setItems] = createSignal<CompletionItem[]>([]);
 	const [anchor, setAnchor] = createSignal<CompletionAnchor | null>(null);
 	const [selected, setSelected] = createSignal(0);
+	let requestGeneration = 0;
+	let autoTimer: ReturnType<typeof setTimeout> | null = null;
 
 	const prefix = () => {
 		const at = deps.editor()?.logicalCursor;
@@ -45,6 +50,9 @@ export function createEditorCompletion(
 	};
 	const matches = createMemo(() => filterCompletions(items(), prefix()));
 	const close = () => {
+		requestGeneration++;
+		if (autoTimer) clearTimeout(autoTimer);
+		autoTimer = null;
 		setItems([]);
 		setAnchor(null);
 		setSelected(0);
@@ -52,10 +60,13 @@ export function createEditorCompletion(
 	const request = async () => {
 		const editor = deps.editor();
 		if (!editor || !props.path || !props.complete) return close();
+		const generation = ++requestGeneration;
+		const path = props.path;
 		const at = editor.logicalCursor;
 		const start = wordStart(lineText(editor.plainText, at.row), at.col);
 		const reply = await props.complete(at.row, at.col);
-		if (!reply?.items.length || deps.editor() !== editor) return close();
+		if (generation !== requestGeneration || deps.editor() !== editor || props.path !== path) return;
+		if (!reply?.items.length) return close();
 		setAnchor({ row: at.row, col: at.col, start });
 		setItems(reply.items);
 		setSelected(0);
@@ -80,6 +91,14 @@ export function createEditorCompletion(
 		deps.scheduleCursorSync();
 		close();
 	};
+	const scheduleAutoRequest = () => {
+		if (autoTimer) clearTimeout(autoTimer);
+		autoTimer = setTimeout(() => {
+			autoTimer = null;
+			if (!props.focused || props.blocked || !props.path || !props.complete) return;
+			void request();
+		}, COMPLETION_DEBOUNCE_MS);
+	};
 
 	createEffect(on(() => [props.path, props.focused], close));
 	createEffect(
@@ -89,9 +108,27 @@ export function createEditorCompletion(
 			{ defer: true },
 		),
 	);
+	createEffect(
+		on(
+			() => props.content,
+			() => {
+				if (!props.focused || props.blocked || anchor()) return;
+				const editor = deps.editor();
+				if (!editor) return;
+				const at = editor.logicalCursor;
+				const previous = lineText(editor.plainText, at.row)[at.col - 1];
+				if (previous && (isWordChar(previous) || TRIGGER_CHARS.has(previous)))
+					scheduleAutoRequest();
+			},
+			{ defer: true },
+		),
+	);
 	createEffect(() => {
 		const count = matches().length;
 		if (selected() >= count) setSelected(Math.max(0, count - 1));
+	});
+	onCleanup(() => {
+		if (autoTimer) clearTimeout(autoTimer);
 	});
 
 	useKeyboard((key: KeyEvent) => {
