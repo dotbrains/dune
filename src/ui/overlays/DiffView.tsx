@@ -103,10 +103,7 @@ export function DiffView(props: { files: DiffFile[]; mode: DiffMode; onClose: ()
 	const filteredFileCounts = createMemo(() => {
 		const query = filter().trim();
 		if (!query) return fileCounts();
-		return fileCounts().filter(
-			(row) =>
-				fuzzyScore(row.file.rel, query) !== null || fuzzyScore(row.file.path, query) !== null,
-		);
+		return fileCounts().filter((row) => fuzzyScore(row.file.rel, query) !== null);
 	});
 	const totalCounts = () => ({
 		adds: fileCounts().reduce((total, row) => total + row.diff.adds, 0),
