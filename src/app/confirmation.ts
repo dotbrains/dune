@@ -46,10 +46,12 @@ export function confirmationForPrompt(prompt: Prompt): Confirmation | null {
 			};
 		case 'deleteBranch':
 			return {
-				title: 'Delete branch',
+				title: prompt.force ? 'Delete branch (force)' : 'Delete branch',
 				verb: 'delete it',
-				danger: true,
-				message: `Delete "${prompt.name}"? Git refuses if it has commits that are not merged.`,
+				danger: prompt.force,
+				message: prompt.force
+					? `Delete "${prompt.name}" even if it has commits on no other branch? They are lost.`
+					: `Delete "${prompt.name}"? Git refuses if it has commits that are not merged.`,
 			};
 		default:
 			return null;

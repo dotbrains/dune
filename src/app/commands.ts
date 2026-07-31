@@ -96,6 +96,7 @@ export interface CommandActions {
 	mergeBranch: () => void;
 	renameBranch: () => void;
 	deleteBranch: () => void;
+	forceDeleteBranch: () => void;
 	undoCommit: () => void;
 	stash: () => void;
 	stashPop: () => void;
@@ -328,6 +329,11 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 				{ id: 'git.mergeBranch', label: 'Merge branch…', run: actions.mergeBranch },
 				{ id: 'git.renameBranch', label: 'Rename branch…', run: actions.renameBranch },
 				{ id: 'git.deleteBranch', label: 'Delete branch…', run: actions.deleteBranch },
+				{
+					id: 'git.forceDeleteBranch',
+					label: 'Delete branch (force)…',
+					run: actions.forceDeleteBranch,
+				},
 				{ id: 'git.undoCommit', label: 'Undo last commit…', run: actions.undoCommit },
 				{ id: 'git.stash', label: 'Stash changes', run: actions.stash },
 				{ id: 'git.stashPop', label: 'Stash pop', run: actions.stashPop },

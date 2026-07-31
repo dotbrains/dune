@@ -36,7 +36,7 @@ export function createDocumentActions(deps: {
 		submitCommit: (message: string) => void;
 		submitBranch: (name: string) => void;
 		rename: (from: string, to: string) => void;
-		remove: (name: string) => void;
+		remove: (name: string, force: boolean) => void;
 		merge: (name: string) => void;
 		undoCommit: () => void;
 	};
@@ -333,7 +333,7 @@ export function createDocumentActions(deps: {
 			case 'undoCommit':
 				return deps.gitCommands.undoCommit();
 			case 'deleteBranch':
-				return deps.gitCommands.remove(p.name);
+				return deps.gitCommands.remove(p.name, p.force);
 			case 'mergeBranch':
 				return deps.gitCommands.merge(p.name);
 		}

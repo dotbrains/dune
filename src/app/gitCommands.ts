@@ -45,7 +45,7 @@ export function createGitCommands(deps: {
 	const [diff, setDiff] = createSignal<DiffFile[] | null>(null);
 	const [panel, setPanel] = createSignal(false);
 	const [branchMode, setBranchMode] = createSignal<
-		'compare' | 'delete' | 'merge' | 'rename' | 'switch'
+		'compare' | 'delete' | 'deleteForce' | 'merge' | 'rename' | 'switch'
 	>('compare');
 	const [branchChoices, setBranchChoices] = createSignal<{ id: string; label: string }[] | null>(
 		null,
@@ -146,6 +146,16 @@ export function createGitCommands(deps: {
 		setBranchChoices(branches.map((branch) => ({ id: branch.name, label: branch.name })));
 	};
 
+	const openBranchForceDelete = () => {
+		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
+		const branches = listBranches(deps.rootDir).filter(
+			(branch) => !branch.remote && !branch.current,
+		);
+		if (branches.length === 0) return deps.say('No other local branch to delete', 'warn');
+		setBranchMode('deleteForce');
+		setBranchChoices(branches.map((branch) => ({ id: branch.name, label: branch.name })));
+	};
+
 	const startCommit = (paths: string[]) => {
 		setCommitFiles(null);
 		setCommitSelection(paths);
@@ -171,8 +181,8 @@ export function createGitCommands(deps: {
 		);
 	};
 
-	const remove = (name: string) => {
-		runGit('Deleting branch', () => deleteBranch(deps.rootDir, name), `Deleted ${name}`);
+	const remove = (name: string, force: boolean) => {
+		runGit('Deleting branch', () => deleteBranch(deps.rootDir, name, force), `Deleted ${name}`);
 	};
 
 	const confirmUndoCommit = () => {
@@ -209,7 +219,9 @@ export function createGitCommands(deps: {
 						? 'Rename branch'
 						: branchMode() === 'delete'
 							? 'Delete branch'
-							: 'Compare against branch',
+							: branchMode() === 'deleteForce'
+								? 'Delete branch (force)'
+								: 'Compare against branch',
 		branchChoiceMessage: () =>
 			branchMode() === 'switch'
 				? 'Enter checks out the selected branch.'
@@ -219,13 +231,18 @@ export function createGitCommands(deps: {
 						? 'Enter chooses a branch to rename.'
 						: branchMode() === 'delete'
 							? 'Enter chooses a branch to delete.'
-							: 'Enter compares the current branch against the selected branch.',
+							: branchMode() === 'deleteForce'
+								? 'Enter chooses a branch to force delete.'
+								: 'Enter compares the current branch against the selected branch.',
 		pickBranch: (name: string) => {
 			setBranchChoices(null);
 			if (branchMode() === 'compare') return compareWith(name);
 			if (branchMode() === 'merge') return deps.setPrompt({ kind: 'mergeBranch', name });
 			if (branchMode() === 'rename') return deps.setPrompt({ kind: 'renameBranch', from: name });
-			if (branchMode() === 'delete') return deps.setPrompt({ kind: 'deleteBranch', name });
+			if (branchMode() === 'delete')
+				return deps.setPrompt({ kind: 'deleteBranch', name, force: false });
+			if (branchMode() === 'deleteForce')
+				return deps.setPrompt({ kind: 'deleteBranch', name, force: true });
 			const branch = listBranches(deps.rootDir).find((item) => item.name === name);
 			runGit(
 				'Switching branch',
@@ -251,6 +268,7 @@ export function createGitCommands(deps: {
 		openBranchMerge,
 		openBranchRename,
 		openBranchDelete,
+		openBranchForceDelete,
 		openBranchPrompt,
 		push: () =>
 			runGit(

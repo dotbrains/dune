@@ -191,6 +191,21 @@ test('deleteBranch deletes a merged local branch', async () => {
 	).not.toBe(0);
 });
 
+test('deleteBranch can force delete an unmerged local branch', async () => {
+	const dir = repo('one\n');
+	const git = (...args: string[]) => runGit(dir, ...args);
+	git('switch', '-q', '-c', 'work');
+	writeFileSync(join(dir, 'work.ts'), 'work\n');
+	git('add', '.');
+	git('commit', '-q', '-m', 'work');
+	git('switch', '-q', 'main');
+
+	expect(await deleteBranch(dir, 'work', true)).toMatchObject({ ok: true });
+	expect(
+		spawnSync('git', ['rev-parse', '--verify', '--quiet', 'refs/heads/work'], { cwd: dir }).status,
+	).not.toBe(0);
+});
+
 test('mergeBranch merges another branch into the current branch', async () => {
 	const dir = repo('one\n');
 	const git = (...args: string[]) => runGit(dir, ...args);
