@@ -9,6 +9,8 @@ import { spawnLspClient } from '../../lsp/client';
 import type { LspClient } from '../../lsp/client';
 import { normalizeCompletion } from '../../lsp/completion';
 import type { CompletionReply } from '../../lsp/completion';
+import { normalizeDefinition } from '../../lsp/definition';
+import type { DefinitionTarget } from '../../lsp/definition';
 import { isUnnecessary, severityOf } from '../../lsp/protocol';
 import type { CompletionItem, Diagnostic, ProblemSeverity } from '../../lsp/protocol';
 import { resolveServer } from '../../lsp/servers';
@@ -114,6 +116,18 @@ export function createAppLsp(deps: {
 		return client.resolveCompletion(item);
 	};
 
+	const definition = async (
+		path: string,
+		line: number,
+		col: number,
+	): Promise<DefinitionTarget | null> => {
+		if (!deps.config.lsp) return null;
+		const client = clientFor(path);
+		if (!client?.ready()) return null;
+		flushEdit?.(path);
+		return normalizeDefinition(await client.definition(path, { line, character: col }));
+	};
+
 	onCleanup(dispose);
 
 	return {
@@ -122,6 +136,7 @@ export function createAppLsp(deps: {
 		clientFor,
 		complete,
 		resolveCompletion,
+		definition,
 		setFlushEdit: (flush: (path: string) => void) => {
 			flushEdit = flush;
 		},

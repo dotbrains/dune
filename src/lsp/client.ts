@@ -201,6 +201,14 @@ export function spawnLspClient(options: LspClientOptions) {
 			}).catch(() => null);
 		},
 
+		definition(path: string, position: { line: number; character: number }): Promise<unknown> {
+			if (state !== 'ready') return Promise.resolve(null);
+			return request('textDocument/definition', {
+				textDocument: { uri: pathToFileURL(path).href },
+				position,
+			}).catch(() => null);
+		},
+
 		resolveCompletion(item: CompletionItem): Promise<CompletionItem | null> {
 			if (state !== 'ready' || !resolveProvider) return Promise.resolve(null);
 			return request('completionItem/resolve', item).then(

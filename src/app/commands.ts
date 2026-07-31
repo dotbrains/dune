@@ -48,6 +48,7 @@ export interface CommandActions {
 	save: () => void;
 	openFile: () => void;
 	openPathUnderCursor: () => void;
+	goToDefinition: () => void;
 	switchTab: () => void;
 	closeOthers: () => void;
 	closeAll: () => void;
@@ -241,6 +242,11 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 					id: 'editor.complete',
 					label: 'Show completions',
 					run: actions.completion,
+				},
+				{
+					id: 'goto.definition',
+					label: 'Go to definition',
+					run: actions.goToDefinition,
 				},
 				{
 					id: 'editor.comment',

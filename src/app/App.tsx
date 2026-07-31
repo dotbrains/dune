@@ -27,7 +27,7 @@ import { createOverlayOpen } from './overlayState';
 import { restoreAppState } from './restore';
 import { createAppRuntime, selectedSingleLineText } from './runtime';
 import { createReplacementHandlers } from './searchReplace';
-import { createSettingsRows } from './settingsRows';
+import { createAppSettingRows } from './settings/view';
 import { createSidebarSizing } from './sidebarSizing';
 import { createTreeSelection } from './treeSelection';
 import { hiddenTreeNodes } from './treeVisibility';
@@ -228,7 +228,16 @@ export function App(props: AppTypes.AppProps) {
 		say,
 		nextFrom: problemFrom,
 	});
-	const completion = createCompletionActions({ activePath, lsp, setFocus, say });
+	const completion = createCompletionActions(
+		activePath,
+		config,
+		cursor,
+		lsp,
+		openFile,
+		setFocus,
+		setGoto,
+		say,
+	);
 	const gitCommands = createGitCommands({
 		rootDir,
 		branch,
@@ -316,21 +325,9 @@ export function App(props: AppTypes.AppProps) {
 		patchConfig,
 		say,
 	});
-	const settingRows = createSettingsRows({
+	const settingRows = createAppSettingRows({
 		config,
-		applyTheme: controls.applyTheme,
-		applyTabSize: controls.applyTabSize,
-		applyVim: controls.applyVim,
-		editFormatter: controls.editFormatter,
-		editKeybinding: controls.editKeybinding,
-		editSidebarWidth: controls.editSidebarWidth,
-		toggleAutoSave: controls.toggleAutoSave,
-		toggleFormat: controls.toggleFormat,
-		toggleThemeSync: controls.toggleThemeSync,
-		toggleTransparent: controls.toggleTransparent,
-		toggleDotfiles: controls.toggleDotfiles,
-		toggleGitignored: controls.toggleGitignored,
-		toggleTrim: controls.toggleTrim,
+		controls,
 		patchConfig,
 		configScope: () => settingsPage() ?? 'user',
 	});
@@ -375,7 +372,7 @@ export function App(props: AppTypes.AppProps) {
 		problemsList: problemUi.list,
 		problemsNext: () => problemUi.next(1),
 		problemsPrev: () => problemUi.next(-1),
-		completion: completion.show,
+		completion,
 		setLineOp,
 		patchConfig,
 		gitCommands,

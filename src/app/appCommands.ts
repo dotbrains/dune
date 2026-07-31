@@ -53,7 +53,7 @@ export function createAppCommands(deps: {
 	problemsList: () => void;
 	problemsNext: () => void;
 	problemsPrev: () => void;
-	completion: () => void;
+	completion: { show: () => void; goToDefinition: () => void };
 	openSettings: () => void;
 	openProjectSettings: () => void;
 	setLineOp: (
@@ -152,7 +152,8 @@ export function createAppCommands(deps: {
 				problemsList: deps.problemsList,
 				problemsNext: deps.problemsNext,
 				problemsPrev: deps.problemsPrev,
-				completion: deps.completion,
+				completion: deps.completion.show,
+				goToDefinition: deps.completion.goToDefinition,
 				commit: deps.gitCommands.openCommitPicker,
 				sourceControl: deps.gitCommands.togglePanel,
 				diffCurrent: () => deps.gitCommands.openDiff(deps.activePath()),

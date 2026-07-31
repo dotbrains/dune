@@ -43,4 +43,27 @@ describe('LSP diagnostics in the UI', () => {
 			.join('');
 		expect(track).toContain('●');
 	});
+
+	test('go to definition opens the server target and selection', async () => {
+		const dir = fixture({
+			'a.ts': 'const a = beta\n',
+			'def.ts': '// declaration\nconst beta = 1\n',
+		});
+		const t = await launch(dir, lspConfig, {}, { openFile: join(dir, 'a.ts') });
+
+		await runCommand(t, 'Go to definition');
+		await until(t, () => frame(t).includes('const beta = 1'));
+
+		expect(frame(t)).toContain('def.ts');
+		expect(frame(t)).toContain('Ln 2, Col 7');
+	});
+
+	test('go to definition explains when LSP is disabled', async () => {
+		const dir = fixture({ 'a.ts': 'const a = 1\n' });
+		const t = await launch(dir, { lsp: false }, {}, { openFile: join(dir, 'a.ts') });
+
+		await runCommand(t, 'Go to definition');
+
+		expect(frame(t)).toContain('LSP is off');
+	});
 });

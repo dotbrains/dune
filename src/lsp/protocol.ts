@@ -63,6 +63,18 @@ export interface CompletionList {
 	items: CompletionItem[];
 }
 
+export interface Location {
+	uri: string;
+	range: Range;
+}
+
+export interface LocationLink {
+	targetUri: string;
+	targetRange: Range;
+	targetSelectionRange?: Range;
+	originSelectionRange?: Range;
+}
+
 export function severityOf(diagnostic: Diagnostic): ProblemSeverity {
 	if (diagnostic.severity === 2) return 'warning';
 	if (diagnostic.severity === 3) return 'info';
