@@ -72,6 +72,23 @@ describe('LSP diagnostics in the UI', () => {
 		expect(frame(t)).toContain('Ln 2, Col 7');
 	});
 
+	test('open file under cursor falls back to the language server', async () => {
+		const dir = fixture({
+			'a.ts': "import { beta } from 'virtual-package'\n",
+			'def.ts': '// declaration\nconst beta = 1\n',
+		});
+		const t = await launch(dir, lspConfig, {}, { openFile: join(dir, 'a.ts') });
+
+		await press(t, (input) => {
+			for (let n = 0; n < 24; n++) input.pressArrow('right');
+		});
+		await runCommand(t, 'Open file under cursor');
+		await until(t, () => frame(t).includes('const beta = 1'));
+
+		expect(frame(t)).toContain('def.ts');
+		expect(frame(t)).toContain('Ln 2, Col 7');
+	});
+
 	test('go to definition explains when LSP is disabled', async () => {
 		const dir = fixture({ 'a.ts': 'const a = 1\n' });
 		const t = await launch(dir, { lsp: false }, {}, { openFile: join(dir, 'a.ts') });

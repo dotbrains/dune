@@ -101,8 +101,8 @@ export function createAppCommands(deps: {
 					const token = pathTokenAt(line, deps.cursor().col);
 					if (!token) return deps.say('No file path under cursor', 'warn');
 					const target = resolvePathToken(token, dirname(path), deps.targetDir());
-					if (!target) return deps.say(`Cannot find ${token}`, 'warn');
-					deps.openResolvedFile(target);
+					if (target) return deps.openResolvedFile(target);
+					void deps.completion.goToDefinition();
 				},
 				switchTab: () => deps.setPicker('tabs'),
 				closeOthers: () => {
