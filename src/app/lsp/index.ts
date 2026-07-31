@@ -14,7 +14,7 @@ import type { DefinitionTarget } from '../../lsp/definition';
 import { projectCommand } from '../../lsp/project';
 import { isUnnecessary, severityOf } from '../../lsp/protocol';
 import type { CompletionItem, Diagnostic, ProblemSeverity } from '../../lsp/protocol';
-import { resolveServer } from '../../lsp/servers';
+import { installHint, resolveServer } from '../../lsp/servers';
 import type { BufferState, StatusMessage } from '../types';
 
 export interface Problem {
@@ -74,6 +74,13 @@ export function createAppLsp(deps: {
 		return tsdk ? { tsserver: { path: tsdk } } : undefined;
 	};
 
+	const missingMessage = (resolved: NonNullable<ReturnType<typeof resolveServer>>): string => {
+		const name = resolved.command[0]!;
+		return resolved.install
+			? `LSP: ${name} not installed — ${installHint(resolved.install)}`
+			: `LSP: ${name} is not installed, or not on PATH`;
+	};
+
 	const clientFor = (path: string): LspClient | null => {
 		if (!deps.config.lsp) return null;
 		const resolved = resolveServer(filetypeForPath(path), deps.config.lspServers);
@@ -86,9 +93,9 @@ export function createAppLsp(deps: {
 			rootDir: deps.rootDir,
 			initializationOptions: initializationOptionsFor(resolved.id),
 			onDiagnostics,
-			onFail: (reason) => {
+			onFail: (reason, missing) => {
 				clients.set(resolved.id, null);
-				deps.say(`LSP: ${command[0]} ${reason}`, 'warn');
+				deps.say(missing ? missingMessage(resolved) : `LSP: ${command[0]} ${reason}`, 'warn');
 			},
 		});
 		clients.set(resolved.id, client);

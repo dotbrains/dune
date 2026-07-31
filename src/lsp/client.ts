@@ -29,7 +29,7 @@ export interface LspClientOptions {
 	command: string[];
 	rootDir: string;
 	onDiagnostics: (uri: string, diagnostics: Diagnostic[]) => void;
-	onFail: (reason: string) => void;
+	onFail: (reason: string, missing: boolean) => void;
 	initializationOptions?: unknown;
 }
 
@@ -89,13 +89,13 @@ export function spawnLspClient(options: LspClientOptions) {
 			.catch(() => {});
 	};
 
-	const die = (reason: string | null) => {
+	const die = (reason: string | null, missing = false) => {
 		if (state === 'dead') return;
 		state = 'dead';
 		for (const waiter of pending.values()) waiter.reject(new Error(reason ?? 'disposed'));
 		pending.clear();
 		queued.length = 0;
-		if (reason !== null && !disposed) options.onFail(reason);
+		if (reason !== null && !disposed) options.onFail(reason, missing);
 	};
 
 	const answerClientRequest = (message: RpcMessage) => {
@@ -139,7 +139,7 @@ export function spawnLspClient(options: LspClientOptions) {
 	};
 
 	child.stdout?.on('data', createDecoder(onMessage));
-	child.on('error', (error) => die(error.message));
+	child.on('error', (error: NodeJS.ErrnoException) => die(error.message, error.code === 'ENOENT'));
 	child.on('exit', () => die('exited'));
 
 	const killNow = () => {

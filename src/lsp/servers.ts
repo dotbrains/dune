@@ -3,36 +3,97 @@ export interface ServerSpec {
 	command: string[];
 	/** OpenTUI filetype ids handled by this server. */
 	filetypes: string[];
+	install?: ServerInstall;
 }
+
+export type ServerInstall =
+	| { kind: 'npm'; packages: string[] }
+	| { kind: 'manual'; command: string };
+
+const npm = (...packages: string[]): ServerInstall => ({ kind: 'npm', packages });
+const manual = (command: string): ServerInstall => ({ kind: 'manual', command });
 
 export const DEFAULT_SERVERS: ServerSpec[] = [
 	{
 		id: 'typescript',
 		command: ['typescript-language-server', '--stdio'],
 		filetypes: ['typescript', 'typescriptreact', 'javascript', 'javascriptreact'],
+		install: npm('typescript-language-server', 'typescript@5'),
 	},
-	{ id: 'go', command: ['gopls'], filetypes: ['go'] },
-	{ id: 'rust', command: ['rust-analyzer'], filetypes: ['rust'] },
-	{ id: 'python', command: ['pyright-langserver', '--stdio'], filetypes: ['python'] },
+	{
+		id: 'go',
+		command: ['gopls'],
+		filetypes: ['go'],
+		install: manual('go install golang.org/x/tools/gopls@latest'),
+	},
+	{
+		id: 'rust',
+		command: ['rust-analyzer'],
+		filetypes: ['rust'],
+		install: manual('rustup component add rust-analyzer'),
+	},
+	{
+		id: 'python',
+		command: ['pyright-langserver', '--stdio'],
+		filetypes: ['python'],
+		install: npm('pyright'),
+	},
 	{ id: 'clangd', command: ['clangd'], filetypes: ['c', 'cpp'] },
 	{ id: 'zig', command: ['zls'], filetypes: ['zig'] },
 	{ id: 'lua', command: ['lua-language-server'], filetypes: ['lua'] },
-	{ id: 'bash', command: ['bash-language-server', 'start'], filetypes: ['bash'] },
-	{ id: 'ruby', command: ['solargraph', 'stdio'], filetypes: ['ruby'] },
-	{ id: 'php', command: ['intelephense', '--stdio'], filetypes: ['php'] },
+	{
+		id: 'bash',
+		command: ['bash-language-server', 'start'],
+		filetypes: ['bash'],
+		install: npm('bash-language-server'),
+	},
+	{
+		id: 'ruby',
+		command: ['solargraph', 'stdio'],
+		filetypes: ['ruby'],
+		install: manual('gem install solargraph'),
+	},
+	{
+		id: 'php',
+		command: ['intelephense', '--stdio'],
+		filetypes: ['php'],
+		install: npm('intelephense'),
+	},
 	{ id: 'swift', command: ['sourcekit-lsp'], filetypes: ['swift'] },
-	{ id: 'css', command: ['vscode-css-language-server', '--stdio'], filetypes: ['css'] },
-	{ id: 'html', command: ['vscode-html-language-server', '--stdio'], filetypes: ['html'] },
-	{ id: 'json', command: ['vscode-json-language-server', '--stdio'], filetypes: ['json'] },
+	{
+		id: 'css',
+		command: ['vscode-css-language-server', '--stdio'],
+		filetypes: ['css'],
+		install: npm('vscode-langservers-extracted'),
+	},
+	{
+		id: 'html',
+		command: ['vscode-html-language-server', '--stdio'],
+		filetypes: ['html'],
+		install: npm('vscode-langservers-extracted'),
+	},
+	{
+		id: 'json',
+		command: ['vscode-json-language-server', '--stdio'],
+		filetypes: ['json'],
+		install: npm('vscode-langservers-extracted'),
+	},
 ];
+
+export function installHint(install: ServerInstall): string {
+	return install.kind === 'npm' ? `npm i -g ${install.packages.join(' ')}` : install.command;
+}
 
 export function resolveServer(
 	filetype: string | undefined,
 	overrides: Record<string, string[]>,
-): { id: string; command: string[] } | null {
+): { id: string; command: string[]; install?: ServerInstall } | null {
 	if (!filetype) return null;
 	const spec = DEFAULT_SERVERS.find((server) => server.filetypes.includes(filetype));
 	if (!spec) return null;
-	const command = overrides[spec.id] ?? spec.command;
-	return command.length > 0 ? { id: spec.id, command } : null;
+	const override = overrides[spec.id];
+	const command = override ?? spec.command;
+	return command.length > 0
+		? { id: spec.id, command, install: override ? undefined : spec.install }
+		: null;
 }

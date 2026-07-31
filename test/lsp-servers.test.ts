@@ -6,19 +6,28 @@ import { join } from 'node:path';
 import { DEFAULTS, loadProjectConfig } from '../src/core/config';
 import { settingsRows } from '../src/app/settingsRows';
 import { projectCommand, typescriptMajor } from '../src/lsp/project';
-import { resolveServer } from '../src/lsp/servers';
+import { installHint, resolveServer } from '../src/lsp/servers';
 import { fixture } from './helpers';
 
 test('language server resolution applies overrides and disables empty commands', () => {
 	expect(resolveServer('typescript', {})?.command[0]).toBe('typescript-language-server');
+	expect(resolveServer('typescript', {})?.install).toEqual({
+		kind: 'npm',
+		packages: ['typescript-language-server', 'typescript@5'],
+	});
 	expect(resolveServer('typescriptreact', {})?.id).toBe('typescript');
 	expect(resolveServer('typescript', { typescript: ['deno', 'lsp'] })?.command).toEqual([
 		'deno',
 		'lsp',
 	]);
+	expect(resolveServer('typescript', { typescript: ['deno', 'lsp'] })?.install).toBeUndefined();
 	expect(resolveServer('typescript', { typescript: [] })).toBeNull();
 	expect(resolveServer('brainfuck', {})).toBeNull();
 	expect(resolveServer(undefined, {})).toBeNull();
+	expect(installHint({ kind: 'manual', command: 'rustup component add rust-analyzer' })).toBe(
+		'rustup component add rust-analyzer',
+	);
+	expect(installHint({ kind: 'npm', packages: ['pyright'] })).toBe('npm i -g pyright');
 });
 
 test('LSP settings parse and appear in settings rows', () => {

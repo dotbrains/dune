@@ -108,6 +108,46 @@ test('settings gate LSP clients and completion separately', async () => {
 	});
 });
 
+test('missing default servers show install hints', async () => {
+	const { dir, path } = project();
+	await createRoot((dispose) => {
+		disposers.push(dispose);
+		const warnings: string[] = [];
+		const config = { ...DEFAULTS, lsp: true };
+		const lsp = createAppLsp({ rootDir: dir, config, say: (msg) => warnings.push(msg) });
+
+		lsp.clientFor(path);
+
+		return waitFor(() => warnings.length > 0).then(() => {
+			expect(warnings[0]).toBe(
+				'LSP: typescript-language-server not installed — npm i -g typescript-language-server typescript@5',
+			);
+		});
+	});
+});
+
+test('missing overridden servers do not show default install hints', async () => {
+	const { dir, path } = project();
+	await createRoot((dispose) => {
+		disposers.push(dispose);
+		const warnings: string[] = [];
+		const config = {
+			...DEFAULTS,
+			lsp: true,
+			lspServers: { typescript: ['dune-no-such-language-server'] },
+		};
+		const lsp = createAppLsp({ rootDir: dir, config, say: (msg) => warnings.push(msg) });
+
+		lsp.clientFor(path);
+
+		return waitFor(() => warnings.length > 0).then(() => {
+			expect(warnings[0]).toBe(
+				'LSP: dune-no-such-language-server is not installed, or not on PATH',
+			);
+		});
+	});
+});
+
 test('typescript sdk setting is handed to the language server', async () => {
 	const { dir, path } = project();
 	const dump = join(dir, 'init.json');
