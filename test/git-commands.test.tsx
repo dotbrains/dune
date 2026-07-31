@@ -208,12 +208,17 @@ test('branch comparison reports commit and file totals', async () => {
 	git('switch', '-q', '-c', 'feature');
 	writeFileSync(join(dir, 'a.ts'), 'two\n');
 	git('commit', '-qam', 'change a');
+	git('switch', '-q', 'main');
+	writeFileSync(join(dir, 'base.ts'), 'base\n');
+	git('add', '.');
+	git('commit', '-q', '-m', 'base change');
+	git('switch', '-q', 'feature');
 
 	const t = await launch(dir);
 	await runCommand(t, 'Compare branches');
 	await press(t, (input) => input.pressEnter());
 
-	expect(t.captureCharFrame()).toContain('1 commits, 1 files, +1 -1');
+	expect(t.captureCharFrame()).toContain('↑1 ↓1, 1 files, +1 -1');
 });
 
 test('rename branch command renames the selected local branch', async () => {

@@ -2,6 +2,7 @@ import { relative } from 'node:path';
 import { createSignal } from 'solid-js';
 
 import {
+	branchBehindCount,
 	branchDiffFiles,
 	branchDiffCommits,
 	commitPaths,
@@ -110,6 +111,7 @@ export function createGitCommands(deps: {
 		const files = branchDiffFiles(deps.rootDir, base);
 		if (files.length === 0) return deps.say(`No differences from ${base}`, 'warn');
 		const commits = branchDiffCommits(deps.rootDir, base);
+		const behind = branchBehindCount(deps.rootDir, base);
 		const stats = files
 			.map((file) => unifiedDiff(file.rel, file.oldText, file.newText))
 			.reduce(
@@ -118,7 +120,7 @@ export function createGitCommands(deps: {
 			);
 		setDiff(files);
 		deps.say(
-			`Comparing against ${base}: ${commits.length} commits, ${files.length} files, +${stats.adds} -${stats.dels}`,
+			`Comparing against ${base}: ↑${commits.length} ↓${behind}, ${files.length} files, +${stats.adds} -${stats.dels}`,
 		);
 	};
 

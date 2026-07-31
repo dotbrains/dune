@@ -82,9 +82,8 @@ export function diffLines(path: string, ref: string | null = null): Map<number, 
 }
 
 /**
- * Current branch, or null outside a repository and on a detached HEAD —
- * `--abbrev-ref` answers the literal "HEAD" there, which is not a branch name and
- * must never reach `git push --set-upstream`.
+ * Current branch, or null outside a repository and on a detached HEAD. Git calls
+ * detached HEAD "HEAD", which must never reach `git push --set-upstream`.
  */
 export function currentBranch(cwd: string): string | null {
 	const run = git(cwd, ['rev-parse', '--abbrev-ref', 'HEAD'], 3000);
@@ -301,6 +300,12 @@ export function branchDiffCommits(cwd: string, baseBranch = defaultBranch(cwd)):
 	return commits;
 }
 
+export function branchBehindCount(cwd: string, baseBranch = defaultBranch(cwd)): number {
+	if (!baseBranch) return 0;
+	const run = git(cwd, ['rev-list', '--count', `HEAD..${baseBranch}`], 5000);
+	return run.status === 0 ? Number(run.stdout.trim()) || 0 : 0;
+}
+
 export function commitDiffFiles(cwd: string, oid: string): DiffFile[] {
 	const base = keyBase(cwd);
 	if (base === null) return [];
@@ -311,7 +316,6 @@ export function commitDiffFiles(cwd: string, oid: string): DiffFile[] {
 	return refDiffFiles(cwd, base, parent.status === 0 ? parent.stdout.trim() : emptyTree, oid);
 }
 
-/** Which visible tree paths are excluded by gitignore. Empty outside a repository. */
 export function ignoredAmong(cwd: string, paths: string[]): Set<string> {
 	const ignored = new Set<string>();
 	if (paths.length === 0) return ignored;
@@ -323,7 +327,6 @@ export function ignoredAmong(cwd: string, paths: string[]): Set<string> {
 	return ignored;
 }
 
-/** Absolute paths gitignore excludes, with ignored directories collapsed to their row. */
 export function ignoredPaths(cwd: string): Set<string> {
 	const ignored = new Set<string>();
 	const base = keyBase(cwd);
