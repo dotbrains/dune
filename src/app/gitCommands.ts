@@ -26,6 +26,7 @@ import {
 	statusMap,
 	undoLastCommit,
 } from '../core/git';
+import { unifiedDiff } from '../core/diff';
 import type { GitResult, Upstream } from '../core/git';
 import type { DiffFile } from '../core/git';
 import type { CommitFile } from '../ui/CommitModal';
@@ -108,8 +109,17 @@ export function createGitCommands(deps: {
 	const compareWith = (base: string) => {
 		const files = branchDiffFiles(deps.rootDir, base);
 		if (files.length === 0) return deps.say(`No differences from ${base}`, 'warn');
+		const commits = branchDiffCommits(deps.rootDir, base);
+		const stats = files
+			.map((file) => unifiedDiff(file.rel, file.oldText, file.newText))
+			.reduce(
+				(total, patch) => ({ adds: total.adds + patch.adds, dels: total.dels + patch.dels }),
+				{ adds: 0, dels: 0 },
+			);
 		setDiff(files);
-		deps.say(`Comparing against ${base}`);
+		deps.say(
+			`Comparing against ${base}: ${commits.length} commits, ${files.length} files, +${stats.adds} -${stats.dels}`,
+		);
 	};
 
 	const openBranchComparison = () => {

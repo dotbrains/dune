@@ -202,6 +202,20 @@ test('branch commit comparison opens a selected commit diff', async () => {
 	expect(frame).toContain('+ two');
 });
 
+test('branch comparison reports commit and file totals', async () => {
+	const dir = repo('one\n');
+	const git = (...args: string[]) => runGit(dir, ...args);
+	git('switch', '-q', '-c', 'feature');
+	writeFileSync(join(dir, 'a.ts'), 'two\n');
+	git('commit', '-qam', 'change a');
+
+	const t = await launch(dir);
+	await runCommand(t, 'Compare branches');
+	await press(t, (input) => input.pressEnter());
+
+	expect(t.captureCharFrame()).toContain('1 commits, 1 files, +1 -1');
+});
+
 test('rename branch command renames the selected local branch', async () => {
 	const dir = repo('main\n');
 	const git = (...args: string[]) => runGit(dir, ...args);
