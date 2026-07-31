@@ -148,6 +148,7 @@ export function spawnLspClient(options: LspClientOptions) {
 			textDocument: {
 				synchronization: { didSave: true },
 				publishDiagnostics: {},
+				definition: { linkSupport: true },
 				completion: {
 					completionItem: {
 						snippetSupport: false,

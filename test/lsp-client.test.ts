@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { mkdtempSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -94,4 +94,29 @@ describe('LSP client', () => {
 		expect(client.ready()).toBe(false);
 		client.dispose();
 	}, 10_000);
+
+	test('initialize advertises definition link support', async () => {
+		const dir = mkdtempSync(join(tmpdir(), 'dune-lsp-'));
+		const capabilities = join(dir, 'capabilities.json');
+		const client = spawnLspClient({
+			command: [process.execPath, FAKE, join(dir, 'init.json'), capabilities],
+			rootDir: dir,
+			onDiagnostics: () => {},
+			onFail: (reason) => {
+				throw new Error(`fake server failed: ${reason}`);
+			},
+		});
+
+		await waitFor(() => existsSync(capabilities));
+		expect(JSON.parse(readFileSync(capabilities, 'utf8'))).toMatchObject({
+			textDocument: { definition: { linkSupport: true } },
+		});
+		client.dispose();
+	}, 20_000);
 });
+
+const waitFor = async (done: () => boolean, attempts = 40): Promise<void> => {
+	if (done() || attempts <= 0) return;
+	await new Promise((resolve) => setTimeout(resolve, 25));
+	return waitFor(done, attempts - 1);
+};

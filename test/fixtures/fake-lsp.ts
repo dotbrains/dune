@@ -6,6 +6,7 @@ import { pathToFileURL } from 'node:url';
 
 const send = (message: object) => process.stdout.write(encodeMessage(message));
 const initDump = process.argv[2];
+const capabilitiesDump = process.argv[3];
 
 const publish = (uri: string, text: string) => {
 	const diagnostics: Diagnostic[] = [];
@@ -32,8 +33,12 @@ process.stdin.on(
 	'data',
 	createDecoder((message) => {
 		if (message.method === 'initialize') {
-			const params = message.params as { initializationOptions?: unknown } | undefined;
+			const params = message.params as
+				| { initializationOptions?: unknown; capabilities?: unknown }
+				| undefined;
 			if (initDump) writeFileSync(initDump, JSON.stringify(params?.initializationOptions ?? null));
+			if (capabilitiesDump)
+				writeFileSync(capabilitiesDump, JSON.stringify(params?.capabilities ?? null));
 			send({
 				jsonrpc: '2.0',
 				id: message.id,
