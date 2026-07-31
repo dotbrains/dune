@@ -93,20 +93,18 @@ export function currentBranch(cwd: string): string | null {
 }
 
 export function defaultBranch(cwd: string): string | null {
-	const originHead = git(cwd, ['symbolic-ref', '--quiet', '--short', 'refs/remotes/origin/HEAD']);
-	const remote = originHead.stdout?.trim();
-	if (originHead.status === 0 && remote) return remote.replace(/^origin\//, '');
-	for (const name of ['main', 'master', 'trunk']) {
-		if (git(cwd, ['rev-parse', '--verify', '--quiet', name]).status === 0) return name;
+	const remotes = git(cwd, ['remote']).stdout.trim().split('\n').filter(Boolean);
+	for (const remote of remotes.toSorted((a, b) =>
+		a === 'origin' ? -1 : b === 'origin' ? 1 : a.localeCompare(b),
+	)) {
+		const head = git(cwd, ['symbolic-ref', '--quiet', '--short', `refs/remotes/${remote}/HEAD`]);
+		if (head.status === 0 && head.stdout.trim()) return head.stdout.trim();
 	}
-	const run = git(cwd, ['for-each-ref', '--format=%(refname:short)', 'refs/heads']);
-	if (run.status !== 0) return null;
-	return (
-		run.stdout
-			.split('\n')
-			.map((line) => line.trim())
-			.find((line) => line.length > 0) ?? null
-	);
+	const configured = git(cwd, ['config', '--get', 'init.defaultBranch']);
+	const name = configured.status === 0 ? configured.stdout.trim() : '';
+	return name && git(cwd, ['show-ref', '--verify', '--quiet', `refs/heads/${name}`]).status === 0
+		? name
+		: null;
 }
 
 export function listBranches(cwd: string): Branch[] {
