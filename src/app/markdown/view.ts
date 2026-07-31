@@ -1,4 +1,4 @@
-import { isMarkdownPath } from '../core/markdown';
+import { isMarkdownPath } from '../../core/markdown';
 
 export function createMarkdownView(deps: {
 	activePath: () => string | null;

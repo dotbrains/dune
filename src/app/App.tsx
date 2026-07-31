@@ -21,7 +21,7 @@ import { useAppLifecycle } from './lifecycle';
 import { createAppLsp, problemFrom, wireAppLspEffects } from './lsp/index';
 import { createCompletionActions } from './lsp/completionActions';
 import { createProblemUi } from './lsp/view';
-import { createMarkdownView } from './markdownView';
+import { createMarkdownView } from './markdown/view';
 import { createFileOpener } from './openFile';
 import { createOverlayOpen } from './overlayState';
 import { restoreAppState } from './restore';
