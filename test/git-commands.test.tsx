@@ -276,15 +276,20 @@ test('branch comparison reports binary files instead of rendering bytes', async 
 	const git = (...args: string[]) => runGit(dir, ...args);
 	git('switch', '-q', '-c', 'feature');
 	writeFileSync(join(dir, 'image.bin'), new Uint8Array([0, 1, 2]));
+	writeFileSync(join(dir, 'text.ts'), 'text\n');
 	git('add', '.');
-	git('commit', '-q', '-m', 'binary file');
+	git('commit', '-q', '-m', 'mixed files');
 
 	const t = await launch(dir);
 	await runCommand(t, 'Compare branches');
 	await press(t, (input) => input.pressEnter());
 
+	expect(t.captureCharFrame()).toContain('1 binary');
 	expect(t.captureCharFrame()).toContain('Binary file');
 	expect(t.captureCharFrame()).toContain('textual diff is not available');
+	await press(t, (input) => void input.typeText('f'));
+	expect(t.captureCharFrame()).toContain('image.bin binary');
+	expect(t.captureCharFrame()).toContain('text.ts +1 -0');
 });
 
 test('rename branch command renames the selected local branch', async () => {

@@ -120,9 +120,11 @@ export function createGitCommands(deps: {
 				(total, patch) => ({ adds: total.adds + patch.adds, dels: total.dels + patch.dels }),
 				{ adds: 0, dels: 0 },
 			);
+		const binary = files.filter((file) => file.binary).length;
+		const binaryPart = binary === 0 ? '' : `, ${binary} binary`;
 		setDiff(files);
 		deps.say(
-			`Comparing against ${base}: ↑${commits.length} ↓${behind}, ${files.length} files, +${stats.adds} -${stats.dels}`,
+			`Comparing against ${base}: ↑${commits.length} ↓${behind}, ${files.length} files${binaryPart}, +${stats.adds} -${stats.dels}`,
 		);
 	};
 

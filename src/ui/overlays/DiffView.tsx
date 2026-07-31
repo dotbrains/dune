@@ -243,10 +243,9 @@ export function DiffView(props: { files: DiffFile[]; mode: DiffMode; onClose: ()
 							const bg = () => (active() ? ui.treeSelectedBg : ui.panelBg);
 							const prefix = () => (active() ? '▌ ' : '  ');
 							const label = () =>
-								`${prefix()}${row.file.rel} +${row.diff.adds} -${row.diff.dels}`.slice(
-									0,
-									width() - PAD * 2 - 2,
-								);
+								`${prefix()}${row.file.rel} ${
+									row.file.binary ? 'binary' : `+${row.diff.adds} -${row.diff.dels}`
+								}`.slice(0, width() - PAD * 2 - 2);
 							return <text fg={active() ? ui.text : ui.dim} bg={bg()} content={label()} />;
 						}}
 					</For>
