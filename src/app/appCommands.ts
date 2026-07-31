@@ -73,6 +73,7 @@ export function createAppCommands(deps: {
 		stash: () => void;
 		stashPop: () => void;
 		fetch: () => void;
+		pull: () => void;
 		push: () => void;
 	};
 	setHelp: (show: boolean) => void;
@@ -149,6 +150,7 @@ export function createAppCommands(deps: {
 				stash: deps.gitCommands.stash,
 				stashPop: deps.gitCommands.stashPop,
 				fetch: deps.gitCommands.fetch,
+				pull: deps.gitCommands.pull,
 				push: deps.gitCommands.push,
 				showHelp: () => deps.setHelp(true),
 				quit: deps.quit,

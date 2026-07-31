@@ -16,6 +16,7 @@ import {
 	listBranches,
 	localBranchName,
 	mergeBranch,
+	pull,
 	renameBranch,
 	statusMap,
 	switchBranch,
@@ -231,6 +232,29 @@ test('mergeBranch merges another branch into the current branch', async () => {
 
 	expect(await mergeBranch(dir, 'feature')).toMatchObject({ ok: true });
 	expect(git('log', '-1', '--format=%s').toString().trim()).toBe('feature');
+	expect(git('status', '--porcelain').toString()).toBe('');
+});
+
+test('pull fast-forwards from the configured upstream', async () => {
+	const dir = repo('one\n');
+	const remote = mkdtempSync(join(tmpdir(), 'dune-origin-'));
+	runGit(remote, 'init', '-q', '--bare');
+	const git = (...args: string[]) => runGit(dir, ...args);
+	git('remote', 'add', 'origin', remote);
+	git('push', '-q', '-u', 'origin', 'main');
+
+	const other = mkdtempSync(join(tmpdir(), 'dune-peer-'));
+	execFileSync('git', ['clone', '-q', '-b', 'main', remote, other]);
+	const peer = (...args: string[]) => runGit(other, ...args);
+	peer('config', 'user.email', 'test@example.com');
+	peer('config', 'user.name', 'Test');
+	writeFileSync(join(other, 'b.ts'), 'two\n');
+	peer('add', '.');
+	peer('commit', '-q', '-m', 'remote change');
+	peer('push', '-q');
+
+	expect(await pull(dir)).toMatchObject({ ok: true });
+	expect(git('log', '-1', '--format=%s').toString().trim()).toBe('remote change');
 	expect(git('status', '--porcelain').toString()).toBe('');
 });
 

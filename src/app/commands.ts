@@ -102,6 +102,7 @@ export interface CommandActions {
 	stash: () => void;
 	stashPop: () => void;
 	fetch: () => void;
+	pull: () => void;
 	push: () => void;
 	showHelp: () => void;
 	quit: () => void;
@@ -340,6 +341,7 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 				{ id: 'git.stash', label: 'Stash changes', run: actions.stash },
 				{ id: 'git.stashPop', label: 'Stash pop', run: actions.stashPop },
 				{ id: 'git.fetch', label: 'Fetch', run: actions.fetch },
+				{ id: 'git.pull', label: 'Pull (fast-forward only)', run: actions.pull },
 				{ id: 'git.push', label: 'Push', run: actions.push },
 			],
 		},

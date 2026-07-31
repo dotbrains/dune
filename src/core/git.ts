@@ -402,6 +402,10 @@ export function fetch(cwd: string): Promise<GitResult> {
 	return mutate(cwd, ['fetch']);
 }
 
+export function pull(cwd: string): Promise<GitResult> {
+	return mutate(cwd, ['pull', '--ff-only']);
+}
+
 export function push(cwd: string, branch: string, hasUpstream: boolean): Promise<GitResult> {
 	return mutate(cwd, hasUpstream ? ['push'] : ['push', '--set-upstream', 'origin', branch]);
 }
