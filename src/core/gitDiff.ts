@@ -10,6 +10,7 @@ export interface DiffFile {
 	rel: string;
 	status: FileStatus;
 	oldRel?: string;
+	binary?: boolean;
 	oldText: string;
 	newText: string;
 }
@@ -38,6 +39,8 @@ function textAtRef(cwd: string, ref: string, rel: string): string | null {
 	const run = git(cwd, ['show', `${ref}:${rel}`], 5000);
 	return run.status === 0 ? run.stdout : null;
 }
+
+export const hasBinaryContent = (text: string) => text.includes('\0');
 
 const STATUS_BY_CODE: Record<string, FileStatus> = {
 	A: 'added',
@@ -70,13 +73,15 @@ function refDiffFiles(cwd: string, base: string, from: string, to: string): Diff
 		const oldText = status === 'added' ? '' : (textAtRef(cwd, from, oldRel ?? rel) ?? '');
 		const newText = status === 'deleted' ? '' : textAtRef(cwd, to, rel);
 		if (newText === null && status !== 'deleted') continue;
+		const nextText = newText ?? '';
 		files.push({
 			path: join(base, rel),
 			rel,
 			status,
 			oldRel,
+			binary: hasBinaryContent(oldText) || hasBinaryContent(nextText),
 			oldText,
-			newText: newText ?? '',
+			newText: nextText,
 		});
 	}
 	return files.toSorted((a, b) => a.rel.localeCompare(b.rel));

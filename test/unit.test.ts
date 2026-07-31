@@ -117,6 +117,22 @@ describe('git branch diffs', () => {
 			newText: 'ONE\ntwo\nthree\nfour\nfive\n',
 		});
 	});
+
+	test('marks binary file comparisons without text counts', () => {
+		const { dir, git } = gitRepo('main');
+		git('switch', '-q', '-c', 'feature');
+		writeFileSync(join(dir, 'image.bin'), new Uint8Array([0, 1, 2]));
+		git('add', '.');
+		git('commit', '-q', '-m', 'binary file');
+
+		const files = branchDiffFiles(dir, 'main');
+		expect(files).toHaveLength(1);
+		expect(files[0]).toMatchObject({
+			rel: 'image.bin',
+			status: 'added',
+			binary: true,
+		});
+	});
 });
 
 describe('updates', () => {

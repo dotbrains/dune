@@ -75,6 +75,9 @@ function split(file: DiffFile, width: number): DiffLine[] {
 	return rows;
 }
 
+const diffFor = (file: DiffFile) =>
+	file.binary ? { patch: '', adds: 0, dels: 0 } : unifiedDiff(file.rel, file.oldText, file.newText);
+
 export function DiffView(props: { files: DiffFile[]; mode: DiffMode; onClose: () => void }) {
 	const dimensions = useTerminalDimensions();
 	const [index, setIndex] = createSignal(0);
@@ -85,9 +88,13 @@ export function DiffView(props: { files: DiffFile[]; mode: DiffMode; onClose: ()
 	const width = () => modalWidth(dimensions().width, 0.82, 76, 120);
 	const visibleRows = () => listRows(dimensions().height, 7, 24);
 	const file = () => props.files[index()] ?? props.files[0]!;
-	const diff = createMemo(() => unifiedDiff(file().rel, file().oldText, file().newText));
+	const diff = createMemo(() => diffFor(file()));
 	const body = createMemo(() =>
-		props.mode === 'split' ? split(file(), width()) : unified(file()),
+		file().binary
+			? [{ text: 'Binary file: textual diff is not available.', kind: 'meta' as const }]
+			: props.mode === 'split'
+				? split(file(), width())
+				: unified(file()),
 	);
 	const counts = () => ({
 		adds: diff().adds,
@@ -97,7 +104,7 @@ export function DiffView(props: { files: DiffFile[]; mode: DiffMode; onClose: ()
 		props.files.map((changed, originalIndex) => ({
 			file: changed,
 			originalIndex,
-			diff: unifiedDiff(changed.rel, changed.oldText, changed.newText),
+			diff: diffFor(changed),
 		})),
 	);
 	const filteredFileCounts = createMemo(() => {

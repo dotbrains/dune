@@ -1,7 +1,9 @@
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, realpathSync } from 'node:fs';
+import { existsSync, realpathSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 
+import { BinaryFileError, readFile } from './fs';
+import { hasBinaryContent } from './gitDiff';
 import type { DiffFile } from './gitDiff';
 
 export type LineChange = 'added' | 'modified' | 'deleted';
@@ -235,20 +237,25 @@ export function diffFiles(cwd: string, only?: string, ref: string | null = null)
 		if (only && path !== only) continue;
 		if (!existsSync(path) && status !== 'deleted') continue;
 		let newText = '';
+		let binary = false;
 		try {
-			newText = status === 'deleted' ? '' : readFileSync(path, 'utf8');
-		} catch {
-			continue;
+			newText = status === 'deleted' ? '' : readFile(path);
+		} catch (error) {
+			if (status === 'deleted') continue;
+			if (!(error instanceof BinaryFileError)) continue;
+			binary = true;
 		}
+		const oldText =
+			status === 'untracked'
+				? ''
+				: (textAtRef(cwd, ref ?? 'HEAD', oldRel ?? relative(base, path)) ?? '');
 		files.push({
 			path,
 			rel: relative(base, path),
 			status,
 			oldRel,
-			oldText:
-				status === 'untracked'
-					? ''
-					: (textAtRef(cwd, ref ?? 'HEAD', oldRel ?? relative(base, path)) ?? ''),
+			binary: binary || hasBinaryContent(oldText),
+			oldText,
 			newText,
 		});
 	}

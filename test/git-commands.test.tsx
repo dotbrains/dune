@@ -271,6 +271,22 @@ test('source control panel marks renamed files distinctly', async () => {
 	expect(row).toContain('R');
 });
 
+test('branch comparison reports binary files instead of rendering bytes', async () => {
+	const dir = repo('one\n');
+	const git = (...args: string[]) => runGit(dir, ...args);
+	git('switch', '-q', '-c', 'feature');
+	writeFileSync(join(dir, 'image.bin'), new Uint8Array([0, 1, 2]));
+	git('add', '.');
+	git('commit', '-q', '-m', 'binary file');
+
+	const t = await launch(dir);
+	await runCommand(t, 'Compare branches');
+	await press(t, (input) => input.pressEnter());
+
+	expect(t.captureCharFrame()).toContain('Binary file');
+	expect(t.captureCharFrame()).toContain('textual diff is not available');
+});
+
 test('rename branch command renames the selected local branch', async () => {
 	const dir = repo('main\n');
 	const git = (...args: string[]) => runGit(dir, ...args);
