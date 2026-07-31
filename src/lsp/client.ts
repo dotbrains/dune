@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
-import type { CompletionItem, Diagnostic, RpcMessage } from './protocol';
+import type { CompletionItem, Diagnostic, DiagnosticReport, RpcMessage } from './protocol';
 import { createDecoder, encodeMessage } from './transport';
 
 const INITIALIZE_TIMEOUT_MS = 30_000;
@@ -50,10 +50,12 @@ export function spawnLspClient(options: LspClientOptions) {
 	let state: 'starting' | 'ready' | 'dead' = 'starting';
 	let disposed = false;
 	let resolveProvider = false;
+	let pullProvider = false;
 	let nextId = 1;
 	const pending = new Map<number, PendingRequest>();
 	const queued: RpcMessage[] = [];
 	const versions = new Map<string, number>();
+	const pendingPulls = new Set<string>();
 
 	const send = (message: RpcMessage) => {
 		if (child.stdin?.writable) child.stdin.write(encodeMessage(message));
@@ -70,6 +72,21 @@ export function spawnLspClient(options: LspClientOptions) {
 		const message: RpcMessage = { jsonrpc: '2.0', method, params };
 		if (state === 'starting') queued.push(message);
 		else if (state === 'ready') send(message);
+	};
+
+	const pullDiagnostics = (path: string) => {
+		if (state === 'starting') {
+			pendingPulls.add(path);
+			return;
+		}
+		if (state !== 'ready' || !pullProvider) return;
+		const uri = pathToFileURL(path).href;
+		void request('textDocument/diagnostic', { textDocument: { uri } })
+			.then((result) => {
+				const report = result as DiagnosticReport | null;
+				if (report?.kind === 'full') options.onDiagnostics(uri, report.items ?? []);
+			})
+			.catch(() => {});
 	};
 
 	const die = (reason: string | null) => {
@@ -149,6 +166,7 @@ export function spawnLspClient(options: LspClientOptions) {
 				synchronization: { didSave: true },
 				publishDiagnostics: {},
 				definition: { linkSupport: true },
+				diagnostic: { dynamicRegistration: false, relatedDocumentSupport: false },
 				completion: {
 					completionItem: {
 						snippetSupport: false,
@@ -164,13 +182,21 @@ export function spawnLspClient(options: LspClientOptions) {
 		.then((result) => {
 			if (state !== 'starting') return;
 			const capabilities = (
-				result as { capabilities?: { completionProvider?: { resolveProvider?: boolean } } } | null
+				result as {
+					capabilities?: {
+						completionProvider?: { resolveProvider?: boolean };
+						diagnosticProvider?: unknown;
+					};
+				} | null
 			)?.capabilities;
 			resolveProvider = capabilities?.completionProvider?.resolveProvider === true;
+			pullProvider = capabilities?.diagnosticProvider != null;
 			send({ jsonrpc: '2.0', method: 'initialized', params: {} });
 			state = 'ready';
 			for (const message of queued) send(message);
 			queued.length = 0;
+			for (const path of pendingPulls) pullDiagnostics(path);
+			pendingPulls.clear();
 		})
 		.catch((error: unknown) => {
 			die(error instanceof Error ? error.message : 'initialize failed');
@@ -179,6 +205,7 @@ export function spawnLspClient(options: LspClientOptions) {
 
 	return {
 		ready: () => state === 'ready',
+		pullDiagnostics,
 
 		openDocument(path: string, languageId: string, text: string) {
 			const uri = pathToFileURL(path).href;

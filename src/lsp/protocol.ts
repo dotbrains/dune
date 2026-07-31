@@ -35,6 +35,11 @@ export interface Diagnostic {
 	tags?: number[];
 }
 
+export interface DiagnosticReport {
+	kind: 'full' | 'unchanged';
+	items?: Diagnostic[];
+}
+
 export interface TextEdit {
 	range: Range;
 	newText: string;

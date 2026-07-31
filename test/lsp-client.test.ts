@@ -109,8 +109,36 @@ describe('LSP client', () => {
 
 		await waitFor(() => existsSync(capabilities));
 		expect(JSON.parse(readFileSync(capabilities, 'utf8'))).toMatchObject({
-			textDocument: { definition: { linkSupport: true } },
+			textDocument: {
+				definition: { linkSupport: true },
+				diagnostic: { dynamicRegistration: false, relatedDocumentSupport: false },
+			},
 		});
+		client.dispose();
+	}, 20_000);
+
+	test('pulls diagnostics from servers that do not publish them', async () => {
+		const dir = mkdtempSync(join(tmpdir(), 'dune-lsp-'));
+		const path = join(dir, 'a.ts');
+		const deliveries = collector<Diagnostic[]>();
+		const client = spawnLspClient({
+			command: [process.execPath, FAKE, join(dir, 'init.json'), join(dir, 'cap.json'), 'pull'],
+			rootDir: dir,
+			onDiagnostics: (_uri, diagnostics) => deliveries.push(diagnostics),
+			onFail: (reason) => {
+				throw new Error(`fake server failed: ${reason}`);
+			},
+		});
+
+		client.openDocument(path, 'typescript', 'const oops = 1\n');
+		client.pullDiagnostics(path);
+		await deliveries.atLeast(1);
+		expect(deliveries.items[0]?.[0]?.message).toBe('found oops');
+
+		client.changeDocument(path, 'const ok = 1\n');
+		client.pullDiagnostics(path);
+		await deliveries.atLeast(2);
+		expect(deliveries.items[1]).toHaveLength(0);
 		client.dispose();
 	}, 20_000);
 });

@@ -7,8 +7,10 @@ import { pathToFileURL } from 'node:url';
 const send = (message: object) => process.stdout.write(encodeMessage(message));
 const initDump = process.argv[2];
 const capabilitiesDump = process.argv[3];
+const mode = process.argv[4];
+const documents = new Map<string, string>();
 
-const publish = (uri: string, text: string) => {
+const diagnosticsFor = (text: string): Diagnostic[] => {
 	const diagnostics: Diagnostic[] = [];
 	const lines = text.split('\n');
 	for (let line = 0; line < lines.length; line++) {
@@ -20,6 +22,11 @@ const publish = (uri: string, text: string) => {
 			message: 'found oops',
 		});
 	}
+	return diagnostics;
+};
+
+const publish = (uri: string, text: string) => {
+	const diagnostics = diagnosticsFor(text);
 	send({ jsonrpc: '2.0', method: 'textDocument/publishDiagnostics', params: { uri, diagnostics } });
 };
 
@@ -46,8 +53,17 @@ process.stdin.on(
 					capabilities: {
 						textDocumentSync: 1,
 						completionProvider: { triggerCharacters: ['.'], resolveProvider: true },
+						...(mode === 'pull' ? { diagnosticProvider: { interFileDependencies: false } } : {}),
 					},
 				},
+			});
+		} else if (message.method === 'textDocument/diagnostic') {
+			const params = message.params as { textDocument: { uri: string } };
+			const text = documents.get(params.textDocument.uri) ?? '';
+			send({
+				jsonrpc: '2.0',
+				id: message.id,
+				result: { kind: 'full', items: diagnosticsFor(text) },
 			});
 		} else if (message.method === 'textDocument/completion') {
 			send({ jsonrpc: '2.0', id: message.id, result: { isIncomplete: false, items: COMPLETIONS } });
@@ -90,13 +106,16 @@ process.stdin.on(
 			process.exit(0);
 		} else if (message.method === 'textDocument/didOpen') {
 			const params = message.params as { textDocument: { uri: string; text: string } };
-			publish(params.textDocument.uri, params.textDocument.text);
+			documents.set(params.textDocument.uri, params.textDocument.text);
+			if (mode !== 'pull') publish(params.textDocument.uri, params.textDocument.text);
 		} else if (message.method === 'textDocument/didChange') {
 			const params = message.params as {
 				textDocument: { uri: string };
 				contentChanges: { text: string }[];
 			};
-			publish(params.textDocument.uri, params.contentChanges[0]!.text);
+			const text = params.contentChanges[0]!.text;
+			documents.set(params.textDocument.uri, text);
+			if (mode !== 'pull') publish(params.textDocument.uri, text);
 		}
 	}),
 );

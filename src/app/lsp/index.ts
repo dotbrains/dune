@@ -177,6 +177,7 @@ export function wireAppLspEffects(deps: {
 		pendingEdits.delete(path);
 		edit.entry.client.changeDocument(path, edit.text);
 		edit.entry.text = edit.text;
+		edit.entry.client.pullDiagnostics(path);
 	};
 
 	deps.lsp.setFlushEdit(flushEdit);
@@ -213,6 +214,7 @@ export function wireAppLspEffects(deps: {
 				const client = deps.lsp.clientFor(path);
 				if (!client) continue;
 				client.openDocument(path, filetypeForPath(path) ?? 'plaintext', buffer.content);
+				client.pullDiagnostics(path);
 				synced.set(path, { client, text: buffer.content, dirty: buffer.dirty });
 				continue;
 			}
@@ -224,6 +226,7 @@ export function wireAppLspEffects(deps: {
 			if (known.dirty && !buffer.dirty) {
 				flushEdit(path);
 				known.client.saveDocument(path);
+				known.client.pullDiagnostics(path);
 			}
 			known.dirty = buffer.dirty;
 		}
