@@ -93,6 +93,7 @@ export interface CommandActions {
 	compareBranches: () => void;
 	switchBranch: () => void;
 	newBranch: () => void;
+	newBranchFrom: () => void;
 	mergeBranch: () => void;
 	renameBranch: () => void;
 	deleteBranch: () => void;
@@ -326,6 +327,7 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 				{ id: 'git.compareBranches', label: 'Compare branches', run: actions.compareBranches },
 				{ id: 'git.switchBranch', label: 'Switch branch…', run: actions.switchBranch },
 				{ id: 'git.newBranch', label: 'New branch…', run: actions.newBranch },
+				{ id: 'git.newBranchFrom', label: 'New branch from…', run: actions.newBranchFrom },
 				{ id: 'git.mergeBranch', label: 'Merge branch…', run: actions.mergeBranch },
 				{ id: 'git.renameBranch', label: 'Rename branch…', run: actions.renameBranch },
 				{ id: 'git.deleteBranch', label: 'Delete branch…', run: actions.deleteBranch },

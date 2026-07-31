@@ -14,6 +14,7 @@ const PROMPT_TITLES: Partial<Record<NonNullable<Prompt>['kind'], string>> = {
 };
 
 export function promptTitleFor(prompt: Prompt): string | undefined {
+	if (prompt?.kind === 'newBranch' && prompt.from) return `New branch from ${prompt.from}`;
 	return prompt ? PROMPT_TITLES[prompt.kind] : undefined;
 }
 

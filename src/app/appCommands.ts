@@ -64,6 +64,7 @@ export function createAppCommands(deps: {
 		openBranchComparison: () => void;
 		openBranchSwitch: () => void;
 		openBranchPrompt: () => void;
+		openBranchFrom: () => void;
 		openBranchMerge: () => void;
 		openBranchRename: () => void;
 		openBranchDelete: () => void;
@@ -139,6 +140,7 @@ export function createAppCommands(deps: {
 				compareBranches: deps.gitCommands.openBranchComparison,
 				switchBranch: deps.gitCommands.openBranchSwitch,
 				newBranch: deps.gitCommands.openBranchPrompt,
+				newBranchFrom: deps.gitCommands.openBranchFrom,
 				mergeBranch: deps.gitCommands.openBranchMerge,
 				renameBranch: deps.gitCommands.openBranchRename,
 				deleteBranch: deps.gitCommands.openBranchDelete,

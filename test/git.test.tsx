@@ -164,6 +164,20 @@ test('createBranch creates and checks out a branch from HEAD', async () => {
 	expect(git('rev-parse', 'work').toString()).toBe(git('rev-parse', 'main').toString());
 });
 
+test('createBranch can start from another branch', async () => {
+	const dir = repo('one\n');
+	const git = (...args: string[]) => runGit(dir, ...args);
+	git('switch', '-q', '-c', 'feature');
+	writeFileSync(join(dir, 'feature.ts'), 'feature\n');
+	git('add', '.');
+	git('commit', '-q', '-m', 'feature');
+	git('switch', '-q', 'main');
+
+	expect(await createBranch(dir, 'work', 'feature')).toMatchObject({ ok: true });
+	expect(git('branch', '--show-current').toString().trim()).toBe('work');
+	expect(git('rev-parse', 'work').toString()).toBe(git('rev-parse', 'feature').toString());
+});
+
 test('renameBranch renames a local branch', async () => {
 	const dir = repo('one\n');
 	const git = (...args: string[]) => runGit(dir, ...args);
