@@ -7,6 +7,12 @@
  * exit code is always zero — installing something that merely depends on dune must not
  * break because a download did.
  */
-import { fetchBinary, findBinary, supported } from './binary.mjs';
+import { fetchBinary, findBinary, supported, target } from './binary.mjs';
+import { removeWindowsBareShim } from './windows-shim.mjs';
 
-if (supported && !findBinary()) await fetchBinary();
+removeWindowsBareShim();
+
+if (supported && !findBinary()) {
+	process.stderr.write(`dune: fetching the ${target} binary...\n`);
+	await fetchBinary();
+}
