@@ -331,6 +331,9 @@ test('diff commands can render split layout', async () => {
 
 test('source control panel lists changes from Ctrl+Opt+G', async () => {
 	const dir = repo('one\n');
+	const git = (...args: string[]) => runGit(dir, ...args);
+	git('switch', '-q', '-c', 'feature');
+	git('switch', '-q', 'main');
 	writeFileSync(join(dir, 'a.ts'), 'changed\n');
 	writeFileSync(join(dir, 'fresh.ts'), 'new\n');
 
@@ -342,23 +345,17 @@ test('source control panel lists changes from Ctrl+Opt+G', async () => {
 	expect(frame).toContain('a.ts');
 	expect(frame).toContain('fresh.ts');
 
+	await press(t, (input) => void input.typeText('b'));
+	expect(t.captureCharFrame()).toContain('Switch to branch');
+	await pressEscape(t);
+	await press(t, (input) => void input.typeText('B'));
+	expect(t.captureCharFrame()).toContain('Compare against branch');
+	await pressEscape(t);
 	await press(t, (input) => input.pressEnter());
 	expect(t.captureCharFrame()).toContain('+ changed');
 	await pressEscape(t);
 	await press(t, (input) => void input.typeText('c'));
 	expect(t.captureCharFrame()).toContain('Commit');
-});
-
-test('source control panel opens branch comparison with B', async () => {
-	const dir = repo('one\n');
-	const git = (...args: string[]) => runGit(dir, ...args);
-	git('switch', '-q', '-c', 'feature');
-	writeFileSync(join(dir, 'a.ts'), 'two\n');
-	git('commit', '-am', 'feature work');
-	const t = await launch(dir);
-	await press(t, (input) => void input.pressKeys([`${ESC}${String.fromCharCode(7)}`]));
-	await press(t, (input) => void input.typeText('B'));
-	expect(t.captureCharFrame()).toContain('Compare against branch');
 });
 
 test('source control panel groups changed files by folder', async () => {

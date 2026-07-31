@@ -556,7 +556,7 @@ export function App(props: AppTypes.AppProps) {
 			onGitDiff={gitCommands.openDiff}
 			onGitCommit={gitCommands.openCommitPicker}
 			onGitPush={gitCommands.push}
-			onGitCompare={gitCommands.openBranchComparison}
+			onGitBranchAction={gitCommands.openPanelBranchAction}
 			onResizeStart={(event) => {
 				setResizing(true);
 				resizeSidebar(event.x);

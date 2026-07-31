@@ -329,6 +329,8 @@ export function createGitCommands(deps: {
 		openDiff,
 		openBranchComparison,
 		openBranchCommitComparison,
+		openPanelBranchAction: (action: 'switch' | 'compare') =>
+			action === 'switch' ? openBranchSwitch() : openBranchComparison(),
 		openBranchSwitch,
 		openBranchMerge,
 		openBranchRename,
