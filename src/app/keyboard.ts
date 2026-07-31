@@ -15,7 +15,7 @@ export function useAppKeyboard(deps: {
 	config: Config;
 	activePath: () => string | null;
 	clipboard: () => { paths: string[]; mode: 'cut' | 'copy' };
-	focus: () => Focus;
+	focus: () => Focus | 'gitPanel';
 	help: () => boolean;
 	marked: () => string[];
 	notice: () => { name: string; reason: string } | null;
@@ -151,6 +151,7 @@ export function useAppKeyboard(deps: {
 			return;
 		}
 		if (key.ctrl || key.meta || key.option) return;
+		if (deps.focus() === 'gitPanel') return;
 		key.preventDefault();
 		const node = deps.selectedNode();
 		const treeKey = deps.config.vim

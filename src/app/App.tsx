@@ -430,7 +430,7 @@ export function App(props: AppTypes.AppProps) {
 		config,
 		activePath,
 		clipboard,
-		focus,
+		focus: () => (gitCommands.panel() ? 'gitPanel' : focus()),
 		help,
 		marked,
 		notice,

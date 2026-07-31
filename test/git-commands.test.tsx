@@ -236,6 +236,27 @@ test('source control comparison opens commits for its base', async () => {
 	expect(t.captureCharFrame()).toContain('change a');
 });
 
+test('source control comparison filters changed files', async () => {
+	const dir = repo('one\n');
+	const git = (...args: string[]) => runGit(dir, ...args);
+	git('switch', '-q', '-c', 'feature');
+	writeFileSync(join(dir, 'auth.ts'), 'export const auth = true\n');
+	writeFileSync(join(dir, 'readme.md'), '# docs\n');
+	git('add', '.');
+	git('commit', '-q', '-m', 'feature files');
+
+	const t = await launch(dir);
+	await runCommand(t, 'Compare against branch');
+	await press(t, (input) => input.pressEnter());
+	await runCommand(t, 'Source Control');
+	expect(t.captureCharFrame()).toContain('readme.md');
+	await press(t, (input) => void input.typeText('/auth'));
+	const frame = t.captureCharFrame();
+	expect(frame).toContain('filter auth');
+	expect(frame).toContain('auth.ts');
+	expect(frame).not.toContain('readme.md');
+});
+
 test('rename branch command renames the selected local branch', async () => {
 	const dir = repo('main\n');
 	const git = (...args: string[]) => runGit(dir, ...args);

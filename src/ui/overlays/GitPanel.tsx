@@ -7,6 +7,7 @@ import { createMemo, createSignal, For, Show } from 'solid-js';
 import type { ChangeRow } from '../../core/changeTree';
 import { changeRows } from '../../core/changeTree';
 import type { FileStatus } from '../../core/git';
+import { fuzzyScore } from '../../core/search';
 import { ui } from '../../themes';
 import { MARKS, statusColor } from '../FileTree';
 
@@ -26,9 +27,15 @@ export function GitPanel(props: {
 }) {
 	const [index, setIndex] = createSignal(0);
 	const [collapsed, setCollapsed] = createSignal<Set<string>>(new Set());
+	const [filtering, setFiltering] = createSignal(false);
+	const [filter, setFilter] = createSignal('');
 	const changes = createMemo(() =>
 		[...props.status]
 			.map(([path, status]) => ({ path, status, rel: relative(props.rootDir, path) }))
+			.filter((change) => {
+				const query = filter().trim();
+				return query.length === 0 || fuzzyScore(change.rel, query) !== null;
+			})
 			.toSorted((a, b) => a.rel.localeCompare(b.rel)),
 	);
 	const rows = createMemo(() => changeRows(changes(), collapsed()));
@@ -47,6 +54,10 @@ export function GitPanel(props: {
 			else next.add(rel);
 			return next;
 		});
+	const setFilterValue = (value: string) => {
+		setFilter(value);
+		setIndex(0);
+	};
 	const activate = (row: ChangeRow | undefined) => {
 		if (!row) return;
 		if (row.kind === 'dir') toggleDir(row.rel);
@@ -58,7 +69,21 @@ export function GitPanel(props: {
 		const count = Math.max(1, rows().length);
 		const plain = !key.ctrl && !key.meta && !key.option && key.sequence?.length === 1;
 		const row = () => rows()[selected()];
-		if (key.name === 'up') setIndex((at) => (at - 1 + count) % count);
+		const printable =
+			key.sequence?.length === 1 &&
+			key.sequence >= ' ' &&
+			key.sequence !== '\u007F' &&
+			!key.ctrl &&
+			!key.meta &&
+			!key.option;
+		if (filtering()) {
+			if (key.name === 'escape') {
+				if (filter()) setFilterValue('');
+				else setFiltering(false);
+			} else if (key.name === 'backspace') setFilterValue(filter().slice(0, -1));
+			else if (printable) setFilterValue(`${filter()}${key.sequence}`);
+			else return;
+		} else if (key.name === 'up') setIndex((at) => (at - 1 + count) % count);
 		else if (key.name === 'down') setIndex((at) => (at + 1) % count);
 		else if (key.name === 'return' || key.name === 'enter') {
 			activate(row());
@@ -75,7 +100,10 @@ export function GitPanel(props: {
 		else if (plain && key.name === 'b' && !key.shift) props.onBranchAction('switch');
 		else if (plain && ((key.name === 'b' && key.shift) || key.name === 'B'))
 			props.onBranchAction('compare');
-		else return;
+		else if (plain && key.sequence === '/' && props.base) {
+			setFiltering(true);
+			setFilterValue('');
+		} else return;
 		key.preventDefault();
 	});
 
@@ -92,14 +120,20 @@ export function GitPanel(props: {
 				<text
 					fg={props.base ? ui.dirty : ui.faint}
 					bg={ui.panelBg}
-					content={props.base ? `vs ${props.base}` : 'source control'}
+					content={
+						filtering() || filter()
+							? `filter ${filter()}`
+							: props.base
+								? `vs ${props.base}`
+								: 'source control'
+					}
 				/>
 			</box>
 			<Show
 				when={rows().length > 0}
 				fallback={
 					<box flexGrow={1} backgroundColor={ui.panelBg} paddingLeft={2}>
-						<text fg={ui.faint} bg={ui.panelBg} content="no changes" />
+						<text fg={ui.faint} bg={ui.panelBg} content={filter() ? 'no matches' : 'no changes'} />
 					</box>
 				}
 			>
@@ -174,7 +208,7 @@ export function GitPanel(props: {
 				<text
 					fg={ui.faint}
 					bg={ui.panelBg}
-					content={`b branch · B compare · c ${props.base ? 'commits' : 'commit'} · p push · enter diff · ←→ fold`}
+					content={`b branch · B compare · c ${props.base ? 'commits' : 'commit'} · ${props.base ? '/ filter · ' : ''}p push · enter diff · ←→ fold`}
 				/>
 			</box>
 		</box>
