@@ -4,6 +4,7 @@ import { join } from 'node:path';
 
 import { CONFIG_FILE } from '../src/core/config';
 import { fixture, launch, press, runCommand } from './helpers';
+import type { Harness } from './helpers';
 
 const project = (settings: Record<string, unknown> | string) =>
 	fixture({
@@ -13,6 +14,18 @@ const project = (settings: Record<string, unknown> | string) =>
 
 const localSettings = (dir: string) =>
 	JSON.parse(readFileSync(join(dir, '.dune', 'settings.json'), 'utf8'));
+
+async function gotoRow(t: Harness, label: string) {
+	for (let step = 0; step < 30; step++) {
+		const row = t
+			.captureCharFrame()
+			.split('\n')
+			.find((line) => line.includes(label));
+		if (row?.includes('▌')) return;
+		await press(t, (input) => input.pressArrow('down'));
+	}
+	throw new Error(`row not reached: ${label}`);
+}
 
 test('project settings override user settings at launch', async () => {
 	const hidden = await launch(project({ showDotfiles: false }), { showDotfiles: true });
@@ -47,9 +60,7 @@ test('the project settings command writes only project overrides', async () => {
 	const dir = project({});
 	const t = await launch(dir);
 	await runCommand(t, 'Settings: this project');
-	await press(t, (input) => input.pressArrow('down'));
-	await press(t, (input) => input.pressArrow('down'));
-	await press(t, (input) => input.pressArrow('down'));
+	await gotoRow(t, 'Vim mode');
 	await press(t, (input) => input.pressEnter());
 
 	expect(localSettings(dir)).toEqual({ vim: true });

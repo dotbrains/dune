@@ -20,6 +20,7 @@ export function settingsRows(
 	config: Config,
 	actions: {
 		applyTheme: (name: ThemeName) => void;
+		applyThemeSlot: (slot: 'themeLight' | 'themeDark', name: ThemeName) => void;
 		applyTabSize: (size: number) => void;
 		applyVim: (enabled: boolean) => void;
 		editFormatter: () => void;
@@ -51,6 +52,18 @@ export function settingsRows(
 			label: 'Follow OS appearance',
 			value: onOff(config.themeSync),
 			change: actions.toggleThemeSync,
+		},
+		{
+			section: 'Appearance',
+			label: 'Light theme',
+			value: themeLabels[config.themeLight],
+			change: (dir) => actions.applyThemeSlot('themeLight', cycle(themes, config.themeLight, dir)),
+		},
+		{
+			section: 'Appearance',
+			label: 'Dark theme',
+			value: themeLabels[config.themeDark],
+			change: (dir) => actions.applyThemeSlot('themeDark', cycle(themes, config.themeDark, dir)),
 		},
 		{
 			section: 'Appearance',

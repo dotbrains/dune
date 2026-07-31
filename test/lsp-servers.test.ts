@@ -47,6 +47,7 @@ test('LSP settings parse and appear in settings rows', () => {
 		},
 		{
 			applyTheme: () => {},
+			applyThemeSlot: () => {},
 			applyTabSize: () => {},
 			applyVim: () => {},
 			editFormatter: () => {},

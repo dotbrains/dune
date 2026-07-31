@@ -29,6 +29,7 @@ function rowOf(label: string): number {
 function settingsRowOf(label: string): number {
 	const actions = {
 		applyTheme: () => {},
+		applyThemeSlot: () => {},
 		applyTabSize: () => {},
 		applyVim: () => {},
 		editFormatter: () => {},

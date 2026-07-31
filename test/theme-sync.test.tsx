@@ -96,3 +96,26 @@ test('the settings page turns sync on and applies the matching slot', async () =
 		.find((line) => line.includes('Follow OS appearance'))!;
 	expect(row).toContain('on');
 });
+
+test('the settings page edits the light and dark theme slots', async () => {
+	process.env[APPEARANCE_ENV] = 'dark';
+	const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }), {
+		themeSync: true,
+		themeDark: 'dark',
+		themeLight: 'light',
+	});
+	await runCommand(t, 'Settings');
+
+	await press(t, (i) => i.pressArrow('down'));
+	await press(t, (i) => i.pressArrow('down'));
+	await press(t, (i) => i.pressEnter());
+	expect(t.captureCharFrame()).toContain('Ayu Dark');
+
+	await press(t, (i) => i.pressArrow('down'));
+	await press(t, (i) => i.pressEnter());
+	expect(t.captureCharFrame()).toContain('GitHub Light');
+
+	const saved = JSON.parse(readFileSync(CONFIG_FILE, 'utf8'));
+	expect(saved.themeLight).toBe('ayu-dark');
+	expect(saved.themeDark).toBe('light');
+});

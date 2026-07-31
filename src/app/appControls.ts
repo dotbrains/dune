@@ -30,6 +30,17 @@ export function createAppControls(deps: {
 		patch({ theme: name, themeSync: false });
 		deps.say(`Theme: ${themeLabels[name]}`);
 	};
+	const applyThemeSlot = (slot: 'themeLight' | 'themeDark', name: ThemeName) => {
+		const appearance = deps.currentAppearance();
+		const active =
+			deps.config.themeSync && appearance === (slot === 'themeDark' ? 'dark' : 'light');
+		if (active) {
+			setTheme(name);
+			invalidateSyntaxStyle();
+		}
+		patch(active ? { [slot]: name, theme: name } : { [slot]: name });
+		deps.say(`${slot === 'themeDark' ? 'Dark' : 'Light'} theme: ${themeLabels[name]}`);
+	};
 	const toggleThemeSync = () => {
 		const next = !deps.config.themeSync;
 		const appearance = deps.currentAppearance();
@@ -97,6 +108,7 @@ export function createAppControls(deps: {
 	const confirmation = createMemo(() => confirmationForPrompt(deps.prompt()));
 	return {
 		applyTheme,
+		applyThemeSlot,
 		applyTabSize,
 		applyVim,
 		confirmation,

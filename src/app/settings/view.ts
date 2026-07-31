@@ -7,6 +7,7 @@ export function createAppSettingRows(deps: {
 	controls: Pick<
 		ReturnType<typeof createAppControls>,
 		| 'applyTheme'
+		| 'applyThemeSlot'
 		| 'applyTabSize'
 		| 'applyVim'
 		| 'editFormatter'
@@ -28,6 +29,7 @@ export function createAppSettingRows(deps: {
 	return createSettingsRows({
 		config: deps.config,
 		applyTheme: deps.controls.applyTheme,
+		applyThemeSlot: deps.controls.applyThemeSlot,
 		applyTabSize: deps.controls.applyTabSize,
 		applyVim: deps.controls.applyVim,
 		editFormatter: deps.controls.editFormatter,
