@@ -107,6 +107,12 @@ export function settingsRows(
 		},
 		{
 			section: 'Editor',
+			label: 'Inline problem text',
+			value: onOff(config.lspInline),
+			change: () => actions.patchConfig({ lspInline: !config.lspInline }, actions.configScope()),
+		},
+		{
+			section: 'Editor',
 			label: 'Language server overrides',
 			value: `${Object.keys(config.lspServers).length} overridden`,
 			change: () => {},

@@ -5,6 +5,7 @@ import type { LineChange } from '../core/git';
 import type { ProblemSeverity } from '../lsp/protocol';
 import { getSyntaxStyle } from '../languages/highlight';
 import { ui } from '../themes';
+import type { ProblemNote } from './editorProblemNotes';
 import { problemColor, problemGlyph } from './problemMarks';
 
 const CHANGE_COLORS: Record<LineChange, () => string> = {
@@ -27,11 +28,13 @@ export function EditorPaneBody(props: {
 	gutterWidth: number;
 	changeTrack: (LineChange | undefined)[];
 	problemTrack: (ProblemSeverity | undefined)[];
+	problemNotes: ProblemNote[];
 	scrollbar: boolean[];
 	dragging: boolean;
 	onFocus: () => void;
 	onDrag: (event: MouseEvent) => void;
 	onDragEnd: () => void;
+	onHost: (el: { x: number; y: number; width: number }) => void;
 	onGutter: (el: unknown) => void;
 	onEditor: (el: TextareaRenderable) => void;
 	onContentChange: () => void;
@@ -43,6 +46,7 @@ export function EditorPaneBody(props: {
 }) {
 	return (
 		<box
+			ref={props.onHost}
 			flexGrow={1}
 			flexDirection="row"
 			backgroundColor={ui.bg}
@@ -83,6 +87,19 @@ export function EditorPaneBody(props: {
 					onCursorChange={props.onCursorChange}
 				/>
 			</line_number>
+			<For each={props.problemNotes}>
+				{(note) => (
+					<text
+						position="absolute"
+						top={note.top}
+						left={note.left}
+						zIndex={5}
+						fg={problemColor(note.severity)}
+						bg={ui.bg}
+						content={note.text}
+					/>
+				)}
+			</For>
 			<Show when={props.problemTrack.some(Boolean)}>
 				<box
 					width={1}

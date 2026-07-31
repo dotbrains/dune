@@ -84,6 +84,8 @@ export interface Config {
 	lsp: boolean;
 	/** Completion menu while typing. Requires `lsp` to be enabled. */
 	lspCompletion: boolean;
+	/** Show the first diagnostic message beside each affected line. */
+	lspInline: boolean;
 	/** TypeScript SDK path passed to typescript-language-server. Empty lets it choose. */
 	typescriptTsdk: string;
 	/** Per-server command override. An empty array disables that server. */
@@ -111,6 +113,7 @@ export const DEFAULTS: Config = {
 	diffView: 'inline',
 	lsp: false,
 	lspCompletion: true,
+	lspInline: true,
 	typescriptTsdk: '',
 	lspServers: {},
 	keybindings: {},
@@ -150,6 +153,7 @@ function parsePartial(raw: unknown): Partial<Config> {
 	if (obj.diffView === 'split' || obj.diffView === 'inline') config.diffView = obj.diffView;
 	if (typeof obj.lsp === 'boolean') config.lsp = obj.lsp;
 	if (typeof obj.lspCompletion === 'boolean') config.lspCompletion = obj.lspCompletion;
+	if (typeof obj.lspInline === 'boolean') config.lspInline = obj.lspInline;
 	if (typeof obj.typescriptTsdk === 'string') config.typescriptTsdk = obj.typescriptTsdk;
 	if (obj.lspServers && typeof obj.lspServers === 'object' && !Array.isArray(obj.lspServers)) {
 		const lspServers: Record<string, string[]> = {};

@@ -16,6 +16,7 @@ describe('LSP diagnostics in the UI', () => {
 
 		await until(t, () => frame(t).includes('● 1'));
 		expect(frame(t)).toContain('● 1');
+		expect(frame(t)).toContain('found oops');
 
 		await runCommand(t, 'List problems');
 		expect(frame(t)).toContain('Problems');
@@ -26,6 +27,19 @@ describe('LSP diagnostics in the UI', () => {
 
 		await runCommand(t, 'Next problem');
 		expect(frame(t)).toContain('found oops');
+	});
+
+	test('inline problem text can be disabled', async () => {
+		const dir = fixture({ 'a.ts': 'const bad = oops\n' });
+		const t = await launch(
+			dir,
+			{ ...lspConfig, lspInline: false },
+			{},
+			{ openFile: join(dir, 'a.ts') },
+		);
+
+		await until(t, () => frame(t).includes('● 1'));
+		expect(frame(t)).not.toContain('found oops');
 	});
 
 	test('a problem far below the viewport is marked on the track', async () => {

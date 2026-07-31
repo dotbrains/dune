@@ -7,7 +7,7 @@ import { History } from '../editor/history';
 import { problemRows } from '../editor/problems';
 import { initialVimState } from '../editor/vim';
 import type { VimMode } from '../editor/vim';
-import { lineAt, logicalWindow } from '../editor/window';
+import { logicalWindow } from '../editor/window';
 import type { ProblemSeverity } from '../lsp/protocol';
 import { computeHighlights, getSyntaxStyle, segmentsIn, STALE } from '../languages/highlight';
 import type { Highlighted, Segment } from '../languages/highlight';
@@ -18,7 +18,9 @@ import { afterResize, allowSelectionOnlyInEditor, ignoreScrollOutsideBounds } fr
 import { useEditorKeymap } from './editorKeymap';
 import { createEditorCompletion } from './editorCompletion';
 import type { EditorCompletionProps } from './editorCompletion';
+import { createEditorLayout, scrollTextarea } from './editorLayout';
 import { createEditorLineActions } from './editorLineActions';
+import { inlineProblemNotes } from './editorProblemNotes';
 import { editorLineSigns } from './problemMarks';
 export { ignoreScrollOutsideBounds } from './editorHost';
 export interface EditorPaneProps extends EditorCompletionProps {
@@ -33,6 +35,7 @@ export interface EditorPaneProps extends EditorCompletionProps {
 	tabSize: number;
 	gitLines: Map<number, LineChange>;
 	problems: Map<number, { severity: ProblemSeverity; message: string }>;
+	problemText: boolean;
 	notice: { name: string; reason: string } | null;
 	onChange: (text: string) => void;
 	onCursor: (pos: { line: number; col: number }) => void;
@@ -64,27 +67,13 @@ export function EditorPane(props: EditorPaneProps) {
 	const [viewTop, setViewTop] = createSignal(0);
 	const [viewHeight, setViewHeight] = createSignal(0);
 	const [viewTotal, setViewTotal] = createSignal(0);
+	const [wrapKey, setWrapKey] = createSignal(0);
 	const viewport = () => ({ top: viewTop(), height: viewHeight(), total: viewTotal() });
-	let visualToLogical: number[] | null = null;
-	const forgetWrapMap = () => (visualToLogical = null);
-	const wrapMap = (): number[] => {
-		if (!editor) return [];
-		if (!visualToLogical) visualToLogical = editor.lineInfo.lineSources as number[];
-		return visualToLogical;
-	};
-	const lineAtRow = (row: number): number => lineAt(wrapMap(), row);
-	const rowAtLine = (line: number): number => {
-		const map = wrapMap();
-		if (map.length === 0) return line;
-		let low = 0;
-		let high = map.length - 1;
-		while (low < high) {
-			const mid = (low + high) >> 1;
-			if ((map[mid] ?? 0) < line) low = mid + 1;
-			else high = mid;
-		}
-		return low;
-	};
+	let host: { x: number; y: number; width: number } | undefined;
+	const layout = createEditorLayout(
+		() => editor,
+		() => setWrapKey((key) => key + 1),
+	);
 	const lineCount = createMemo(() => {
 		let lines = 1;
 		for (let at = props.content.indexOf('\n'); at >= 0; at = props.content.indexOf('\n', at + 1)) {
@@ -98,7 +87,7 @@ export function EditorPane(props: EditorPaneProps) {
 		const total = measured.total || lineCount();
 		if (height <= 0 || total <= height) return null;
 		const size = Math.max(1, Math.round((height * height) / total));
-		return { height, total, size, span: height - size, top: lineAtRow(measured.top) };
+		return { height, total, size, span: height - size, top: layout.lineAtRow(measured.top) };
 	});
 	const scrollbar = createMemo(() => {
 		const m = scrollMetrics();
@@ -156,7 +145,7 @@ export function EditorPane(props: EditorPaneProps) {
 			editor.clearAllHighlights();
 			appliedLines.clear();
 		}
-		const { from, to } = logicalWindow(editor.scrollY, editor.height, wrapMap(), OVERSCAN);
+		const { from, to } = logicalWindow(editor.scrollY, editor.height, layout.wrapMap(), OVERSCAN);
 		for (const line of appliedLines) {
 			if (line < from || line > to) {
 				editor.clearLineHighlights(line);
@@ -172,15 +161,9 @@ export function EditorPane(props: EditorPaneProps) {
 	};
 	const scrollTo = (wanted: number) => {
 		if (!editor) return;
-		const delta = rowAtLine(Math.round(wanted)) - editor.scrollY;
+		const delta = layout.rowAtLine(Math.round(wanted)) - editor.scrollY;
 		if (delta === 0) return;
-		const host = editor as unknown as { onMouseEvent: (event: unknown) => void };
-		host.onMouseEvent({
-			type: 'scroll',
-			x: editor.x + 1,
-			y: editor.y + 1,
-			scroll: { direction: delta > 0 ? 'down' : 'up', delta: Math.abs(delta) },
-		});
+		scrollTextarea(editor, delta);
 		syncViewport();
 		applyWindow();
 	};
@@ -191,13 +174,7 @@ export function EditorPane(props: EditorPaneProps) {
 		const target = Math.max(0, Math.min(maxTop, editor.scrollY + direction * pageRows));
 		const delta = target - editor.scrollY;
 		if (delta === 0) return;
-		const host = editor as unknown as { onMouseEvent: (event: unknown) => void };
-		host.onMouseEvent({
-			type: 'scroll',
-			x: editor.x + 1,
-			y: editor.y + 1,
-			scroll: { direction: delta > 0 ? 'down' : 'up', delta: Math.abs(delta) },
-		});
+		scrollTextarea(editor, delta);
 		syncViewport();
 		applyWindow();
 		scheduleCursorSync();
@@ -247,7 +224,7 @@ export function EditorPane(props: EditorPaneProps) {
 		if (editor) void runHighlight(editor.plainText);
 	};
 	const rehighlight = (text: string) => {
-		forgetWrapMap();
+		layout.forget();
 		parsed = null;
 		byLine = new Map();
 		segmented.clear();
@@ -309,6 +286,24 @@ export function EditorPane(props: EditorPaneProps) {
 		const total = m?.total ?? viewTotal();
 		if (height <= 0) return [];
 		return problemRows(props.problems, total, height);
+	});
+	const problemNotes = createMemo(() => {
+		wrapKey();
+		void props.content;
+		if (!props.problemText || !editor || !host || props.problems.size === 0) return [];
+		const top = viewTop();
+		const height = viewHeight() || editor.height;
+		const { sources, widths } = layout.lineLayout();
+		return inlineProblemNotes({
+			editor,
+			host,
+			problems: props.problems,
+			top,
+			height,
+			sources,
+			widths,
+			rowAtLine: layout.rowAtLine,
+		});
 	});
 	const jumpToRow = (row: number) => {
 		const m = scrollMetrics();
@@ -451,6 +446,7 @@ export function EditorPane(props: EditorPaneProps) {
 			gutterWidth={gutterWidth()}
 			changeTrack={changeTrack()}
 			problemTrack={problemTrack()}
+			problemNotes={problemNotes()}
 			scrollbar={scrollbar()}
 			dragging={dragging()}
 			completionMenu={completion.menu()}
@@ -459,6 +455,9 @@ export function EditorPane(props: EditorPaneProps) {
 				if (dragging()) dragTo(event.y);
 			}}
 			onDragEnd={() => setDragging(false)}
+			onHost={(el) => {
+				host = el;
+			}}
 			onGutter={(el) => {
 				gutter = el as GutterHost;
 			}}
@@ -469,7 +468,7 @@ export function EditorPane(props: EditorPaneProps) {
 				afterResize(el, () => {
 					applyLineSigns();
 					syncViewport();
-					forgetWrapMap();
+					layout.forget();
 					applyWindow(true);
 				});
 				allowSelectionOnlyInEditor(el);

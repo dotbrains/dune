@@ -266,6 +266,7 @@ export function AppView(props: AppViewProps) {
 									tabSize={props.config.tabSize}
 									gitLines={props.gitLines}
 									problems={props.problems}
+									problemText={props.config.lspInline}
 									notice={props.notice}
 									blocked={props.blocked}
 									onChange={props.onEditorChange}
