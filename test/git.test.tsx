@@ -252,7 +252,10 @@ test('diff commands show current file and all changed files', async () => {
 	await press(t, (i) => void i.typeText('f'));
 	expect(t.captureCharFrame()).toContain('Changed files');
 	expect(t.captureCharFrame()).toContain('fresh.ts +1 -0');
-	await press(t, (i) => i.pressArrow('down'));
+	await press(t, (i) => void i.typeText('fresh'));
+	expect(t.captureCharFrame()).toContain('Filter: fresh (1/2)');
+	expect(t.captureCharFrame()).toContain('fresh.ts +1 -0');
+	expect(t.captureCharFrame()).not.toContain('a.ts +2 -1');
 	await press(t, (i) => i.pressEnter());
 	expect(t.captureCharFrame()).toContain('fresh.ts');
 	expect(t.captureCharFrame()).toContain('file 2/2');

@@ -4,6 +4,7 @@ import { createMemo, createSignal, For, Show } from 'solid-js';
 
 import { splitText, unifiedDiff } from '../../core/diff';
 import type { DiffFile } from '../../core/git';
+import { fuzzyScore } from '../../core/search';
 import { ui } from '../../themes';
 import { listRows, modalWidth, PAD } from '../modal';
 import { Overlay } from '../Overlay';
@@ -79,6 +80,7 @@ export function DiffView(props: { files: DiffFile[]; mode: DiffMode; onClose: ()
 	const [index, setIndex] = createSignal(0);
 	const [pickIndex, setPickIndex] = createSignal(0);
 	const [picker, setPicker] = createSignal(false);
+	const [filter, setFilter] = createSignal('');
 	const [top, setTop] = createSignal(0);
 	const width = () => modalWidth(dimensions().width, 0.82, 76, 120);
 	const visibleRows = () => listRows(dimensions().height, 7, 24);
@@ -92,11 +94,20 @@ export function DiffView(props: { files: DiffFile[]; mode: DiffMode; onClose: ()
 		dels: diff().dels,
 	});
 	const fileCounts = createMemo(() =>
-		props.files.map((changed) => ({
+		props.files.map((changed, originalIndex) => ({
 			file: changed,
+			originalIndex,
 			diff: unifiedDiff(changed.rel, changed.oldText, changed.newText),
 		})),
 	);
+	const filteredFileCounts = createMemo(() => {
+		const query = filter().trim();
+		if (!query) return fileCounts();
+		return fileCounts().filter(
+			(row) =>
+				fuzzyScore(row.file.rel, query) !== null || fuzzyScore(row.file.path, query) !== null,
+		);
+	});
 	const totalCounts = () => ({
 		adds: fileCounts().reduce((total, row) => total + row.diff.adds, 0),
 		dels: fileCounts().reduce((total, row) => total + row.diff.dels, 0),
@@ -108,23 +119,39 @@ export function DiffView(props: { files: DiffFile[]; mode: DiffMode; onClose: ()
 		setTop(0);
 	};
 	const pickFile = (at: number) => {
-		setIndex(at);
+		const row = filteredFileCounts()[at];
+		if (!row) return;
+		setIndex(row.originalIndex);
 		setTop(0);
 		setPicker(false);
+	};
+	const openPicker = () => {
+		const current = index();
+		setFilter('');
+		setPickIndex(fileCounts().findIndex((row) => row.originalIndex === current));
+		setPicker(true);
+	};
+	const setPickerFilter = (value: string) => {
+		setFilter(value);
+		setPickIndex(0);
 	};
 
 	useKeyboard((key: KeyEvent) => {
 		if (picker()) {
-			const count = Math.max(1, props.files.length);
+			const typed = key.sequence;
+			const printable =
+				typed?.length === 1 && typed >= ' ' && typed !== '\u007F' && !key.ctrl && !key.meta;
+			const count = Math.max(1, filteredFileCounts().length);
 			if (key.name === 'escape' || key.name === 'q') setPicker(false);
 			else if (key.name === 'up') setPickIndex((at) => (at - 1 + count) % count);
 			else if (key.name === 'down') setPickIndex((at) => (at + 1) % count);
+			else if (key.name === 'backspace') setPickerFilter(filter().slice(0, -1));
 			else if (key.name === 'return' || key.name === 'enter') pickFile(pickIndex());
+			else if (printable) setPickerFilter(`${filter()}${typed}`);
 			else return;
 		} else if (key.name === 'escape' || key.name === 'q') props.onClose();
 		else if (key.name === 'f' && props.files.length > 1) {
-			setPickIndex(index());
-			setPicker(true);
+			openPicker();
 		} else if (key.name === 'up') page(-1);
 		else if (key.name === 'down') page(1);
 		else if (key.name === 'pageup') page(-visibleRows());
@@ -196,7 +223,17 @@ export function DiffView(props: { files: DiffFile[]; mode: DiffMode; onClose: ()
 						<text fg={ui.gitAdded} bg={ui.panelBg} content={`+${totalCounts().adds} `} />
 						<text fg={ui.gitDeleted} bg={ui.panelBg} content={`-${totalCounts().dels}`} />
 					</box>
-					<For each={fileCounts().slice(0, visibleRows())}>
+					<Show when={filter()}>
+						<text
+							fg={ui.dim}
+							bg={ui.panelBg}
+							content={`Filter: ${filter()} (${filteredFileCounts().length}/${props.files.length})`.slice(
+								0,
+								width() - PAD * 2 - 2,
+							)}
+						/>
+					</Show>
+					<For each={filteredFileCounts().slice(0, visibleRows())}>
 						{(row, at) => {
 							const active = () => at() === pickIndex();
 							const bg = () => (active() ? ui.treeSelectedBg : ui.panelBg);
@@ -209,7 +246,14 @@ export function DiffView(props: { files: DiffFile[]; mode: DiffMode; onClose: ()
 							return <text fg={active() ? ui.text : ui.dim} bg={bg()} content={label()} />;
 						}}
 					</For>
-					<text fg={ui.dim} bg={ui.panelBg} content="↑↓ choose · Enter jump · Esc diff" />
+					<Show when={filteredFileCounts().length === 0}>
+						<text fg={ui.dim} bg={ui.panelBg} content="No changed files match." />
+					</Show>
+					<text
+						fg={ui.dim}
+						bg={ui.panelBg}
+						content="Type filter · ↑↓ choose · Enter jump · Esc diff"
+					/>
 				</Show>
 			</box>
 		</Overlay>
