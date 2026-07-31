@@ -5,7 +5,7 @@ import type { LineChange } from '../core/git';
 import type { ProblemSeverity } from '../lsp/protocol';
 import { getSyntaxStyle } from '../languages/highlight';
 import { ui } from '../themes';
-import type { ProblemNote } from './editorProblemNotes';
+import type { ProblemNote } from './editorHost';
 import { problemColor, problemGlyph } from './problemMarks';
 
 const CHANGE_COLORS: Record<LineChange, () => string> = {

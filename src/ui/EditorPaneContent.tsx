@@ -6,7 +6,7 @@ import type { ProblemSeverity } from '../lsp/protocol';
 import { ui } from '../themes';
 import { EditorEmptyState, EditorNotice } from './EditorEmptyState';
 import { EditorPaneBody } from './EditorPaneBody';
-import type { ProblemNote } from './editorProblemNotes';
+import type { ProblemNote } from './editorHost';
 
 export function EditorPaneContent(props: {
 	open: boolean;

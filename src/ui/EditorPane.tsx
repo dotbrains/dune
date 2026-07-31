@@ -14,15 +14,19 @@ import type { Highlighted, Segment } from '../languages/highlight';
 import type { ThemeName } from '../themes';
 import type { GutterHost } from './EditorPaneBody';
 import { EditorPaneContent } from './EditorPaneContent';
-import { afterResize, allowSelectionOnlyInEditor, ignoreScrollOutsideBounds } from './editorHost';
+import {
+	afterResize,
+	allowSelectionOnlyInEditor,
+	createEditorLayout,
+	ignoreScrollOutsideBounds,
+	inlineProblemNotes,
+	scrollTextarea,
+} from './editorHost';
 import { useEditorKeymap } from './editorKeymap';
 import { createEditorCompletion } from './editorCompletion';
 import type { EditorCompletionProps } from './editorCompletion';
-import { createEditorLayout, scrollTextarea } from './editorLayout';
 import { createEditorLineActions } from './editorLineActions';
-import { inlineProblemNotes } from './editorProblemNotes';
 import { editorLineSigns } from './problemMarks';
-export { ignoreScrollOutsideBounds } from './editorHost';
 export interface EditorPaneProps extends EditorCompletionProps {
 	filetype?: string;
 	theme: ThemeName;
@@ -70,10 +74,8 @@ export function EditorPane(props: EditorPaneProps) {
 	const [wrapKey, setWrapKey] = createSignal(0);
 	const viewport = () => ({ top: viewTop(), height: viewHeight(), total: viewTotal() });
 	let host: { x: number; y: number; width: number } | undefined;
-	const layout = createEditorLayout(
-		() => editor,
-		() => setWrapKey((key) => key + 1),
-	);
+	const bumpWrapKey = () => setWrapKey((key) => key + 1);
+	const layout = createEditorLayout(() => editor, bumpWrapKey);
 	const lineCount = createMemo(() => {
 		let lines = 1;
 		for (let at = props.content.indexOf('\n'); at >= 0; at = props.content.indexOf('\n', at + 1)) {

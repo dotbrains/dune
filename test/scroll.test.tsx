@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import type { MouseEvent, TextareaRenderable } from '@opentui/core';
 
-import { ignoreScrollOutsideBounds } from '../src/ui/EditorPane';
+import { ignoreScrollOutsideBounds } from '../src/ui/editorHost';
 
 /** A stand-in for the textarea: the renderer only needs bounds and the hook. */
 function fakeEditor(seen: MouseEvent[]) {
