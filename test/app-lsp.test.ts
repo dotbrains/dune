@@ -66,6 +66,20 @@ test('app LSP syncs open buffers into diagnostics', async () => {
 	});
 });
 
+test('language server status rows report state and diagnostics', async () => {
+	const { path, lsp } = runLsp();
+	await waitFor(() => lsp.clientFor(path)?.ready() === true);
+	await waitFor(() => lsp.problems[path]?.length === 1);
+
+	const typescript = lsp.statusRows().find((row) => row.id === 'typescript');
+
+	expect(typescript).toMatchObject({
+		command: `bun ${FAKE}`,
+		state: 'ready',
+		problems: 1,
+	});
+});
+
 test('closing a tab clears diagnostics for that path', async () => {
 	const { path, lsp, setTabs } = runLsp();
 	await waitFor(() => lsp.problems[path]?.length === 1);

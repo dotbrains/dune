@@ -93,6 +93,7 @@ export interface CommandActions {
 	problemsNext: () => void;
 	problemsPrev: () => void;
 	problemsRestart: () => void;
+	lspStatus: () => void;
 	completion: () => void;
 	commit: () => void;
 	sourceControl: () => void;
@@ -345,6 +346,7 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 				{ id: 'problems.next', label: 'Next problem', run: actions.problemsNext },
 				{ id: 'problems.prev', label: 'Previous problem', run: actions.problemsPrev },
 				{ id: 'problems.restart', label: 'Restart language servers', run: actions.problemsRestart },
+				{ id: 'problems.lspStatus', label: 'Language server status', run: actions.lspStatus },
 			],
 		},
 		{

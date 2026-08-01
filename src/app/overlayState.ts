@@ -9,6 +9,7 @@ export function isOverlayOpen(deps: {
 	help: Accessor<boolean>;
 	search: Accessor<SearchState>;
 	settingsPage: Accessor<boolean>;
+	lspStatusOpen: Accessor<boolean>;
 	diff: Accessor<unknown>;
 	update: Accessor<unknown>;
 	picker: Accessor<PickerState>;
@@ -22,6 +23,7 @@ export function isOverlayOpen(deps: {
 		deps.help() ||
 		deps.search() ||
 		deps.settingsPage() ||
+		deps.lspStatusOpen() ||
 		deps.diff() ||
 		deps.update() ||
 		deps.picker() ||

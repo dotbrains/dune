@@ -61,6 +61,7 @@ export function createAppCommandTree(deps: {
 		next: (direction: 1 | -1) => void;
 	};
 	lspRestart: () => boolean;
+	openLspStatus: () => void;
 	completion: { show: () => void; goToDefinition: () => void };
 	gitCommands: Parameters<typeof createAppCommands>[0]['gitCommands'];
 	say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
@@ -113,6 +114,7 @@ export function createAppCommandTree(deps: {
 		problemsPrev: () => deps.problemUi.next(-1),
 		problemsRestart: () =>
 			deps.say(deps.lspRestart() ? 'Restarted language servers' : 'No language servers running'),
+		lspStatus: deps.openLspStatus,
 		completion: {
 			show: deps.completion.show,
 			goToDefinition: () => {

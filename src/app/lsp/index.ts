@@ -15,7 +15,7 @@ import { hasNodeRuntime, installedCommand, installServer, SERVER_ROOT } from '..
 import { projectCommand } from '../../lsp/project';
 import { isUnnecessary, severityOf } from '../../lsp/protocol';
 import type { CompletionItem, Diagnostic, ProblemSeverity } from '../../lsp/protocol';
-import { installHint, resolveServer } from '../../lsp/servers';
+import { DEFAULT_SERVERS, installHint, resolveServer } from '../../lsp/servers';
 import type { BufferState, Prompt, StatusMessage } from '../types';
 
 export interface Problem {
@@ -28,6 +28,14 @@ export interface Problem {
 	unnecessary: boolean;
 	message: string;
 	source?: string;
+}
+
+export interface LspStatusRow {
+	id: string;
+	filetypes: string[];
+	command: string;
+	state: 'ready' | 'starting' | 'stopped' | 'disabled';
+	problems: number;
 }
 
 const CHANGE_DEBOUNCE_MS = 150;
@@ -166,6 +174,36 @@ export function createAppLsp(deps: {
 		deps.say(`Installed ${name}`);
 	};
 
+	const statusRows = (): LspStatusRow[] =>
+		DEFAULT_SERVERS.map((server) => {
+			const override = deps.config.lspServers[server.id];
+			const command = override ?? server.command;
+			const client = clients.get(server.id);
+			const state =
+				!deps.config.lsp || command.length === 0
+					? 'disabled'
+					: client === undefined || client === null
+						? 'stopped'
+						: client.state() === 'ready'
+							? 'ready'
+							: client.state() === 'starting'
+								? 'starting'
+								: 'stopped';
+			let count = 0;
+			for (const path of Object.keys(problems)) {
+				if (server.filetypes.includes(filetypeForPath(path) ?? '')) {
+					count += problems[path]?.length ?? 0;
+				}
+			}
+			return {
+				id: server.id,
+				filetypes: server.filetypes,
+				command: command.join(' ') || 'disabled',
+				state,
+				problems: count,
+			};
+		});
+
 	let flushEdit: ((path: string) => void) | null = null;
 
 	const complete = async (
@@ -217,6 +255,7 @@ export function createAppLsp(deps: {
 		generation,
 		dependenciesChanged,
 		install,
+		statusRows,
 		restart,
 		setFlushEdit: (flush: (path: string) => void) => {
 			flushEdit = flush;

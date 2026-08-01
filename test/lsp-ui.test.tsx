@@ -97,4 +97,22 @@ describe('LSP diagnostics in the UI', () => {
 
 		expect(frame(t)).toContain('LSP is off');
 	});
+
+	test('language server status opens from the command palette', async () => {
+		const dir = fixture({ 'a.ts': 'const bad = oops\n' });
+		const t = await launch(
+			dir,
+			lspConfig,
+			{ width: 120, height: 32 },
+			{ openFile: join(dir, 'a.ts') },
+		);
+
+		await until(t, () => frame(t).includes('● 1'));
+		await runCommand(t, 'Language server status');
+
+		expect(frame(t)).toContain('typescript');
+		expect(frame(t)).toContain('ready');
+		expect(frame(t)).toContain('1 problems');
+		expect(frame(t)).toContain('gopls');
+	});
 });

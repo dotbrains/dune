@@ -1,7 +1,8 @@
 {
 	"default_lines": 500,
 	"files": {
-		"src/app/App.tsx": 600
+		"src/app/App.tsx": 610,
+		"src/app/AppView.tsx": 510
 	},
 	"exclude": ["^bun\\.lock$"]
 }

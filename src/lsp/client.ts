@@ -205,6 +205,7 @@ export function spawnLspClient(options: LspClientOptions) {
 
 	return {
 		ready: () => state === 'ready',
+		state: () => state,
 		pullDiagnostics,
 
 		openDocument(path: string, languageId: string, text: string) {

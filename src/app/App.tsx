@@ -63,6 +63,7 @@ export function App(props: AppTypes.AppProps) {
 	const [peek, setPeek] = createSignal(false);
 	const [palette, setPalette] = createSignal(false);
 	const [settingsPage, setSettingsPage] = createSignal<'user' | 'project' | null>(null);
+	const [lspStatusOpen, setLspStatusOpen] = createSignal(false);
 	const [appearance, setAppearance] = createSignal<'dark' | 'light' | null>(initialAppearance);
 	const [vimMode, setVimMode] = createSignal<VimMode | null>(initialConfig.vim ? 'normal' : null);
 	const [reloadKey, setReloadKey] = createSignal(0);
@@ -305,6 +306,7 @@ export function App(props: AppTypes.AppProps) {
 		help,
 		search,
 		settingsPage: () => settingsPage() !== null,
+		lspStatusOpen,
 		diff: gitCommands.diff,
 		update,
 		picker,
@@ -364,6 +366,7 @@ export function App(props: AppTypes.AppProps) {
 		openProjectSettings: () => setSettingsPage('project'),
 		problemUi,
 		lspRestart: lsp.restart,
+		openLspStatus: () => setLspStatusOpen(true),
 		completion,
 		setLineOp,
 		patchConfig,
@@ -507,6 +510,8 @@ export function App(props: AppTypes.AppProps) {
 			problemCounts={problemUi.counts()}
 			problemChoices={problemUi.choices()}
 			problemsOpen={problemsOpen()}
+			lspStatusRows={lsp.statusRows()}
+			lspStatusOpen={lspStatusOpen()}
 			notice={notice()}
 			blocked={overlay()}
 			status={status()}
@@ -582,6 +587,7 @@ export function App(props: AppTypes.AppProps) {
 			onCloseSettings={() => setSettingsPage(null)}
 			onPickProblem={problemUi.pick}
 			onCloseProblems={() => setProblemsOpen(false)}
+			onCloseLspStatus={() => setLspStatusOpen(false)}
 			onCloseDiff={gitCommands.closeDiff}
 			onCommitFiles={gitCommands.startCommit}
 			onCancelCommit={gitCommands.cancelCommit}

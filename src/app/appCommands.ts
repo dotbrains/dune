@@ -55,6 +55,7 @@ export function createAppCommands(deps: {
 	problemsNext: () => void;
 	problemsPrev: () => void;
 	problemsRestart: () => void;
+	lspStatus: () => void;
 	completion: { show: () => void; goToDefinition: () => void };
 	openSettings: () => void;
 	openProjectSettings: () => void;
@@ -158,6 +159,7 @@ export function createAppCommands(deps: {
 				problemsNext: deps.problemsNext,
 				problemsPrev: deps.problemsPrev,
 				problemsRestart: deps.problemsRestart,
+				lspStatus: deps.lspStatus,
 				completion: deps.completion.show,
 				goToDefinition: deps.completion.goToDefinition,
 				commit: deps.gitCommands.openCommitPicker,

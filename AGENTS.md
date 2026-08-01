@@ -13,8 +13,8 @@ Homebrew, a curl installer — and run as a CLI.
 Features: file tree with bulk file operations, preview/pinned tabs, editor navigation history, git status marks and
 gitignored dimming, tree-sitter syntax highlighting, rendered markdown tabs, search (current file and
 project-wide), command palette, themes with transparent-background mode, vim mode, configurable cursor shape, git marks in tree/gutter/status bar,
-file watching with conflict prompts, per-project session restore, and a startup update
-check.
+file watching with conflict prompts, language server diagnostics/completion/status,
+per-project session restore, and a startup update check.
 
 ## Runtime and tooling
 

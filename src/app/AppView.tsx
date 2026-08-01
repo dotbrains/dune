@@ -30,6 +30,7 @@ import { FileTree } from '../ui/FileTree';
 import { HelpOverlay } from '../ui/HelpOverlay';
 import { ImageView } from '../ui/ImageView';
 import { KeyPeek } from '../ui/KeyPeek';
+import { LspStatusView } from '../ui/overlays/LspStatusView';
 import { MarkdownView } from '../ui/MarkdownView';
 import { GitPanel } from '../ui/overlays/GitPanel';
 import { SettingsView } from '../ui/overlays/SettingsView';
@@ -44,6 +45,7 @@ import { UpdateBanner } from '../ui/UpdateBanner';
 import type { SearchOptions } from '../core/search';
 import type { UpdateInfo } from '../core/update';
 import type { Command } from './commands';
+import type { LspStatusRow } from './lsp';
 import type { BufferState, Confirmation, Conflict, Focus } from './types';
 
 const GRIP = [0, 1, 2, 3, 4];
@@ -79,6 +81,8 @@ interface AppViewProps {
 	problemCounts: { errors: number; warnings: number };
 	problemChoices: Choice[];
 	problemsOpen: boolean;
+	lspStatusRows: LspStatusRow[];
+	lspStatusOpen: boolean;
 	notice: { name: string; reason: string } | null;
 	blocked: boolean;
 	status: { msg: string; tone: Tone };
@@ -148,6 +152,7 @@ interface AppViewProps {
 	onCloseSettings: () => void;
 	onPickProblem: (id: string) => void;
 	onCloseProblems: () => void;
+	onCloseLspStatus: () => void;
 	onCloseDiff: () => void;
 	onCommitFiles: (paths: string[]) => void;
 	onCancelCommit: () => void;
@@ -418,6 +423,9 @@ export function AppView(props: AppViewProps) {
 					onPick={props.onPickProblem}
 					onCancel={props.onCloseProblems}
 				/>
+			</Show>
+			<Show when={props.lspStatusOpen}>
+				<LspStatusView rows={props.lspStatusRows} onClose={props.onCloseLspStatus} />
 			</Show>
 			<Show when={props.diff}>
 				{(files: () => DiffFile[]) => (
