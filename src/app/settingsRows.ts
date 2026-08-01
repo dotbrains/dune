@@ -1,4 +1,5 @@
 import { createMemo } from 'solid-js';
+import { CURSOR_STYLES } from '../core/config';
 import type { Config } from '../core/config';
 import type { ThemeName } from '../themes';
 import { themeLabels } from '../themes';
@@ -77,6 +78,16 @@ export function settingsRows(
 			label: 'Vim mode',
 			value: onOff(config.vim),
 			change: () => actions.applyVim(!config.vim),
+		},
+		{
+			section: 'Editor',
+			label: 'Cursor',
+			value: config.vim ? `${config.cursorStyle} (vim overrides)` : config.cursorStyle,
+			change: (dir) =>
+				actions.patchConfig(
+					{ cursorStyle: cycle(CURSOR_STYLES, config.cursorStyle, dir) },
+					actions.configScope(),
+				),
 		},
 		{
 			section: 'Editor',

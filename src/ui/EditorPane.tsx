@@ -1,6 +1,7 @@
 import type { TextareaRenderable } from '@opentui/core';
 import { useRenderer, useTerminalDimensions } from '@opentui/solid';
 import { createEffect, createMemo, createSignal, on, onCleanup } from 'solid-js';
+import type { CursorStyle } from '../core/config';
 import type { LineChange } from '../core/git';
 import { changeRows } from '../editor/changes';
 import { History } from '../editor/history';
@@ -26,6 +27,7 @@ import { useEditorKeymap } from './editorKeymap';
 import { createEditorCompletion } from './editorCompletion';
 import type { EditorCompletionProps } from './editorCompletion';
 import { createEditorLineActions } from './editorLineActions';
+import { createEditorLineCount, createEditorScrollMetrics } from './editorScrollMetrics';
 import { editorLineSigns } from './problemMarks';
 export interface EditorPaneProps extends EditorCompletionProps {
 	filetype?: string;
@@ -36,6 +38,7 @@ export interface EditorPaneProps extends EditorCompletionProps {
 	edit: { content: string; key: number } | null;
 	lineOp: { op: 'comment' | 'up' | 'down' | 'duplicate'; key: number } | null;
 	vim: boolean;
+	cursorStyle: CursorStyle;
 	tabSize: number;
 	gitLines: Map<number, LineChange>;
 	problems: Map<number, { severity: ProblemSeverity; message: string }>;
@@ -67,6 +70,7 @@ export function EditorPane(props: EditorPaneProps) {
 	let cursorBeforeEdit = 0;
 	const vimState = initialVimState();
 	const [editorEl, setEditorEl] = createSignal<TextareaRenderable | null>(null);
+	const [vimMode, setVimMode] = createSignal<VimMode>(vimState.mode);
 	const [cursorLine, setCursorLine] = createSignal(0);
 	const [viewTop, setViewTop] = createSignal(0);
 	const [viewHeight, setViewHeight] = createSignal(0);
@@ -76,27 +80,13 @@ export function EditorPane(props: EditorPaneProps) {
 	let host: { x: number; y: number; width: number } | undefined;
 	const bumpWrapKey = () => setWrapKey((key) => key + 1);
 	const layout = createEditorLayout(() => editor, bumpWrapKey);
-	const lineCount = createMemo(() => {
-		let lines = 1;
-		for (let at = props.content.indexOf('\n'); at >= 0; at = props.content.indexOf('\n', at + 1)) {
-			lines++;
-		}
-		return lines;
-	});
-	const scrollMetrics = createMemo(() => {
-		const measured = viewport();
-		const height = measured.height || dimensions().height - 2;
-		const total = measured.total || lineCount();
-		if (height <= 0 || total <= height) return null;
-		const size = Math.max(1, Math.round((height * height) / total));
-		return { height, total, size, span: height - size, top: layout.lineAtRow(measured.top) };
-	});
-	const scrollbar = createMemo(() => {
-		const m = scrollMetrics();
-		if (!m) return [];
-		const at = Math.min(m.span, Math.round((m.top / (m.total - m.height)) * m.span));
-		return Array.from({ length: m.height }, (_, row) => row >= at && row < at + m.size);
-	});
+	const lineCount = createEditorLineCount(() => props.content);
+	const { scrollbar, scrollMetrics } = createEditorScrollMetrics(
+		dimensions,
+		viewport,
+		lineCount,
+		layout.lineAtRow,
+	);
 	let track: { y: number } | undefined;
 	const [dragging, setDragging] = createSignal(false);
 	const gutterWidth = () => String(lineCount()).length + 2;
@@ -114,6 +104,8 @@ export function EditorPane(props: EditorPaneProps) {
 		setViewHeight(editor.height);
 		setViewTotal(editor.lineCount);
 	};
+	const effectiveCursorStyle = (): CursorStyle =>
+		props.vim ? (vimMode() === 'insert' ? 'line' : 'block') : props.cursorStyle;
 	const syncCursor = () => {
 		if (!editor) return;
 		syncViewport();
@@ -338,7 +330,10 @@ export function EditorPane(props: EditorPaneProps) {
 		renderer,
 		onChange: props.onChange,
 		onQuit: props.onQuit,
-		onVimMode: props.onVimMode,
+		onVimMode: (mode) => {
+			if (mode) setVimMode(mode);
+			props.onVimMode(mode);
+		},
 		applyWindow,
 		scheduleCursorSync,
 		scheduleHighlight,
@@ -381,9 +376,13 @@ export function EditorPane(props: EditorPaneProps) {
 			() => [props.vim, props.path],
 			() => {
 				Object.assign(vimState, initialVimState());
+				setVimMode(vimState.mode);
 				props.onVimMode(props.vim ? 'normal' : null);
 			},
 		),
+	);
+	createEffect(
+		() => void (editor && (editor.cursorStyle = { style: effectiveCursorStyle(), blinking: true })),
 	);
 	createEffect(
 		on(
@@ -466,6 +465,7 @@ export function EditorPane(props: EditorPaneProps) {
 			onEditor={(el) => {
 				editor = el;
 				setEditorEl(el);
+				editor.cursorStyle = { style: effectiveCursorStyle(), blinking: true };
 				ignoreScrollOutsideBounds(el);
 				afterResize(el, () => {
 					applyLineSigns();

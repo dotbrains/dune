@@ -1,11 +1,14 @@
 import { describe, expect, test } from 'bun:test';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+
+import { BaseRenderable, TextareaRenderable } from '@opentui/core';
 
 import { buildCommands } from '../src/app/commands';
 import type { CommandActions } from '../src/app/commands';
 import { settingsRows } from '../src/app/settingsRows';
-import { DEFAULTS } from '../src/core/config';
+import { CONFIG_FILE, DEFAULTS } from '../src/core/config';
+import type { CursorStyle } from '../src/core/config';
 import { fixture, launch, press, pressEscape, runCommand } from './helpers';
 import type { Harness } from './helpers';
 
@@ -48,6 +51,35 @@ function settingsRowOf(label: string): number {
 		configScope: () => 'user' as const,
 	};
 	return settingsRows(DEFAULTS, actions).findIndex((row) => row.label === label);
+}
+
+const saved = () => JSON.parse(readFileSync(CONFIG_FILE, 'utf8')) as Record<string, unknown>;
+
+function findTextarea(node: BaseRenderable): TextareaRenderable | null {
+	if (node instanceof TextareaRenderable) return node;
+	for (const child of node.getChildren()) {
+		const found = findTextarea(child);
+		if (found) return found;
+	}
+	return null;
+}
+
+function editorCursorStyle(t: Harness): CursorStyle {
+	const textarea = findTextarea(t.renderer.root);
+	if (!textarea) throw new Error('textarea not found');
+	return textarea.cursorStyle.style as CursorStyle;
+}
+
+async function gotoSettingsRow(t: Harness, label: string) {
+	for (let step = 0; step < 30; step++) {
+		const row = t
+			.captureCharFrame()
+			.split('\n')
+			.find((line) => line.includes(label));
+		if (row?.includes('▌')) return row;
+		await press(t, (input) => input.pressArrow('down'));
+	}
+	throw new Error(`row not reached: ${label}`);
 }
 
 const PROJECT = {
@@ -132,6 +164,47 @@ describe('command palette', () => {
 
 		await pressEscape(t);
 		expect(t.captureCharFrame()).not.toContain('Settings');
+	});
+
+	test('configured cursor style reaches the editor', async () => {
+		const dir = fixture({ 'a.ts': 'const a = 1\n' });
+		const t = await launch(dir, { cursorStyle: 'underline' }, {}, { openFile: join(dir, 'a.ts') });
+
+		expect(editorCursorStyle(t)).toBe('underline');
+	});
+
+	test('settings can cycle and persist the cursor style', async () => {
+		const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }));
+		await runCommand(t, 'Settings');
+		await gotoSettingsRow(t, 'Cursor');
+		await press(t, (input) => input.pressArrow('right'));
+
+		expect(t.captureCharFrame()).toContain('Cursor');
+		expect(t.captureCharFrame()).toContain('line');
+		expect(saved().cursorStyle).toBe('line');
+	});
+
+	test('vim mode overrides the configured cursor style until disabled', async () => {
+		const dir = fixture({ 'a.ts': 'const a = 1\n' });
+		const t = await launch(
+			dir,
+			{ vim: true, cursorStyle: 'underline' },
+			{},
+			{ openFile: join(dir, 'a.ts') },
+		);
+
+		expect(editorCursorStyle(t)).toBe('block');
+
+		await runCommand(t, 'Settings');
+		const row = await gotoSettingsRow(t, 'Cursor');
+		expect(row).toContain('vim overrides');
+
+		await gotoSettingsRow(t, 'Vim mode');
+		await press(t, (input) => input.pressEnter());
+
+		expect(editorCursorStyle(t)).toBe('underline');
+		expect(existsSync(CONFIG_FILE)).toBe(true);
+		expect(saved().vim).toBe(false);
 	});
 });
 

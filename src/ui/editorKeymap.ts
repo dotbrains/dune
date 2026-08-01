@@ -119,12 +119,6 @@ export function useEditorKeymap(deps: {
 		const before = deps.vimState.mode;
 		const stepped = { undo: () => deps.stepHistory('undo'), redo: () => deps.stepHistory('redo') };
 		if (handleVimKey(editor, key, deps.vimState, stepped)) key.preventDefault();
-		if (deps.vimState.mode !== before) {
-			editor.cursorStyle = {
-				style: deps.vimState.mode === 'insert' ? 'line' : 'block',
-				blinking: true,
-			};
-			deps.onVimMode(deps.vimState.mode);
-		}
+		if (deps.vimState.mode !== before) deps.onVimMode(deps.vimState.mode);
 	});
 }

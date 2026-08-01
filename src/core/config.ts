@@ -23,6 +23,8 @@ export const CONFIG_FILE = join(
 export const PROJECT_CONFIG_DIR = '.dune';
 export const projectConfigFile = (rootDir: string): string =>
 	join(rootDir, PROJECT_CONFIG_DIR, 'settings.json');
+export const CURSOR_STYLES = ['block', 'line', 'underline'] as const;
+export type CursorStyle = (typeof CURSOR_STYLES)[number];
 
 /** Narrow enough to still show a name, wide enough to leave the editor usable. */
 export const SIDEBAR_MIN = 15;
@@ -56,6 +58,8 @@ export interface Config {
 	transparent: boolean;
 	/** Modal editing (normal / insert / visual). */
 	vim: boolean;
+	/** Editor caret shape when vim mode is not overriding it. */
+	cursorStyle: CursorStyle;
 	/** Columns per indent level: indent guides and literal tabs both use it. */
 	tabSize: number;
 	/**
@@ -105,6 +109,7 @@ export const DEFAULTS: Config = {
 	themeDark: 'dark',
 	transparent: false,
 	vim: false,
+	cursorStyle: 'block',
 	tabSize: 2,
 	sidebarWidth: 'auto',
 	skipUpdate: '',
@@ -134,6 +139,9 @@ function parsePartial(raw: unknown): Partial<Config> {
 	if (isThemeName(obj.themeDark)) config.themeDark = obj.themeDark;
 	if (typeof obj.transparent === 'boolean') config.transparent = obj.transparent;
 	if (typeof obj.vim === 'boolean') config.vim = obj.vim;
+	if (CURSOR_STYLES.includes(obj.cursorStyle as CursorStyle)) {
+		config.cursorStyle = obj.cursorStyle as CursorStyle;
+	}
 	if (typeof obj.tabSize === 'number' && obj.tabSize >= 1 && obj.tabSize <= 16) {
 		config.tabSize = Math.floor(obj.tabSize);
 	}
