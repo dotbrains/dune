@@ -191,6 +191,28 @@ describe('completion edits', () => {
 		expect(result.content).toBe('forEach(item)\n');
 		expect(result.cursor).toEqual({ line: 0, character: 8 });
 	});
+
+	test('reindents multi-line snippets to the receiving line', () => {
+		const result = applyCompletion('  def name() do\n', { line: 0, character: 15 }, 13, {
+			label: 'do block',
+			textEdit: {
+				range: { start: { line: 0, character: 13 }, end: { line: 0, character: 15 } },
+				newText: 'do\n  $0\nend',
+			},
+			insertTextFormat: 2,
+		});
+		expect(result.content).toBe('  def name() do\n    \n  end\n');
+		expect(result.cursor).toEqual({ line: 1, character: 4 });
+	});
+
+	test('leaves plain multi-line completion text unchanged', () => {
+		const result = applyCompletion('    block\n', { line: 0, character: 9 }, 4, {
+			label: 'block',
+			insertText: 'one\ntwo',
+			insertTextFormat: 1,
+		});
+		expect(result.content).toBe('    one\ntwo\n');
+	});
 });
 
 describe('matchRuns', () => {

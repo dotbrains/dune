@@ -160,6 +160,20 @@ function positionOf(content: string, offset: number): Position {
 	return { line, character: offset - lineStart };
 }
 
+function indentOf(content: string, line: number): string {
+	const start = offsetOf(content, { line, character: 0 });
+	const end = content.indexOf('\n', start);
+	return /^\s*/.exec(content.slice(start, end < 0 ? undefined : end))?.[0] ?? '';
+}
+
+function reindentSnippet(text: string, indent: string): string {
+	const lines = text.split('\n');
+	for (let index = 1; index < lines.length; index++) {
+		if (lines[index] !== '') lines[index] = indent + lines[index];
+	}
+	return lines.join('\n');
+}
+
 function editRange(item: CompletionItem, cursor: Position, anchorCol: number): Range {
 	if (item.textEdit) {
 		if ('range' in item.textEdit) return item.textEdit.range;
@@ -175,11 +189,13 @@ export function applyCompletion(
 	item: CompletionItem,
 ): { content: string; cursor: Position } {
 	const raw = item.textEdit?.newText ?? item.insertText ?? item.label;
-	const prepared =
-		item.insertTextFormat === 2 || raw.includes('$')
-			? stripSnippet(raw)
-			: { text: raw, caret: null };
+	const isSnippet = item.insertTextFormat === 2 || raw.includes('$');
 	let range = editRange(item, cursor, anchorCol);
+	const prepared = isSnippet
+		? stripSnippet(
+				raw.includes('\n') ? reindentSnippet(raw, indentOf(content, range.start.line)) : raw,
+			)
+		: { text: raw, caret: null };
 	if (
 		range.start.line === cursor.line &&
 		range.end.line === cursor.line &&
