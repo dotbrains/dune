@@ -45,6 +45,14 @@ export function confirmationForPrompt(prompt: Prompt): Confirmation | null {
 				danger: false,
 				message: `Merge "${prompt.name}" into the current branch? Conflicts are left in the working tree.`,
 			};
+		case 'pullPush':
+			return {
+				title: 'Merge origin',
+				verb: 'merge and push',
+				danger: false,
+				message:
+					'Origin has commits you do not have. Merge origin into this branch, then push again?',
+			};
 		case 'deleteBranch':
 			return {
 				title: prompt.force ? 'Delete branch (force)' : 'Delete branch',

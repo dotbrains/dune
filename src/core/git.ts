@@ -349,6 +349,7 @@ export interface GitResult {
 }
 
 const MUTATE_TIMEOUT = 60_000;
+export const PUSH_REJECTED = "origin has commits you don't - pull first, then push";
 
 function firstLine(text: string): string {
 	return (
@@ -357,6 +358,21 @@ function firstLine(text: string): string {
 			.map((line) => line.trim())
 			.find((line) => line.length > 0) ?? ''
 	);
+}
+
+export function failureLine(text: string): string {
+	const line =
+		text
+			.split('\n')
+			.map((item) => item.trim())
+			.find((item) => item.length > 0 && !item.startsWith('hint:') && !item.startsWith('To ')) ??
+		firstLine(text);
+	return line.replace(/^error:\s*/i, '');
+}
+
+function failureDetail(text: string): string {
+	const line = failureLine(text);
+	return /\[rejected\].*(?:non-fast-forward|fetch first)/i.test(line) ? PUSH_REJECTED : line;
 }
 
 function mutate(cwd: string, args: string[]): Promise<GitResult> {
@@ -381,7 +397,8 @@ function mutate(cwd: string, args: string[]): Promise<GitResult> {
 		child.on('error', (err) => finish({ ok: false, detail: err.message }));
 		child.on('close', (code) => {
 			const ok = code === 0;
-			finish({ ok, detail: firstLine(ok ? stdout || stderr : stderr || stdout) });
+			const text = ok ? stdout || stderr : stderr || stdout;
+			finish({ ok, detail: ok ? firstLine(text) : failureDetail(text) });
 		});
 	});
 }
@@ -418,6 +435,16 @@ export function pull(cwd: string): Promise<GitResult> {
 
 export function push(cwd: string, branch: string, hasUpstream: boolean): Promise<GitResult> {
 	return mutate(cwd, hasUpstream ? ['push'] : ['push', '--set-upstream', 'origin', branch]);
+}
+
+export async function pullAndPush(
+	cwd: string,
+	branch: string,
+	hasUpstream: boolean,
+): Promise<GitResult> {
+	const pulled = await mutate(cwd, ['pull', '--no-rebase', '--no-edit']);
+	if (!pulled.ok) return pulled;
+	return push(cwd, branch, hasUpstream);
 }
 
 export function switchBranch(cwd: string, name: string, remote: boolean): Promise<GitResult> {

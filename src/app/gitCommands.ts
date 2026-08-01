@@ -13,8 +13,10 @@ import {
 	listBranches,
 	localBranchName,
 	mergeBranch,
+	pullAndPush,
 	pull as gitPull,
 	push as gitPush,
+	PUSH_REJECTED,
 	renameBranch,
 	stagedPaths,
 	stashPop,
@@ -297,6 +299,25 @@ export function createGitCommands(deps: {
 		runGit('Merging', () => mergeBranch(deps.rootDir, name), `Merged ${name}`);
 	};
 
+	const pullPush = (branch: string, hasUpstream: boolean) => {
+		runGit('Merging origin', () => pullAndPush(deps.rootDir, branch, hasUpstream), 'Pushed');
+	};
+
+	const pushBranch = () =>
+		runGit(
+			'Pushing',
+			async () => {
+				const name = deps.branch();
+				if (!name) return { ok: false, detail: 'No branch to push' };
+				const hasUpstream = !!deps.upstream()?.name;
+				const result = await gitPush(deps.rootDir, name, hasUpstream);
+				if (!result.ok && result.detail === PUSH_REJECTED)
+					deps.setPrompt({ kind: 'pullPush', branch: name, hasUpstream });
+				return result;
+			},
+			'Pushed',
+		);
+
 	return {
 		commitFiles,
 		branchChoices,
@@ -380,6 +401,7 @@ export function createGitCommands(deps: {
 		rename,
 		remove,
 		merge,
+		pullPush,
 		confirmUndoCommit,
 		undoCommit: () =>
 			runGit('Undoing commit', () => undoLastCommit(deps.rootDir), 'Undid last commit'),
@@ -407,16 +429,7 @@ export function createGitCommands(deps: {
 		openBranchForceDelete,
 		openBranchFrom,
 		openBranchPrompt,
-		push: () =>
-			runGit(
-				'Pushing',
-				() => {
-					const name = deps.branch();
-					if (!name) return Promise.resolve({ ok: false, detail: 'No branch to push' });
-					return gitPush(deps.rootDir, name, !!deps.upstream()?.name);
-				},
-				'Pushed',
-			),
+		push: pushBranch,
 		openCommitPicker,
 	};
 }

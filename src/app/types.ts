@@ -61,6 +61,7 @@ export type Prompt =
 	| { kind: 'renameBranch'; from: string }
 	| { kind: 'deleteBranch'; name: string; force: boolean }
 	| { kind: 'mergeBranch'; name: string }
+	| { kind: 'pullPush'; branch: string; hasUpstream: boolean }
 	| { kind: 'installServer'; id: string; name: string; packages: string[] }
 	| null;
 

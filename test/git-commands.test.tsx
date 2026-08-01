@@ -93,6 +93,48 @@ test('stash reverts the working tree and pop brings it back', async () => {
 	await until(t, () => readFileSync(join(dir, 'a.ts'), 'utf8') === 'CHANGED\ntwo\n');
 });
 
+test('rejected push offers to merge origin and push again', async () => {
+	const dir = repo('one\n');
+	const bare = mkdtempSync(join(tmpdir(), 'dune-rejected-push-'));
+	const git = (...args: string[]) => runGit(dir, ...args);
+	runGit(bare, 'init', '-q', '--bare');
+	git('remote', 'add', 'origin', bare);
+	git('push', '-q', '-u', 'origin', 'main');
+
+	const peer = mkdtempSync(join(tmpdir(), 'dune-peer-'));
+	execFileSync('git', ['clone', '-q', '-b', 'main', bare, peer]);
+	runGit(peer, 'config', 'user.email', 'test@example.com');
+	runGit(peer, 'config', 'user.name', 'Test');
+	writeFileSync(join(peer, 'remote.ts'), 'remote\n');
+	runGit(peer, 'add', '.');
+	runGit(peer, 'commit', '-q', '-m', 'remote change');
+	runGit(peer, 'push', '-q');
+
+	writeFileSync(join(dir, 'local.ts'), 'local\n');
+	git('add', '.');
+	git('commit', '-q', '-m', 'local change');
+
+	const t = await launch(dir);
+	await runCommand(t, 'Push');
+	await until(t, () => t.captureCharFrame().includes('Merge origin'));
+	expect(t.captureCharFrame()).toContain('merge and push');
+	await press(t, (input) => input.pressEnter());
+
+	await until(
+		t,
+		() =>
+			execFileSync('git', ['show', 'main:local.ts'], {
+				cwd: bare,
+				stdio: ['ignore', 'pipe', 'ignore'],
+			}).toString() === 'local\n' &&
+			execFileSync('git', ['show', 'main:remote.ts'], {
+				cwd: bare,
+				stdio: ['ignore', 'pipe', 'ignore'],
+			}).toString() === 'remote\n',
+		10_000,
+	);
+});
+
 test('branch switch picker checks out the selected branch', async () => {
 	const dir = repo('main\n');
 	const git = (...args: string[]) => runGit(dir, ...args);

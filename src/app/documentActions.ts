@@ -39,6 +39,7 @@ export function createDocumentActions(deps: {
 		rename: (from: string, to: string) => void;
 		remove: (name: string, force: boolean) => void;
 		merge: (name: string) => void;
+		pullPush: (branch: string, hasUpstream: boolean) => void;
 		undoCommit: () => void;
 	};
 	installLspServer: (id: string, name: string, packages: string[]) => void;
@@ -367,6 +368,8 @@ export function createDocumentActions(deps: {
 				return deps.gitCommands.remove(p.name, p.force);
 			case 'mergeBranch':
 				return deps.gitCommands.merge(p.name);
+			case 'pullPush':
+				return deps.gitCommands.pullPush(p.branch, p.hasUpstream);
 			case 'installServer':
 				return deps.installLspServer(p.id, p.name, p.packages);
 		}

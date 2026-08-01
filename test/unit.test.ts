@@ -8,7 +8,7 @@ import { buildCommands, flattenCommands } from '../src/app/commands';
 import type { CommandActions } from '../src/app/commands';
 import { unifiedDiff } from '../src/core/diff';
 import { readFile } from '../src/core/fs';
-import { defaultBranch } from '../src/core/git';
+import { defaultBranch, failureLine, PUSH_REJECTED } from '../src/core/git';
 import { branchDiffFiles } from '../src/core/gitDiff';
 import { searchProject, searchText } from '../src/core/search';
 import { isNewer } from '../src/core/update';
@@ -132,6 +132,20 @@ describe('git branch diffs', () => {
 			status: 'added',
 			binary: true,
 		});
+	});
+});
+
+describe('git failures', () => {
+	test('rejected push output names the useful recovery', () => {
+		const rejected = [
+			'To https://github.com/user/repo',
+			' ! [rejected]        main -> main (non-fast-forward)',
+			"error: failed to push some refs to 'https://github.com/user/repo'",
+			'hint: Updates were rejected because the tip of your current branch is behind',
+		].join('\n');
+
+		expect(failureLine(rejected)).toBe('! [rejected]        main -> main (non-fast-forward)');
+		expect(PUSH_REJECTED).toBe("origin has commits you don't - pull first, then push");
 	});
 });
 
