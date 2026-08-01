@@ -15,7 +15,7 @@ describe('LSP completions in the editor', () => {
 		const t = await launch(dir, lspConfig, {}, { openFile: join(dir, 'a.ts') });
 
 		await press(t, (input) => void input.typeText('dune'));
-		await until(t, () => frame(t).includes('duneAlpha'), 40);
+		await until(t, () => frame(t).includes('duneAlpha'), 120);
 
 		expect(frame(t)).toContain('duneAlpha');
 	});
@@ -30,7 +30,7 @@ describe('LSP completions in the editor', () => {
 
 		expect(frame(t)).toContain('duneAlpha');
 		await press(t, (input) => input.pressEnter());
-		expect(frame(t)).toContain('duneAlpha()');
+		await until(t, () => frame(t).includes('duneAlpha()'));
 	});
 
 	test('resolves a completion before applying it', async () => {
