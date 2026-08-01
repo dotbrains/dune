@@ -2,7 +2,7 @@ import { join } from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
-import { fixture, launch, press, runCommand, until } from './helpers';
+import { fixture, launch, press, pressEscape, runCommand, until } from './helpers';
 
 const FAKE = join(import.meta.dir, 'fixtures', 'fake-lsp.ts');
 const lspConfig = { lsp: true, lspServers: { typescript: [process.execPath, FAKE] } };
@@ -14,6 +14,9 @@ describe('LSP completions in the editor', () => {
 		const dir = fixture({ 'a.ts': '' });
 		const t = await launch(dir, lspConfig, {}, { openFile: join(dir, 'a.ts') });
 
+		await runCommand(t, 'Show completions');
+		await until(t, () => frame(t).includes('duneAlpha'));
+		await pressEscape(t);
 		await press(t, (input) => void input.typeText('dune'));
 		await until(t, () => frame(t).includes('duneAlpha'), 120);
 

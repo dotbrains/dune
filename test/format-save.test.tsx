@@ -23,7 +23,12 @@ test('format on save reloads the formatted file into the editor', async () => {
 	});
 
 	const t = await openSave(dir);
-	await until(t, () => readFileSync(join(dir, 'a.ts'), 'utf8') === 'CONST A = 1\n');
+	await until(
+		t,
+		() =>
+			readFileSync(join(dir, 'a.ts'), 'utf8') === 'CONST A = 1\n' &&
+			t.captureCharFrame().includes('CONST A = 1'),
+	);
 
 	expect(readFileSync(join(dir, 'a.ts'), 'utf8')).toBe('CONST A = 1\n');
 	expect(t.captureCharFrame()).toContain('CONST A = 1');
