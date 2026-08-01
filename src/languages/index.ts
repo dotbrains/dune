@@ -38,6 +38,29 @@ export interface Language {
 	patterns?: { group: string; re: RegExp }[];
 }
 
+const HCL_PATTERNS: NonNullable<Language['patterns']> = [
+	{ group: 'punctuation.bracket', re: /[{}[\]()]/g },
+	{ group: 'punctuation', re: /[,.:]/g },
+	{ group: 'operator', re: /=>|[=!<>]=|&&|\|\||[=<>+\-*/%!?:]/g },
+	{ group: 'number', re: /\b\d+(?:\.\d+)?\b/g },
+	{ group: 'boolean', re: /\b(?:true|false|null)\b/g },
+	{ group: 'type', re: /\b(?:string|number|bool|any|list|map|set|object|tuple)\b/g },
+	{
+		group: 'keyword',
+		re: /\b(?:terraform|resource|variable|output|module|provider|data|locals|backend|provisioner|connection|lifecycle|dynamic|moved|import|check|removed|depends_on|for|in|if|else)\b/g,
+	},
+	{ group: 'property', re: /^[ \t]*[\w-]+(?=[ \t]*=(?!=))/gm },
+	{ group: 'function', re: /\b[a-z_]\w*(?=\()/g },
+	{ group: 'string', re: /"(?:[^"\\\n]|\\.)*"/g },
+	{ group: 'string', re: /<<[-~]?(\w+)[\s\S]*?^[ \t]*\1\b/gm },
+	{
+		group: 'variable',
+		re: /(?<![\w/.])(?:var|local|data|module|each|count|path|self|terraform)(?:\.\w+)+/g,
+	},
+	{ group: 'punctuation.special', re: /\$\{|%\{/g },
+	{ group: 'comment', re: /(?:^|[ \t])(?:#|\/\/).*|\/\*[\s\S]*?\*\//gm },
+];
+
 export const LANGUAGES: Language[] = [
 	{ id: 'javascript', label: 'js', bundled: true },
 	{ id: 'typescript', label: 'ts', bundled: true },
@@ -144,6 +167,8 @@ export const LANGUAGES: Language[] = [
 			{ group: 'comment', re: /--.*$|\/\*[\s\S]*?\*\//gm },
 		],
 	},
+	{ id: 'terraform', label: 'tf', patterns: HCL_PATTERNS },
+	{ id: 'hcl', patterns: HCL_PATTERNS },
 	{
 		id: 'ini',
 		patterns: [
@@ -187,6 +212,8 @@ const LINE_COMMENTS: Record<string, string> = {
 	elixir: '#',
 	bash: '#',
 	toml: '#',
+	terraform: '#',
+	hcl: '#',
 	yaml: '#',
 	dotenv: '#',
 	ini: '#',

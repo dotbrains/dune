@@ -35,6 +35,8 @@ const SAMPLES: Record<string, string> = {
 	dart: '// c\nvoid main() { var x = 1; }\n',
 	elixir: '# c\ndefmodule A do\n  def go(x), do: x\nend\n',
 	scala: '// c\nobject A { def go(x: Int): Int = x }\n',
+	terraform: '# c\nresource "aws_instance" "web" {\n  ami = var.ami_id\n}\n',
+	hcl: '# c\njob "web" {\n  type = "service"\n}\n',
 	yaml: '# c\na:\n  b: true\n',
 	svelte: '<!-- c -->\n<script>let x = 1</script>\n<div class="a">{x}</div>\n',
 	sql: '-- c\nSELECT id FROM users WHERE age > 18;\n',
@@ -87,6 +89,42 @@ describe('languages', () => {
 		const segs = await allSegments('@if (ready()) { <div>{value()}</div> }\n', 'tsrx');
 		const keyword = getSyntaxStyle().getStyleId('keyword');
 		expect(segs.some((s) => s.start === 0 && s.end >= 3 && s.styleId === keyword)).toBe(true);
+	});
+
+	test('terraform and hcl files route to pattern languages', () => {
+		expect(filetypeForPath('main.tf')).toBe('terraform');
+		expect(filetypeForPath('env/prod.tfvars')).toBe('terraform');
+		expect(filetypeForPath('packer.hcl')).toBe('hcl');
+		expect(filetypeForPath('shelf.ts')).toBe('typescript');
+		expect(languageLabel('terraform')).toBe('tf');
+	});
+
+	test('terraform highlights block keywords, attributes and references', async () => {
+		const source = [
+			'resource "aws_instance" "web" {',
+			'  instance_type = "t3.micro"',
+			'  count = var.enabled ? 1 : 0',
+			'  tags = merge(local.common, {})',
+			'  name = "${var.prefix}-web" // trailing',
+			'}',
+		].join('\n');
+		const segs = await allSegments(source, 'terraform');
+		const keyword = getSyntaxStyle().getStyleId('keyword');
+		const property = getSyntaxStyle().getStyleId('property');
+		const variable = getSyntaxStyle().getStyleId('variable');
+		const fn = getSyntaxStyle().getStyleId('function');
+		const comment = getSyntaxStyle().getStyleId('comment');
+		const line = (n: number) => source.split('\n')[n]!;
+		const has = (text: string, styleId: number | null) =>
+			segs.some((s) => line(s.line).slice(s.start, s.end) === text && s.styleId === styleId);
+		const hasTrimmed = (text: string, styleId: number | null) =>
+			segs.some((s) => line(s.line).slice(s.start, s.end).trim() === text && s.styleId === styleId);
+		expect(has('resource', keyword)).toBe(true);
+		expect(hasTrimmed('instance_type', property)).toBe(true);
+		expect(has('var.enabled', variable)).toBe(true);
+		expect(has('local.common', variable)).toBe(true);
+		expect(has('merge', fn)).toBe(true);
+		expect(hasTrimmed('// trailing', comment)).toBe(true);
 	});
 
 	for (const [filetype, source] of Object.entries(SAMPLES)) {
