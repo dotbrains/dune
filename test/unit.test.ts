@@ -201,6 +201,7 @@ describe('registries', () => {
 			showDotfiles: true,
 			respectGitignore: false,
 			marketPlugins: [],
+			installedAppearancePlugins: [],
 		});
 		const leaves = flattenCommands(tree);
 

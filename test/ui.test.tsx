@@ -28,6 +28,7 @@ function rowOf(label: string): number {
 		showDotfiles: true,
 		respectGitignore: false,
 		marketPlugins: [],
+		installedAppearancePlugins: [],
 	});
 	return tree.findIndex((command) => command.label === label);
 }

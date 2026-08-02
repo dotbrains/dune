@@ -11,6 +11,7 @@
  */
 import { THEME_ENTRIES, themeLabels } from '../themes';
 import type { ThemeName } from '../themes';
+import { isNewer } from '../core/update';
 import { ALT } from '../ui/keys';
 
 export interface Command {
@@ -143,6 +144,7 @@ export interface CommandContext {
 	showDotfiles: boolean;
 	respectGitignore: boolean;
 	marketPlugins: readonly { id: string; name: string; version: string }[];
+	installedAppearancePlugins: readonly { id: string; version: string }[];
 }
 
 const TAB_SIZES = [2, 4, 8];
@@ -290,11 +292,19 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 					label: 'Install appearance plugin…',
 					run: actions.installAppearancePlugin,
 				},
-				...ctx.marketPlugins.map((plugin) => ({
-					id: `themes.installAppearancePlugin.${plugin.id}`,
-					label: `Install ${plugin.name} ${plugin.version}`,
-					run: () => actions.installAppearancePluginById(plugin.id),
-				})),
+				...ctx.marketPlugins.map((plugin) => {
+					const installed = ctx.installedAppearancePlugins.find((entry) => entry.id === plugin.id);
+					const action = installed
+						? isNewer(plugin.version, installed.version)
+							? 'Update'
+							: 'Installed'
+						: 'Install';
+					return {
+						id: `themes.installAppearancePlugin.${plugin.id}`,
+						label: `${action} ${plugin.name} ${plugin.version}`,
+						run: () => actions.installAppearancePluginById(plugin.id),
+					};
+				}),
 				{
 					id: 'themes.removeAppearancePlugin',
 					label: 'Remove appearance plugin…',

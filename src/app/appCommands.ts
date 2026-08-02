@@ -272,6 +272,7 @@ export function createAppCommands(deps: {
 				showDotfiles: deps.config.showDotfiles,
 				respectGitignore: deps.config.respectGitignore,
 				marketPlugins: readCachedCatalog()?.plugins ?? [],
+				installedAppearancePlugins: deps.appearanceVersion().plugins,
 			},
 		);
 	});
