@@ -87,6 +87,7 @@ export interface CommandActions {
 	listAppearancePlugins: () => void;
 	checkAppearanceMarket: () => void;
 	installAppearancePlugin: () => void;
+	removeAppearancePlugin: () => void;
 	reloadAppearancePlugins: () => void;
 	setVim: (enabled: boolean) => void;
 	setTabSize: (size: number) => void;
@@ -274,6 +275,11 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 					id: 'themes.installAppearancePlugin',
 					label: 'Install appearance plugin…',
 					run: actions.installAppearancePlugin,
+				},
+				{
+					id: 'themes.removeAppearancePlugin',
+					label: 'Remove appearance plugin…',
+					run: actions.removeAppearancePlugin,
 				},
 				{
 					id: 'themes.reloadAppearancePlugins',

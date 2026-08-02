@@ -178,6 +178,7 @@ export function writePlugin(
 }
 
 export function removeFromDisk(id: string, root = USER_THEME_PLUGIN_DIR): string | null {
+	if (!/^[\w.-]+$/.test(id)) return `${id} is not a plugin id`;
 	try {
 		rmSync(pluginDir(id, root), { recursive: true, force: true });
 		return null;

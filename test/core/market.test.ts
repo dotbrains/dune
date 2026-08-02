@@ -169,6 +169,7 @@ test('a fetched manifest is written where appearance plugin loading finds it', a
 	expect(icons.themes.map((entry) => entry.id)).toEqual(['mono-icons']);
 
 	expect(writePlugin('other', fetched, root)).toBe('other manifest id mismatch');
+	expect(removeFromDisk('../outside', root)).toContain('not a plugin id');
 	expect(removeFromDisk('mono', root)).toBeNull();
 	expect(existsSync(join(root, 'mono'))).toBe(false);
 	expect(removeFromDisk('mono', root)).toBeNull();

@@ -169,6 +169,7 @@ export function createAppCommands(deps: {
 					listAppearancePlugins: deps.listAppearancePlugins,
 					checkAppearanceMarket,
 					installAppearancePlugin: () => deps.setPrompt({ kind: 'appearancePluginId' }),
+					removeAppearancePlugin: () => deps.setPrompt({ kind: 'appearancePluginRemoveId' }),
 					setVim: deps.applyVim,
 					setTabSize: deps.applyTabSize,
 					setTheme: deps.applyTheme,

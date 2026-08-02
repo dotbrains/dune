@@ -1,7 +1,8 @@
 import { expect, test } from 'bun:test';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { writePlugin } from '../../src/core/market';
 import { USER_THEME_PLUGIN_DIR } from '../../src/core/localThemes';
 import { fixture, launch, press, runCommand, until } from '../helpers';
 
@@ -63,4 +64,28 @@ test('the palette can install an appearance plugin by id', async () => {
 	} finally {
 		globalThis.fetch = realFetch;
 	}
+});
+
+test('the palette can remove an appearance plugin by id', async () => {
+	const manifest = {
+		id: 'mono',
+		name: 'Mono',
+		version: '1.0.0',
+		icons: [{ id: 'mono-icons', name: 'Mono Icons', file: 'f', folder: 'd', folderOpen: 'o' }],
+	};
+	const error = writePlugin('mono', {
+		ok: true,
+		id: 'mono',
+		version: '1.0.0',
+		body: JSON.stringify(manifest),
+	});
+	expect(error).toBeNull();
+
+	const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }));
+	await runCommand(t, 'Remove appearance plugin');
+	await press(t, (input) => void input.typeText('mono'));
+	await press(t, (input) => input.pressEnter());
+	await until(t, () => t.captureCharFrame().includes('Removed appearance plugin mono'));
+
+	expect(existsSync(join(USER_THEME_PLUGIN_DIR, 'mono'))).toBe(false);
 });

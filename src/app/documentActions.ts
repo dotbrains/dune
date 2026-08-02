@@ -5,7 +5,7 @@ import { produce } from 'solid-js/store';
 import { removeAll } from '../core/bulk';
 import { formatterFor, parseFormatterEdit, runFormatter } from '../core/format';
 import { parseLspServerEdit } from '../core/lspSettings';
-import { fetchPlugin, writePlugin } from '../core/market';
+import { fetchPlugin, removeFromDisk, writePlugin } from '../core/market';
 import { SIDEBAR_MAX, SIDEBAR_MIN } from '../core/config';
 import type { Config } from '../core/config';
 import { createDir, createFile, exists, mtimeOf, readTextFile, writeFile } from '../core/fs';
@@ -320,6 +320,12 @@ export function createDocumentActions(deps: {
 				deps.say(`Installed appearance plugin ${name} ${fetched.version}`);
 			})();
 			return;
+		}
+		if (p.kind === 'appearancePluginRemoveId') {
+			if (!name) return deps.say('Nothing entered', 'warn');
+			const error = removeFromDisk(name);
+			if (error) return deps.say(`Could not remove ${name}: ${error}`, 'error');
+			return deps.say(`Removed appearance plugin ${name}`);
 		}
 		if (p.kind === 'gotoLine') {
 			if (!name) return deps.say('Nothing entered', 'warn');

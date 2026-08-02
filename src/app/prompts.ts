@@ -10,6 +10,7 @@ const PROMPT_TITLES: Partial<Record<NonNullable<Prompt>['kind'], string>> = {
 	keybindingCommand: 'Shortcut: command = key',
 	sidebarWidth: 'Sidebar width: auto or columns',
 	appearancePluginId: 'Appearance plugin id',
+	appearancePluginRemoveId: 'Remove appearance plugin id',
 	gotoLine: 'Go to line',
 	commitMessage: 'Commit message',
 	newBranch: 'New branch name',
