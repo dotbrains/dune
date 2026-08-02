@@ -286,6 +286,45 @@ test('the market list labels installed plugin updates', async () => {
 	}
 });
 
+test('the appearance plugins page hides current installed market plugins', async () => {
+	const realFetch = globalThis.fetch;
+	const manifest = {
+		id: 'mono',
+		name: 'Mono',
+		version: '1.0.0',
+		icons: [{ id: 'mono-icons', name: 'Mono Icons', file: 'f', folder: 'd', folderOpen: 'o' }],
+	};
+	expect(
+		writePlugin('mono', {
+			ok: true,
+			id: 'mono',
+			version: '1.0.0',
+			body: JSON.stringify(manifest),
+		}),
+	).toBeNull();
+	globalThis.fetch = ((_url: string) =>
+		Promise.resolve(
+			new Response(
+				JSON.stringify({
+					plugins: [{ id: 'mono', name: 'Mono', version: '1.0.0', description: 'already present' }],
+				}),
+			),
+		)) as typeof fetch;
+	try {
+		const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }), {
+			pluginRegistry: 'https://example.test/market',
+		});
+		await runCommand(t, 'Check appearance plugin market');
+		await until(t, () => t.captureCharFrame().includes('Appearance plugin market: 1 plugin'));
+		await runCommand(t, 'Plugin manager');
+		await until(t, () => t.captureCharFrame().includes('Disable mono 1.0.0'));
+
+		expect(t.captureCharFrame()).not.toContain('Installed Mono 1.0.0');
+	} finally {
+		globalThis.fetch = realFetch;
+	}
+});
+
 test('startup reports available appearance plugin updates', async () => {
 	const realFetch = globalThis.fetch;
 	const manifest = {

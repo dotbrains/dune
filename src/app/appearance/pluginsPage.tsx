@@ -15,13 +15,10 @@ export function appearancePluginChoices(appearance: AppearancePluginLoad): Choic
 		id: `installed:${plugin.id}`,
 		label: `${plugin.disabled ? 'Enable' : 'Disable'} ${plugin.id} ${plugin.version}`,
 	}));
-	const marketChoices = (readCachedCatalog()?.plugins ?? []).map((plugin) => {
+	const marketChoices = (readCachedCatalog()?.plugins ?? []).flatMap((plugin) => {
 		const current = installedById.get(plugin.id);
-		const action = current
-			? isNewer(plugin.version, current.version)
-				? 'Update'
-				: 'Installed'
-			: 'Install';
+		if (current && !isNewer(plugin.version, current.version)) return [];
+		const action = current ? 'Update' : 'Install';
 		return {
 			id: `market:${plugin.id}`,
 			label: `${action} ${plugin.name} ${plugin.version}`,
