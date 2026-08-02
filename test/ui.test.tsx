@@ -66,10 +66,10 @@ test('summarizes loaded local appearance plugins', () => {
 		summarizeAppearancePlugins({
 			themes: [{ id: 'project-theme', theme: {} as never }],
 			iconThemes: [{ id: 'project-icons', name: 'Project Icons' } as never],
-			plugins: [],
+			plugins: [{ id: 'pack', version: '1.0.0', source: 'plugin.json' }],
 			problems: [{ source: 'plugin.json', reason: 'invalid theme' }],
 		}),
-	).toBe('Local appearance plugins: 1 theme, 1 icon theme, 1 problem');
+	).toBe('Local appearance plugins: 1 theme, 1 icon theme, pack 1.0.0, 1 problem');
 });
 
 function findTextarea(node: BaseRenderable): TextareaRenderable | null {
