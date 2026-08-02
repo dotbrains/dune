@@ -79,6 +79,11 @@ to break:
 - **Install-time binary downloads are bounded.** The package is allowed to fail silently
   when GitHub or a mirror is slow, but it must not hang `npm install`; keep the
   `fetchBinary()` timeout and `test/postinstall.test.ts` together.
+- **Release artifacts carry third-party notices.** The PDF viewer embeds PDFium through
+  `@hyzyla/pdfium`, so `scripts/release.ts` includes `THIRD_PARTY_NOTICES.md`,
+  `PDFIUM_LICENSE` and `HYZYLA_PDFIUM_LICENSE` in both binary archives and the staged npm
+  package. `DUNE_DIST` lets tests package a temp dist tree instead of the repo's real
+  `dist/`.
 - **There is deliberately no package per platform.** That is the usual arrangement, and
   it is what dune used to do, but creating many packages makes release permissions harder
   to reason about. One scoped package keeps `GITHUB_TOKEN` publication tied to this

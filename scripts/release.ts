@@ -20,8 +20,14 @@ import type { TargetName } from '../build';
  *
  * Run after `bun run build <targets>`; only targets with a built binary are packaged.
  */
-const NPM_DIR = './dist/npm';
-const RELEASE_DIR = './dist/release';
+const DIST_DIR = process.env.DUNE_DIST ?? './dist';
+const NPM_DIR = `${DIST_DIR}/npm`;
+const RELEASE_DIR = `${DIST_DIR}/release`;
+const NOTICE_FILES = [
+	'THIRD_PARTY_NOTICES.md',
+	'third_party/PDFIUM_LICENSE',
+	'third_party/HYZYLA_PDFIUM_LICENSE',
+] as const;
 
 const { version } = await Bun.file('./package.json').json();
 
@@ -37,7 +43,7 @@ const requested = process.argv.slice(2).filter((arg) => !arg.startsWith('-'));
 const publish = process.argv.includes('--publish');
 
 const targets = (requested.length ? (requested as TargetName[]) : ALL_TARGETS).filter((target) =>
-	existsSync(`./dist/${target}/${binaryName(target)}`),
+	existsSync(`${DIST_DIR}/${target}/${binaryName(target)}`),
 );
 
 if (targets.length === 0) {
@@ -54,14 +60,14 @@ for (const target of targets) {
 	const exe = binaryName(target);
 
 	const archive = `${RELEASE_DIR}/dune-${target}.${os === 'linux' ? 'tar.gz' : 'zip'}`;
-	const from = `./dist/${target}`;
+	const from = `${DIST_DIR}/${target}`;
 	if (os === 'linux') {
-		await Bun.$`tar -czf ${archive} -C ${from} ${exe}`;
+		await Bun.$`tar -czf ${archive} -C ${from} ${exe} -C ${process.cwd()} ${NOTICE_FILES}`;
 	} else if (Bun.which('zip')) {
-		await Bun.$`zip -qj ${archive} ${`${from}/${exe}`}`;
+		await Bun.$`zip -qj ${archive} ${`${from}/${exe}`} ${NOTICE_FILES}`;
 	} else {
 		// Windows has no `zip`, but its bsdtar picks the format from the extension.
-		await Bun.$`tar -a -cf ${archive} -C ${from} ${exe}`;
+		await Bun.$`tar -a -cf ${archive} -C ${from} ${exe} -C ${process.cwd()} ${NOTICE_FILES}`;
 	}
 	process.stdout.write(`packaged ${target} -> ${archive}\n`);
 }
@@ -72,6 +78,9 @@ await cp('./bin/dune.js', `${rootDir}/bin/dune.js`);
 await cp('./bin/postinstall.mjs', `${rootDir}/bin/postinstall.mjs`);
 await cp('./bin/binary.mjs', `${rootDir}/bin/binary.mjs`);
 await cp('./README.md', `${rootDir}/README.md`);
+await cp('./THIRD_PARTY_NOTICES.md', `${rootDir}/THIRD_PARTY_NOTICES.md`);
+await cp('./third_party/PDFIUM_LICENSE', `${rootDir}/PDFIUM_LICENSE`);
+await cp('./third_party/HYZYLA_PDFIUM_LICENSE', `${rootDir}/HYZYLA_PDFIUM_LICENSE`);
 
 const rootPkg = await Bun.file('./package.json').json();
 await Bun.write(
@@ -84,7 +93,7 @@ await Bun.write(
 			'//private': undefined,
 			private: undefined,
 			bin: { dune: './bin/dune.js' },
-			files: ['bin'],
+			files: ['bin', 'THIRD_PARTY_NOTICES.md', 'PDFIUM_LICENSE', 'HYZYLA_PDFIUM_LICENSE'],
 			// Nothing to build or check here; the one script fetches the binary so that
 			// the first run does not have to.
 			scripts: { postinstall: 'node ./bin/postinstall.mjs' },
