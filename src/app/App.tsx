@@ -314,6 +314,7 @@ export function App(props: AppTypes.AppProps) {
 		setSelectedPath,
 		pushEdit,
 		patchConfig: (patch) => patchConfig(patch, settingsPage() ?? 'user'),
+		reloadAppearancePlugins: reloadUi,
 		whileFree,
 		rootDir,
 	});

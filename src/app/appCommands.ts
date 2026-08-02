@@ -120,6 +120,7 @@ export function createAppCommands(deps: {
 		if (!fetched.ok) return deps.say(`Plugin ${id}: ${fetched.error}`, 'error');
 		const error = writePlugin(id, fetched);
 		if (error) return deps.say(`Could not install ${id}: ${error}`, 'error');
+		deps.reloadAppearancePlugins();
 		deps.say(`Installed appearance plugin ${id} ${fetched.version}`);
 	};
 	const checkAppearanceUpdates = async () => {
@@ -150,7 +151,10 @@ export function createAppCommands(deps: {
 		const updated = results.filter((result) => result.ok).length;
 		const failed = results.filter((result) => !result.ok).map((result) => result.id);
 		if (failed.length > 0) deps.say(`Could not update ${failed.join(', ')}`, 'error');
-		if (updated > 0) deps.say(`Updated ${updated} appearance plugin${updated === 1 ? '' : 's'}`);
+		if (updated > 0) {
+			deps.reloadAppearancePlugins();
+			deps.say(`Updated ${updated} appearance plugin${updated === 1 ? '' : 's'}`);
+		}
 	};
 	const toggleAppearancePlugin = (id: string) => {
 		const disabled = deps.config.disabledAppearancePlugins;

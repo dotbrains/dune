@@ -71,6 +71,7 @@ export function createDocumentActions(deps: {
 	setSelectedPath: (path: string | null) => void;
 	pushEdit: (content: string) => void;
 	patchConfig: (patch: Partial<Config>) => void;
+	reloadAppearancePlugins: () => void;
 	whileFree: (run: () => void) => void;
 	rootDir: string;
 }) {
@@ -317,6 +318,7 @@ export function createDocumentActions(deps: {
 				if (!fetched.ok) return deps.say(`Plugin ${name}: ${fetched.error}`, 'error');
 				const error = writePlugin(name, fetched);
 				if (error) return deps.say(`Could not install ${name}: ${error}`, 'error');
+				deps.reloadAppearancePlugins();
 				deps.say(`Installed appearance plugin ${name} ${fetched.version}`);
 			})();
 			return;
@@ -325,6 +327,7 @@ export function createDocumentActions(deps: {
 			if (!name) return deps.say('Nothing entered', 'warn');
 			const error = removeFromDisk(name);
 			if (error) return deps.say(`Could not remove ${name}: ${error}`, 'error');
+			deps.reloadAppearancePlugins();
 			return deps.say(`Removed appearance plugin ${name}`);
 		}
 		if (p.kind === 'appearancePluginRegistry') {

@@ -57,6 +57,8 @@ test('the palette can install an appearance plugin by id', async () => {
 		await press(t, (input) => void input.typeText('mono'));
 		await press(t, (input) => input.pressEnter());
 		await until(t, () => t.captureCharFrame().includes('Installed appearance plugin mono 1.0.0'));
+		await runCommand(t, 'Plugin manager');
+		await until(t, () => t.captureCharFrame().includes('Disable mono 1.0.0'));
 
 		expect(
 			JSON.parse(readFileSync(join(USER_THEME_PLUGIN_DIR, 'mono/plugin.json'), 'utf8')),
@@ -233,6 +235,8 @@ test('the palette can remove an appearance plugin by id', async () => {
 	await press(t, (input) => void input.typeText('mono'));
 	await press(t, (input) => input.pressEnter());
 	await until(t, () => t.captureCharFrame().includes('Removed appearance plugin mono'));
+	await runCommand(t, 'Plugin manager');
+	await until(t, () => t.captureCharFrame().includes('No plugins listed'));
 
 	expect(existsSync(join(USER_THEME_PLUGIN_DIR, 'mono'))).toBe(false);
 });
@@ -301,6 +305,8 @@ test('the palette can update appearance plugins', async () => {
 		});
 		await runCommand(t, 'Update appearance plugins');
 		await until(t, () => t.captureCharFrame().includes('Updated 1 appearance plugin'));
+		await runCommand(t, 'Plugin manager');
+		await until(t, () => t.captureCharFrame().includes('Disable mono 1.1.0'));
 
 		expect(
 			JSON.parse(readFileSync(join(USER_THEME_PLUGIN_DIR, 'mono/plugin.json'), 'utf8')),
