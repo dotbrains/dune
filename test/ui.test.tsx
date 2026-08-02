@@ -3,12 +3,14 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { BaseRenderable, TextareaRenderable } from '@opentui/core';
+import { testRender } from '@opentui/solid';
 
 import { buildCommands } from '../src/app/commands';
-import type { CommandActions } from '../src/app/commands';
+import type { Command, CommandActions } from '../src/app/commands';
 import { settingsRows } from '../src/app/settingsRows';
 import { CONFIG_FILE, DEFAULTS } from '../src/core/config';
 import type { CursorStyle } from '../src/core/config';
+import { CommandPalette } from '../src/ui/CommandPalette';
 import { fixture, launch, press, pressEscape, runCommand } from './helpers';
 import type { Harness } from './helpers';
 
@@ -146,6 +148,69 @@ describe('command palette', () => {
 		await press(t, (i) => i.pressKey('p', { ctrl: true }));
 		await press(t, (i) => void i.typeText('light'));
 		expect(t.captureCharFrame()).toMatch(/Themes ›\s+\*?\s*GitHub Light/);
+	});
+
+	test('previews the selected row and cancels when dismissed', async () => {
+		const events: string[] = [];
+		const commands: Command[] = [
+			{
+				id: 'dark',
+				label: 'Dark',
+				preview: () => events.push('preview dark'),
+				cancelPreview: () => events.push('cancel dark'),
+				run: () => events.push('run dark'),
+			},
+			{
+				id: 'light',
+				label: 'Light',
+				preview: () => events.push('preview light'),
+				cancelPreview: () => events.push('cancel light'),
+				run: () => events.push('run light'),
+			},
+			{ id: 'plain', label: 'Plain', run: () => events.push('run plain') },
+		];
+
+		const t = await testRender(() => (
+			<CommandPalette commands={commands} onClose={() => events.push('close')} />
+		));
+		await t.flush();
+		expect(events).toEqual(['preview dark']);
+
+		await press(t, (input) => void input.typeText('light'));
+		expect(events).toEqual(['preview dark', 'cancel dark', 'preview light']);
+
+		await press(t, (input) => void input.typeText('zzzz'));
+		expect(events).toEqual(['preview dark', 'cancel dark', 'preview light', 'cancel light']);
+
+		await pressEscape(t);
+		expect(events).toEqual([
+			'preview dark',
+			'cancel dark',
+			'preview light',
+			'cancel light',
+			'close',
+		]);
+	});
+
+	test('keeps a confirmed preview', async () => {
+		const events: string[] = [];
+		const commands: Command[] = [
+			{
+				id: 'dark',
+				label: 'Dark',
+				preview: () => events.push('preview dark'),
+				cancelPreview: () => events.push('cancel dark'),
+				run: () => events.push('run dark'),
+			},
+		];
+
+		const t = await testRender(() => (
+			<CommandPalette commands={commands} onClose={() => events.push('close')} />
+		));
+		await t.flush();
+		await press(t, (input) => input.pressEnter());
+
+		expect(events).toEqual(['preview dark', 'close', 'run dark']);
 	});
 
 	test('opens settings and applies rows immediately', async () => {
