@@ -10,6 +10,8 @@ const PROJECT = {
 	'docs/long.md': `${'x'.repeat(200)}capture${'y'.repeat(60)}\nplain line\n`,
 };
 
+const BACK_TAB = `${String.fromCharCode(27)}[Z`;
+
 /** Open the project search and let the debounced scan land. */
 async function search(query: string, size: { width?: number; height?: number } = {}) {
 	const t = await launch(fixture(PROJECT), {}, { width: 100, height: 30, ...size });
@@ -159,6 +161,21 @@ describe('folding a file in the results', () => {
 		await settle(t, 300);
 		expect(panel(t).some((row) => row.includes('▸'))).toBe(false);
 		expect(panel(t).some((row) => row.includes('captureAll'))).toBe(true);
+	});
+
+	test('Shift+Tab folds and unfolds every file at once', async () => {
+		const t = await search('capture');
+		await press(t, (input) => void input.pressKeys([BACK_TAB]));
+		let rows = panel(t);
+
+		expect(rows.filter((row) => row.includes('▸')).length).toBe(3);
+		expect(rows.some((row) => row.includes('const capture = 1'))).toBe(false);
+		expect(rows.some((row) => row.includes('Shift+Tab all'))).toBe(true);
+
+		await press(t, (input) => void input.pressKeys([BACK_TAB]));
+		rows = panel(t);
+		expect(rows.some((row) => row.includes('▸'))).toBe(false);
+		expect(rows.some((row) => row.includes('const capture = 1'))).toBe(true);
 	});
 });
 

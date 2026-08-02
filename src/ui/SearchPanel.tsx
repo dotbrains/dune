@@ -179,6 +179,14 @@ export function SearchPanel(props: SearchPanelProps) {
 		if (heading >= 0) setIndex(folding ? heading : heading + 1);
 	};
 
+	const toggleAllFolds = () => {
+		const paths = [...new Set(matches().map((match) => match.path))];
+		if (paths.length === 0) return;
+		const allFolded = paths.every((path) => folded().has(path));
+		setFolded(allFolded ? new Set<string>() : new Set(paths));
+		setIndex(0);
+	};
+
 	/**
 	 * The widest of the modals, and deliberately so: every other one shows short
 	 * labels, while this one shows lines of source that mean nothing truncated.
@@ -255,6 +263,9 @@ export function SearchPanel(props: SearchPanelProps) {
 			setReplacing((r) => !r);
 			// Tab is the replace toggle wherever replacing is offered, so folding only
 			// takes it in project search — which is also the only scope with headings.
+		} else if (k === 'tab' && key.shift && props.scope === 'project') {
+			key.preventDefault();
+			toggleAllFolds();
 		} else if (k === 'tab' && props.scope === 'project') {
 			key.preventDefault();
 			toggleFold();
@@ -475,7 +486,7 @@ export function SearchPanel(props: SearchPanelProps) {
 							? replacing()
 								? '↑↓ move · Enter replace · Ctrl+A replace all · Tab back · Esc close'
 								: '↑↓ move · Enter jump · Tab replace · Ctrl+C/W/R case/word/regex · Esc close'
-							: '↑↓ move · Enter jump · Tab fold · Ctrl+C/W/R case/word/regex · Esc close'
+							: '↑↓ move · Enter jump · Tab fold · Shift+Tab all · Ctrl+C/W/R case/word/regex · Esc close'
 					}
 				/>
 			</box>
