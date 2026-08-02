@@ -5,11 +5,11 @@ import type { BoxRenderable, KeyEvent, OptimizedBuffer } from '@opentui/core';
 import { useKeyboard, useRenderer } from '@opentui/solid';
 import { createEffect, createMemo, createSignal, on, onCleanup, Show } from 'solid-js';
 
-import { imageCells } from '../core/image';
-import type { CellImage } from '../core/image';
-import { openPdf, stepPdfZoom } from '../core/pdf';
-import type { PdfFile } from '../core/pdf';
-import { ui } from '../themes';
+import { imageCells } from '../../core/image';
+import type { CellImage } from '../../core/image';
+import { openPdf, stepPdfZoom } from '../../core/pdf';
+import type { PdfFile } from '../../core/pdf';
+import { ui } from '../../themes';
 
 interface PaintedPdf {
 	cols: number;

@@ -1,7 +1,7 @@
 import { Show } from 'solid-js';
 
-import { isPdfPath } from '../core/pdf';
-import { ImageView } from './ImageView';
+import { isPdfPath } from '../../core/pdf';
+import { ImageView } from '../ImageView';
 import { PdfView } from './PdfView';
 
 interface ViewerPaneProps {

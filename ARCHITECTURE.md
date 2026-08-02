@@ -55,8 +55,9 @@ scripts/
     typing.ts        auto-closing pairs and indentation on Enter
   ui/                presentational components, no app state
     EditorPane, FileTree, Tabs, StatusBar, CommandPalette, FilePicker,
-    SearchPanel, MarkdownView, ViewerPane, ImageView, PdfView, UpdateBanner, Overlay, TextInput, PromptModal,
+    SearchPanel, MarkdownView, ImageView, UpdateBanner, Overlay, TextInput, PromptModal,
     ConfirmModal, ChoiceModal, HelpOverlay
+    viewers/        read-only image/PDF viewer composition
 ```
 
 Dependency direction is one-way: `ui/` and feature folders never import from `app/`.

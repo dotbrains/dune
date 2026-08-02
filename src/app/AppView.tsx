@@ -42,7 +42,7 @@ import { StatusBar } from '../ui/StatusBar';
 import type { Tone } from '../ui/StatusBar';
 import { Tabs } from '../ui/Tabs';
 import { UpdateBanner } from '../ui/UpdateBanner';
-import { ViewerPane } from '../ui/ViewerPane';
+import { ViewerPane } from '../ui/viewers/ViewerPane';
 import type { SearchOptions } from '../core/search';
 import type { UpdateInfo } from '../core/update';
 import type { Command } from './commands';
