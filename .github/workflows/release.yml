@@ -124,3 +124,50 @@ jobs:
         run: bun run release --publish
         env:
           NODE_AUTH_TOKEN: ${{ github.token }}
+
+  # Homebrew installs come from dotbrains/homebrew-tap, where Formula/dune.rb is the
+  # source of truth for `brew install dotbrains/tap/dune`. This job copies the formula
+  # that was already generated and uploaded with the release, so it stays checksummed
+  # against the archives and bottle assets users will download.
+  #
+  # This is separate from publish because GITHUB_TOKEN cannot write to another
+  # repository. TAP_TOKEN should be a fine-grained PAT with contents:write on the tap.
+  # Repositories without that secret still ship every other channel; the formula remains
+  # attached to the release and the skipped tap only leaves Homebrew behind.
+  tap:
+    needs: [check, publish]
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+      # `secrets` is not a context `if:` can read; map it into env and test that.
+      TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
+    steps:
+      - name: Check out the tap
+        if: env.TAP_TOKEN != ''
+        uses: actions/checkout@v4
+        with:
+          repository: dotbrains/homebrew-tap
+          token: ${{ secrets.TAP_TOKEN }}
+      - name: Update Formula/dune.rb
+        if: env.TAP_TOKEN != ''
+        run: |
+          mkdir -p Formula
+          gh release download "$VERSION" --repo "$GITHUB_REPOSITORY" \
+            --pattern dune.rb --dir Formula --clobber
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add Formula/dune.rb
+          if git diff --cached --quiet; then
+            echo "Formula/dune.rb is already at $VERSION"
+          else
+            git commit -m "dune $VERSION"
+            git push
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Say the formula was not published
+        if: env.TAP_TOKEN == ''
+        run: |
+          echo "::notice::TAP_TOKEN is not set — skipping the Homebrew tap update." \
+            "dune.rb is attached to release $VERSION and can be copied to" \
+            "dotbrains/homebrew-tap as Formula/dune.rb by hand."

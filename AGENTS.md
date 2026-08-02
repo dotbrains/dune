@@ -123,8 +123,11 @@ assets.
 
 `scripts/formula.ts` generates a working Homebrew formula and bottle archives from
 `dist/release/` plus the binaries in `dist/<target>/`; the release workflow uploads them
-as release assets. Nothing commits the formula to a tap yet: that still needs a
-`dotbrains/homebrew-tap` repository and a `TAP_TOKEN` secret.
+as release assets, then its `tap` job copies `dune.rb` to
+`dotbrains/homebrew-tap` as `Formula/dune.rb` when `TAP_TOKEN` is set. That secret is a
+fine-grained PAT with contents:write on the tap repository. Without it, the release still
+ships and the workflow emits a notice; Homebrew is left at the previous tap formula until
+someone copies the release asset by hand.
 
 ## Architecture
 
