@@ -16,6 +16,9 @@ project-wide), command palette, built-in and local-plugin themes with transparen
 file watching with conflict prompts, language server diagnostics/completion/status,
 per-project session restore, and a startup update check.
 
+Appearance plugin catalog/cache/install primitives live in `src/core/market/`; the
+loader still only executes data manifests from the user/project plugin directories.
+
 ## Runtime and tooling
 
 - **Bun is required to develop** — OpenTUI's native core loads through Bun's FFI. Node
