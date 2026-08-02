@@ -1,18 +1,20 @@
-import type { Setter } from 'solid-js';
-
 import { resolvedTheme, type Config } from '../../core/config';
 import {
 	appearancePluginStatus,
 	loadAppearancePlugins,
 	type AppearancePluginLoad,
 } from '../../core/localThemes';
+import { loadLocalLspServers } from '../../core/plugins/localLspServers';
 import { invalidateSyntaxStyle } from '../../languages/highlight';
+import type { ServerSpec } from '../../lsp/servers';
 import { setTheme } from '../../themes';
 
 export function reloadAppearancePlugins(deps: {
 	rootDir: string;
 	config: Config;
-	setAppearancePlugins: Setter<AppearancePluginLoad>;
+	setAppearancePlugins: (load: AppearancePluginLoad) => void;
+	setLspServers?: (servers: ServerSpec[]) => void;
+	lsp?: { restart: () => boolean };
 	say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
 }) {
 	const next = loadAppearancePlugins(
@@ -24,8 +26,10 @@ export function reloadAppearancePlugins(deps: {
 	setTheme(resolvedTheme(deps.config, null));
 	invalidateSyntaxStyle();
 	const status = appearancePluginStatus(next.problems);
+	if (deps.setLspServers) deps.setLspServers(loadLocalLspServers(deps.rootDir).servers);
+	const restarted = deps.lsp?.restart() ?? false;
 	if (status) deps.say(status.msg, status.tone);
-	else deps.say(`Reloaded appearance plugins`);
+	else deps.say(restarted ? `Reloaded plugins and restarted language servers` : `Reloaded plugins`);
 }
 
 export function summarizeAppearancePlugins(load: AppearancePluginLoad): string {

@@ -40,6 +40,7 @@ export function App(props: AppTypes.AppProps) {
 	const startup = prepareStartup(props);
 	const { rootDir, restored, pluginStatus, initialConfig, initialAppearance } = startup;
 	const [appearancePlugins, setAppearancePlugins] = createSignal(startup.appearancePlugins);
+	const [lspServers, setLspServers] = createSignal(startup.lspServers);
 	const [userConfig, setUserConfig] = createStore<Config>({ ...props.initialConfig });
 	const [projectConfig, setProjectConfig] = createStore<Partial<Config>>(props.projectConfig ?? {});
 	const [config, setConfig] = createStore<Config>(initialConfig);
@@ -108,7 +109,8 @@ export function App(props: AppTypes.AppProps) {
 		setStatus,
 	});
 	const refreshTree = () => setExpanded((prev) => new Set(prev));
-	const reloadUi = () => reloadPlugins({ rootDir, config, setAppearancePlugins, say });
+	const reloadUi = () =>
+		reloadPlugins({ rootDir, config, setAppearancePlugins, setLspServers, lsp, say });
 	const appearancePluginUi = createAppearancePluginUi({
 		config,
 		appearance: appearancePlugins,
@@ -125,7 +127,7 @@ export function App(props: AppTypes.AppProps) {
 		setFocus,
 		say,
 	});
-	const lsp = createAppLsp({ rootDir, config, say, setPrompt, servers: () => startup.lspServers });
+	const lsp = createAppLsp({ rootDir, config, say, setPrompt, servers: lspServers });
 	wireAppLspEffects({ lsp, config, tabs, buffers });
 	const expand = (path: string) => setExpanded((prev) => new Set(prev).add(path));
 	const discardBuffer = (path: string) => setBuffers(produce((draft) => void delete draft[path]));
