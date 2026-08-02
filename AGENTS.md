@@ -47,7 +47,7 @@ bun run build            # compile a binary for this machine into dist/<target>/
 bun run build linux-x64  # …or for a named target, if its native package is installed
 bun run release          # package dist/ for GitHub Packages + release archives
 bun run formula          # Homebrew formula + bottle archives for dist/release/
-bun run test             # unit + UI, one worker per core (~20s; 87s without --parallel)
+bun run test             # unit + UI, batched by file with a 30s per-test cap
 bun test test/foo.tsx    # a single file, where the flag buys nothing
 bun run check-types      # tsc --noEmit
 bun run lint             # oxlint

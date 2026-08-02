@@ -130,10 +130,9 @@ describe('languages', () => {
 	for (const [filetype, source] of Object.entries(SAMPLES)) {
 		test(`${filetype} highlights`, async () => {
 			expect(languageFor(filetype)).toBeDefined();
-			const segs = await allSegments(source, filetype);
+			const parsed = await parseHighlights(source, filetype);
 			// At least a comment must be recognised, so the query really ran.
-			const comment = getSyntaxStyle().getStyleId('comment');
-			expect(segs.some((s) => s.styleId === comment)).toBe(true);
+			expect(parsed.ordered.some((capture) => capture.group === 'comment')).toBe(true);
 		}, 15000);
 	}
 });
@@ -150,8 +149,7 @@ describe('abandoning a highlight that arrived too late', () => {
 	test('still segments normally while the text is current', async () => {
 		const parsed = await computeHighlights(SOURCE, 'typescript', 2, () => false);
 		expect(parsed).not.toBe(STALE);
-		const comment = getSyntaxStyle().getStyleId('comment');
-		expect(segmentsIn(parsed as Highlighted, 0, WHOLE).some((s) => s.styleId === comment)).toBe(
+		expect((parsed as Highlighted).ordered.some((capture) => capture.group === 'comment')).toBe(
 			true,
 		);
 	});

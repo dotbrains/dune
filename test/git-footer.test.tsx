@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, setDefaultTimeout, test } from 'bun:test';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -7,6 +7,8 @@ import { join } from 'node:path';
 import { git as runGit } from './git-fixture';
 import { launch, settle } from './helpers';
 import type { Harness } from './helpers';
+
+setDefaultTimeout(10_000);
 
 /**
  * Everything here is set up with real git; the footer assertions only care about

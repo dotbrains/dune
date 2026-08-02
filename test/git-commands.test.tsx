@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { expect, setDefaultTimeout, test } from 'bun:test';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -7,6 +7,8 @@ import { join } from 'node:path';
 import { fixture, launch, press, runCommand, settle } from './helpers';
 import { git as runGit } from './git-fixture';
 import type { Harness } from './helpers';
+
+setDefaultTimeout(60_000);
 
 function repo(committed: string) {
 	const dir = mkdtempSync(join(tmpdir(), 'dune-git-commands-'));

@@ -1,11 +1,11 @@
 import { expect, test } from 'bun:test';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 import { CONFIG_FILE } from '../src/core/config';
 import { fixture, launch, press, runCommand } from './helpers';
 import type { Harness } from './helpers';
 
-const saved = () => JSON.parse(readFileSync(CONFIG_FILE, 'utf8'));
+const saved = () => (existsSync(CONFIG_FILE) ? JSON.parse(readFileSync(CONFIG_FILE, 'utf8')) : {});
 
 async function gotoRow(t: Harness, label: string) {
 	for (let step = 0; step < 30; step++) {

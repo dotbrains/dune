@@ -7,6 +7,7 @@ import { testRender } from '@opentui/solid';
 import { App } from '../src/app/App';
 import { DEFAULTS, loadProjectConfig } from '../src/core/config';
 import type { Config } from '../src/core/config';
+import { fixtures } from './cleanup';
 
 export type Harness = Awaited<ReturnType<typeof launch>>;
 
@@ -15,6 +16,7 @@ export const F1 = '\u001BOP';
 /** Temp project used by a test. `files` maps relative paths to contents. */
 export function fixture(files: Record<string, string>): string {
 	const dir = mkdtempSync(join(tmpdir(), 'dune-'));
+	fixtures.add(dir);
 	for (const [name, content] of Object.entries(files)) {
 		const path = join(dir, name);
 		mkdirSync(join(path, '..'), { recursive: true });

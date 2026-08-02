@@ -48,7 +48,7 @@
 		"format": "bunx --bun oxfmt --config .oxfmtrc.json",
 		"format:check": "bunx --bun oxfmt --config .oxfmtrc.json --check",
 		"check": "bun run check-types && bun run lint && bun run format:check && bun run test",
-		"test": "bun test --parallel",
+		"test": "bun scripts/test-ci.ts",
 		"test:ci": "bun scripts/test-ci.ts",
 		"test:watch": "bun test --watch",
 		"budget:file-sizes": "bun scripts/check-file-sizes.ts",

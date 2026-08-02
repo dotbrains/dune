@@ -1,7 +1,10 @@
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { describe, expect, test } from 'bun:test';
 
 import { ui } from '../src/themes';
-import { fixture, launch, press, settle } from './helpers';
+import { fixture, launch, press, pressEscape, settle, until } from './helpers';
 import type { Harness } from './helpers';
 
 interface Frame {
@@ -32,41 +35,43 @@ function selectedRow(t: Harness): string {
 
 const project = { 'a.ts': 'a\n', 'b.ts': 'b\n', 'c.ts': 'c\n' };
 
-/** Move to `name` in the tree, then delete it and confirm. */
-async function deleteRow(t: Harness, downs: number) {
+/** Move in the tree, then delete the selected row and confirm. */
+async function deleteRow(t: Harness, downs: number, deleted?: () => boolean) {
 	for (let step = 0; step < downs; step++) await press(t, (input) => input.pressArrow('down'));
 	await press(t, (input) => void input.typeText('d'));
 	await press(t, (input) => input.pressEnter());
-	await settle(t);
+	await settle(t, 100);
+	if (deleted) await until(t, deleted);
 }
 
 describe('deleting from the tree', () => {
 	test('lands on the file that took its place', async () => {
 		const t = await launch(fixture(project));
-		await deleteRow(t, 2); // b.ts
+		await deleteRow(t, 2, () => !selectedRow(t).includes('b.ts')); // b.ts
 
 		expect(selectedRow(t)).toContain('c.ts');
 	});
 
 	test('so the next arrow key carries on from there', async () => {
 		const t = await launch(fixture(project));
-		await deleteRow(t, 2); // b.ts, leaving a.ts and c.ts
+		await deleteRow(t, 2, () => !selectedRow(t).includes('b.ts')); // b.ts, leaving a.ts and c.ts
 
 		// Without a selection this used to jump back to the top of the tree.
+		await pressEscape(t);
 		await press(t, (input) => input.pressArrow('up'));
 		expect(selectedRow(t)).toContain('a.ts');
 	});
 
 	test('falls back to the last row when the last file goes', async () => {
 		const t = await launch(fixture(project));
-		await deleteRow(t, 3); // c.ts, the bottom row
+		await deleteRow(t, 3, () => !selectedRow(t).includes('c.ts')); // c.ts, the bottom row
 
 		expect(selectedRow(t)).toContain('b.ts');
 	});
 
 	test('an empty project leaves nothing selected, and does not crash', async () => {
 		const t = await launch(fixture({ 'only.ts': 'x\n' }));
-		await deleteRow(t, 1);
+		await deleteRow(t, 1, () => selectedRow(t) === '');
 
 		expect(selectedRow(t)).toBe('');
 		await press(t, (input) => input.pressArrow('down'));
@@ -74,10 +79,11 @@ describe('deleting from the tree', () => {
 	});
 
 	test('deleting an expanded folder lands after everything it held', async () => {
-		const t = await launch(fixture({ 'src/one.ts': '1\n', 'src/two.ts': '2\n', 'z.ts': 'z\n' }));
+		const dir = fixture({ 'src/one.ts': '1\n', 'src/two.ts': '2\n', 'z.ts': 'z\n' });
+		const t = await launch(dir);
 		await press(t, (input) => input.pressArrow('down')); // src/
-		await press(t, (input) => input.pressEnter());
-		await deleteRow(t, 0); // still on src/, delete the folder and its files
+		await press(t, (input) => input.pressArrow('right'));
+		await deleteRow(t, 0, () => !existsSync(join(dir, 'src'))); // still on src/, delete the folder and its files
 
 		expect(selectedRow(t)).toContain('z.ts');
 	});

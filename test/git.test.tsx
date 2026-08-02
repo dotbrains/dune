@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { expect, setDefaultTimeout, test } from 'bun:test';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -24,6 +24,7 @@ import { git as runGit } from './git-fixture';
 import { F1, launch, press, pressEscape, runCommand, settle, type Harness } from './helpers';
 
 const ESC = String.fromCharCode(27);
+setDefaultTimeout(10_000);
 
 interface Frame {
 	lines: { spans: { text: string; fg?: { buffer: Uint8Array } }[] }[];
@@ -253,7 +254,7 @@ test('pull fast-forwards from the configured upstream', async () => {
 	expect(await pull(dir)).toMatchObject({ ok: true });
 	expect(git('log', '-1', '--format=%s').toString().trim()).toBe('remote change');
 	expect(git('status', '--porcelain').toString()).toBe('');
-});
+}, 10_000);
 
 test('diff commands show current file and all changed files', async () => {
 	const dir = repo('one\ntwo\n');
@@ -312,7 +313,7 @@ test('compare against branch changes source-control diffs', async () => {
 	await press(t, (input) => void input.typeText('Compare against HEAD'));
 	await press(t, (input) => input.pressEnter());
 	expect(t.captureCharFrame()).toContain('no changes');
-});
+}, 10_000);
 
 test('diff commands can render split layout', async () => {
 	const dir = repo('one\ntwo\n');

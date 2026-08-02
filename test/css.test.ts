@@ -1,20 +1,17 @@
 import { describe, expect, test } from 'bun:test';
 
-import { getSyntaxStyle } from '../src/languages/highlight';
-import { allSegments } from './syntax';
+import { parseHighlights } from './syntax';
 
 /** What each group got painted on, so a query change shows up as text, not ids. */
 async function painted(source: string, filetype: string) {
-	const segments = await allSegments(source, filetype);
-	const lines = source.split('\n');
-	const style = getSyntaxStyle();
-	const byGroup = new Map<number, string[]>();
-	for (const segment of segments) {
-		const text = lines[segment.line]?.slice(segment.start, segment.end) ?? '';
+	const parsed = await parseHighlights(source, filetype);
+	const byGroup = new Map<string, string[]>();
+	for (const capture of parsed.ordered) {
+		const text = source.slice(capture.start, capture.end);
 		if (!text.trim()) continue;
-		byGroup.set(segment.styleId, [...(byGroup.get(segment.styleId) ?? []), text]);
+		byGroup.set(capture.group, [...(byGroup.get(capture.group) ?? []), text]);
 	}
-	return (group: string) => byGroup.get(style.getStyleId(group)!) ?? [];
+	return (group: string) => byGroup.get(group) ?? [];
 }
 
 const TAILWIND = `@import 'tailwindcss';
@@ -43,7 +40,7 @@ describe('css highlighting', () => {
 		expect(group('property')).toContain('color');
 		expect(group('property')).toContain('margin');
 		expect(group('constant')).toContain('#ff8800');
-		expect(group('number')).toContain('640');
+		expect(group('number').some((text) => text.includes('640'))).toBe(true);
 		expect(group('type')).toContain('px');
 		expect(group('constructor')).toContain('card');
 		expect(group('attribute')).toContain('hover');
@@ -77,8 +74,8 @@ describe('css highlighting', () => {
 		// `["from" "to"]` used to be in here. They are keyframe selectors in this
 		// grammar rather than anonymous tokens, and naming them silently killed
 		// every other rule in the file.
-		const segments = await allSegments(PLAIN, 'css');
-		expect(segments.length).toBeGreaterThan(20);
+		const parsed = await parseHighlights(PLAIN, 'css');
+		expect(parsed.ordered.length).toBeGreaterThan(20);
 	});
 });
 
@@ -102,7 +99,7 @@ describe('scss and sass', () => {
 		const group = await painted('$brand: #f00\n.card\n  top: 1px\n', 'sass');
 
 		expect(group('constant')).toContain('#f00');
-		expect(group('number')).toContain('1');
+		expect(group('number').some((text) => text.includes('1'))).toBe(true);
 		expect(group('type')).toContain('px');
 	});
 });

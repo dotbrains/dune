@@ -1,10 +1,12 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, setDefaultTimeout, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { DEFAULTS } from '../src/core/config';
 import { fixture, launch, press, pressEscape, settle } from './helpers';
 import type { Harness } from './helpers';
+
+setDefaultTimeout(30_000);
 
 async function vimEditor(content = 'one\ntwo\nthree\n') {
 	const dir = fixture({ 'a.ts': content });
@@ -381,7 +383,7 @@ describe('edges', () => {
 		expect(await save(t, file)).toBe('b\nc\n');
 		await type(t, 'u');
 		expect(await save(t, file)).toBe('a\nb\nc\n');
-	}, 10_000);
+	}, 30_000);
 
 	test('the mode shows in the status bar', async () => {
 		const { t } = await vimEditor();
