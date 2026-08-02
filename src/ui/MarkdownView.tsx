@@ -3,7 +3,7 @@ import { useKeyboard, useTerminalDimensions } from '@opentui/solid';
 import { createEffect, createMemo, createSignal, on, onMount } from 'solid-js';
 
 import { getSyntaxStyle, highlightClient } from '../languages/highlight';
-import { ui } from '../themes';
+import { activeTheme, ui } from '../themes';
 
 export interface MarkdownViewProps {
 	path: string;
@@ -24,12 +24,7 @@ export function MarkdownView(props: MarkdownViewProps) {
 
 	onMount(() => void highlightClient().then((c) => setClient(c)));
 
-	const style = createMemo(
-		on(
-			() => props.theme,
-			() => getSyntaxStyle(),
-		),
-	);
+	const style = createMemo(on([() => props.theme, activeTheme], () => getSyntaxStyle()));
 	const scroll = (delta: number) => {
 		if (box) box.scrollTop = Math.max(0, box.scrollTop + delta);
 	};

@@ -1,7 +1,7 @@
 import { afterAll, expect, test } from 'bun:test';
 
 import { getSyntaxStyle, invalidateSyntaxStyle } from '../src/languages/highlight';
-import { setTheme, syntaxTheme, THEME_ENTRIES, THEMES } from '../src/themes';
+import { activeTheme, setTheme, syntaxTheme, THEME_ENTRIES, THEMES } from '../src/themes';
 import type { ThemeName } from '../src/themes';
 import type { ThemeUi } from '../src/themes/types';
 import { fixture, launch, press } from './helpers';
@@ -70,6 +70,14 @@ test('switching theme repaints chrome and syntax', async () => {
 
 	await switchTheme(t, 'mocha');
 	expect(colors(t)).toContain(hexToRgb(THEMES['catppuccin-mocha'].ui.bg));
+});
+
+test('setTheme publishes the currently painted theme', () => {
+	setTheme('catppuccin-latte');
+	expect(activeTheme()).toBe('catppuccin-latte');
+
+	setTheme('catppuccin-mocha');
+	expect(activeTheme()).toBe('catppuccin-mocha');
 });
 
 test("switching themes never leaves a previous theme's colors behind", async () => {

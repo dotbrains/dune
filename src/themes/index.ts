@@ -5,6 +5,7 @@
  * up in the command palette automatically.
  */
 import type { StyleDefinitionInput } from '@opentui/core';
+import { createSignal } from 'solid-js';
 import { createStore } from 'solid-js/store';
 
 import { THEME_ENTRIES, THEMES } from './registry';
@@ -22,6 +23,8 @@ export const themeLabels = Object.fromEntries(
 const DEFAULT: ThemeName = 'dark';
 let currentTheme: ThemeName = DEFAULT;
 let transparent = false;
+const [activeTheme, setActiveTheme] = createSignal<ThemeName>(DEFAULT);
+export { activeTheme };
 
 function colorsFor(name: ThemeName): ThemeUi {
 	const base = THEMES[name].ui;
@@ -43,6 +46,7 @@ export function isThemeName(value: unknown): value is ThemeName {
 
 export function setTheme(name: ThemeName): void {
 	currentTheme = name;
+	setActiveTheme(name);
 	setUi(colorsFor(name));
 	// Replace, never merge: a group the new theme omits would otherwise keep the
 	// previous theme's color and render invisible when light/dark flips.
