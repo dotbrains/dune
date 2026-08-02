@@ -80,7 +80,14 @@ test('the palette can install an appearance plugin from the market list', async 
 				? new Response(JSON.stringify(manifest))
 				: new Response(
 						JSON.stringify({
-							plugins: [{ id: 'mono', name: 'Mono', version: '1.0.0' }],
+							plugins: [
+								{
+									id: 'mono',
+									name: 'Mono',
+									version: '1.0.0',
+									description: 'quiet monochrome icons',
+								},
+							],
 						}),
 					),
 		)) as typeof fetch;
@@ -90,7 +97,7 @@ test('the palette can install an appearance plugin from the market list', async 
 		});
 		await runCommand(t, 'Check appearance plugin market');
 		await until(t, () => t.captureCharFrame().includes('Appearance plugin market: 1 plugin'));
-		await runCommand(t, 'Install Mono 1.0.0');
+		await runCommand(t, 'Install Mono 1.0.0 - quiet monochrome icons');
 		await until(t, () => t.captureCharFrame().includes('Installed appearance plugin mono 1.0.0'));
 
 		expect(

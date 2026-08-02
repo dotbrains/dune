@@ -143,11 +143,12 @@ export interface CommandContext {
 	autoSaveOnBlur: boolean;
 	showDotfiles: boolean;
 	respectGitignore: boolean;
-	marketPlugins: readonly { id: string; name: string; version: string }[];
+	marketPlugins: readonly { id: string; name: string; version: string; description: string }[];
 	installedAppearancePlugins: readonly { id: string; version: string }[];
 }
 
 const TAB_SIZES = [2, 4, 8];
+const MARKET_DESCRIPTION_LENGTH = 52;
 
 /** Marks the entry matching the current setting, so submenus show state. */
 const check = (on: boolean) => (on ? '* ' : '  ');
@@ -301,7 +302,7 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 						: 'Install';
 					return {
 						id: `themes.installAppearancePlugin.${plugin.id}`,
-						label: `${action} ${plugin.name} ${plugin.version}`,
+						label: `${action} ${plugin.name} ${plugin.version}${plugin.description ? ` - ${plugin.description.slice(0, MARKET_DESCRIPTION_LENGTH)}` : ''}`,
 						run: () => actions.installAppearancePluginById(plugin.id),
 					};
 				}),

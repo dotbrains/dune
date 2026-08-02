@@ -216,6 +216,36 @@ describe('registries', () => {
 		expect(ran.length).toBe(leaves.length);
 	});
 
+	test('appearance market commands include a searchable description', () => {
+		const actions = new Proxy({} as CommandActions, {
+			get: () => () => {},
+		});
+		const tree = buildCommands(actions, {
+			vimEnabled: false,
+			activeTheme: 'dark',
+			tabSize: 2,
+			trimOnSave: false,
+			formatOnSave: false,
+			autoSaveOnBlur: false,
+			showDotfiles: true,
+			respectGitignore: false,
+			marketPlugins: [
+				{
+					id: 'mono',
+					name: 'Mono',
+					version: '1.0.0',
+					description: 'quiet monochrome icons for focused editing',
+				},
+			],
+			installedAppearancePlugins: [],
+		});
+		const leaves = flattenCommands(tree);
+
+		expect(leaves.map((leaf) => leaf.command.label)).toContain(
+			'Install Mono 1.0.0 - quiet monochrome icons for focused editing',
+		);
+	});
+
 	// Missing/extra ui keys are a tsc error, so only the values are worth asserting.
 	test('every theme tints the current line instead of filling it', () => {
 		for (const [id, theme] of Object.entries(THEMES)) {
