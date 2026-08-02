@@ -51,6 +51,16 @@ test('Esc in the rendered page returns to the markdown source', async () => {
 	expect(t.captureCharFrame()).toContain('# Title');
 });
 
+test('e in the rendered page returns to the markdown source', async () => {
+	const t = await launchDoc();
+	await runCommand(t, 'Markdown: rendered');
+	await until(t, () => t.captureCharFrame().includes('Title'));
+
+	await press(t, (input) => input.pressKey('e'));
+	await until(t, () => t.captureCharFrame().includes('# Title'));
+	expect(t.captureCharFrame()).toContain('# Title');
+});
+
 test('the rendered page uses the unsaved buffer text', async () => {
 	const t = await launchDoc('# Saved\n');
 	await press(t, (input) => void input.typeText('# Typed\n'));

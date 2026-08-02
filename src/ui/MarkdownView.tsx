@@ -60,7 +60,7 @@ export function MarkdownView(props: MarkdownViewProps) {
 		else if (k === 'pagedown' || k === 'space' || (key.ctrl && k === 'd')) scroll(page());
 		else if (k === 'end' || (k === 'g' && key.shift)) scrollTo(Number.MAX_SAFE_INTEGER);
 		else if (k === 'home' || k === 'g') scrollTo(0);
-		else if (k === 'escape' || k === 'tab' || k === 'q') props.onShowSource();
+		else if (k === 'escape' || k === 'tab' || k === 'e' || k === 'q') props.onShowSource();
 		else return;
 		key.preventDefault();
 	});
