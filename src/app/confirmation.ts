@@ -67,7 +67,10 @@ export function confirmationForPrompt(prompt: Prompt): Confirmation | null {
 				title: 'Language server missing',
 				verb: 'install it',
 				danger: false,
-				message: `${prompt.name} is not installed. Fetch it with npm into ${SERVER_ROOT}?`,
+				message:
+					prompt.install.kind === 'npm'
+						? `${prompt.name} is not installed. Fetch it with npm into ${SERVER_ROOT}?`
+						: `${prompt.name} is not installed. Download it into ${SERVER_ROOT}?`,
 			};
 		default:
 			return null;

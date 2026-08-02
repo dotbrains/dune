@@ -212,7 +212,7 @@ test('missing npm servers can prompt for installation', async () => {
 				kind: 'installServer',
 				id: 'typescript',
 				name: 'typescript-language-server',
-				packages: ['typescript-language-server', 'typescript@5'],
+				install: { kind: 'npm', packages: ['typescript-language-server', 'typescript@5'] },
 			});
 		});
 	});

@@ -18,6 +18,7 @@ import {
 	parseKeybindingEdit,
 } from '../core/keybindings';
 import { trimTrailing } from '../editor/lines';
+import type { FetchableInstall } from '../lsp/servers';
 import { ALT } from '../ui/keys';
 import { KEYBINDABLE_COMMANDS } from './commands';
 import { CLASH_CHANGED } from './constants';
@@ -43,7 +44,7 @@ export function createDocumentActions(deps: {
 		pullPush: (branch: string, hasUpstream: boolean) => void;
 		undoCommit: () => void;
 	};
-	installLspServer: (id: string, name: string, packages: string[]) => void;
+	installLspServer: (id: string, name: string, install: FetchableInstall) => void;
 	closeTab: (path: string, discardUnsaved?: boolean) => void;
 	expand: (path: string) => void;
 	movePath: (from: string, to: string) => string | null;
@@ -425,7 +426,7 @@ export function createDocumentActions(deps: {
 			case 'pullPush':
 				return deps.gitCommands.pullPush(p.branch, p.hasUpstream);
 			case 'installServer':
-				return deps.installLspServer(p.id, p.name, p.packages);
+				return deps.installLspServer(p.id, p.name, p.install);
 		}
 	};
 	return {

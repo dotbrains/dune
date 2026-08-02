@@ -11,7 +11,13 @@ import { normalizeCompletion } from '../../lsp/completion';
 import type { CompletionReply } from '../../lsp/completion';
 import { normalizeDefinition } from '../../lsp/definition';
 import type { DefinitionTarget } from '../../lsp/definition';
-import { hasNodeRuntime, installedCommand, installServer, SERVER_ROOT } from '../../lsp/install';
+import {
+	downloadServer,
+	hasNodeRuntime,
+	installedCommand,
+	installServer,
+	SERVER_ROOT,
+} from '../../lsp/install';
 import { projectCommand } from '../../lsp/project';
 import { isUnnecessary, severityOf } from '../../lsp/protocol';
 import type { CompletionItem, Diagnostic, ProblemSeverity } from '../../lsp/protocol';
@@ -97,11 +103,11 @@ export function createAppLsp(deps: {
 
 	const offerInstall = (resolved: NonNullable<ReturnType<typeof resolveServer>>): boolean => {
 		if (
-			resolved.install?.kind !== 'npm' ||
+			(resolved.install?.kind !== 'npm' && resolved.install?.kind !== 'download') ||
 			!deps.config.lspAutoInstall ||
 			!deps.setPrompt ||
 			offered.has(resolved.id) ||
-			!hasNodeRuntime()
+			(resolved.install.kind === 'npm' && !hasNodeRuntime())
 		) {
 			return false;
 		}
@@ -110,7 +116,7 @@ export function createAppLsp(deps: {
 			kind: 'installServer',
 			id: resolved.id,
 			name: resolved.command[0]!,
-			packages: resolved.install.packages,
+			install: resolved.install,
 		});
 		return true;
 	};
@@ -169,9 +175,17 @@ export function createAppLsp(deps: {
 		}, DEPENDENCY_QUIET_MS);
 	};
 
-	const install = async (id: string, name: string, packages: string[]) => {
+	const install = async (
+		id: string,
+		name: string,
+		spec: NonNullable<ReturnType<typeof resolveServer>>['install'],
+	) => {
+		if (!spec || spec.kind === 'manual') return;
 		deps.say(`Installing ${name}...`);
-		const error = await installServer(packages);
+		const error =
+			spec.kind === 'download'
+				? await downloadServer(spec.url, name)
+				: await installServer(spec.packages);
 		if (error) return deps.say(`Could not install ${name}: ${error}`, 'error');
 		if (!installedCommand([name])) {
 			return deps.say(`Installed ${name}, but no ${name} appeared in ${SERVER_ROOT}`, 'error');

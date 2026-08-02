@@ -61,6 +61,19 @@ function parseInstall(raw: unknown): ServerInstall | null | undefined {
 		const packages = strings(raw.packages);
 		return packages ? { kind: 'npm', packages } : null;
 	}
+	if (raw.kind === 'download') {
+		if (typeof raw.url === 'string' && raw.url.length > 0) {
+			return { kind: 'download', url: raw.url };
+		}
+		if (isRecord(raw.urls)) {
+			const url = raw.urls[`${process.platform}-${process.arch}`];
+			if (typeof url === 'string' && url.length > 0) return { kind: 'download', url };
+		}
+		if (typeof raw.command === 'string' && raw.command.length > 0) {
+			return { kind: 'manual', command: raw.command };
+		}
+		return null;
+	}
 	if (raw.kind === 'manual' && typeof raw.command === 'string' && raw.command.length > 0) {
 		return { kind: 'manual', command: raw.command };
 	}

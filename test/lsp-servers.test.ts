@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { DEFAULTS, loadProjectConfig } from '../src/core/config';
 import { parseLspServerEdit } from '../src/core/lspSettings';
 import { settingsRows } from '../src/app/settingsRows';
-import { installedCommand } from '../src/lsp/install';
+import { downloadServer, installedCommand } from '../src/lsp/install';
 import { projectCommand, typescriptMajor } from '../src/lsp/project';
 import { installHint, resolveServer, serverSpecs } from '../src/lsp/servers';
 import { fixture } from './helpers';
@@ -52,6 +52,9 @@ test('language server resolution applies overrides and disables empty commands',
 		'rustup component add rust-analyzer',
 	);
 	expect(installHint({ kind: 'npm', packages: ['pyright'] })).toBe('npm i -g pyright');
+	expect(installHint({ kind: 'download', url: 'https://example.test/expert' })).toBe(
+		'Download it from https://example.test/expert',
+	);
 });
 
 test('LSP settings parse and appear in settings rows', () => {
@@ -193,12 +196,37 @@ test('typescript 5 projects do not use tsc as the language server', () => {
 });
 
 test('installed language server commands resolve from dune data root', () => {
-	const dir = project({ 'node_modules/.bin/pyright-langserver': '' });
+	const dir = project({ 'node_modules/.bin/pyright-langserver': '', 'bin/expert': '' });
 	expect(installedCommand(['pyright-langserver', '--stdio'], dir)).toEqual([
 		join(dir, 'node_modules', '.bin', 'pyright-langserver'),
 		'--stdio',
 	]);
+	expect(installedCommand(['expert', '--stdio'], dir)).toEqual([
+		join(dir, 'bin', 'expert'),
+		'--stdio',
+	]);
 	expect(installedCommand(['missing-language-server'], dir)).toBeNull();
+});
+
+test('downloaded language servers are written to the Dune data root', async () => {
+	const dir = project({});
+	const originalFetch = globalThis.fetch;
+	globalThis.fetch = (async (input: string | URL | Request) => {
+		const url = String(input);
+		return new Response(url.endsWith('/expert') ? 'server' : null, {
+			status: url.endsWith('/expert') ? 200 : 404,
+		});
+	}) as typeof fetch;
+	try {
+		expect(await downloadServer('https://example.test/expert', 'expert', dir)).toBeNull();
+		expect(installedCommand(['expert', '--stdio'], dir)).toEqual([
+			join(dir, 'bin', 'expert'),
+			'--stdio',
+		]);
+		expect(await downloadServer('https://example.test/missing', 'expert', dir)).toBe('HTTP 404');
+	} finally {
+		globalThis.fetch = originalFetch;
+	}
 });
 
 function project(files: Record<string, string>): string {

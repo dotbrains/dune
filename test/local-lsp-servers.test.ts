@@ -45,6 +45,83 @@ test('local plugin manifests can contribute language servers', () => {
 	});
 });
 
+test('local language server plugins can declare platform downloads', () => {
+	const key = `${process.platform}-${process.arch}`;
+	const dir = project({
+		'.dune/plugins/elixir/plugin.json': JSON.stringify({
+			id: 'elixir-tools',
+			version: '1.0.0',
+			languageServers: [
+				{
+					id: 'elixir',
+					command: ['expert'],
+					filetypes: ['elixir'],
+					install: {
+						kind: 'download',
+						urls: { [key]: 'https://example.test/expert' },
+						command: 'mix escript.install hex expert',
+					},
+				},
+			],
+		}),
+	});
+
+	expect(loadLocalLspServers(dir, join(dir, 'empty')).servers[0]?.install).toEqual({
+		kind: 'download',
+		url: 'https://example.test/expert',
+	});
+});
+
+test('local language server plugins fall back to manual install when no download matches', () => {
+	const dir = project({
+		'.dune/plugins/elixir/plugin.json': JSON.stringify({
+			id: 'elixir-tools',
+			version: '1.0.0',
+			languageServers: [
+				{
+					id: 'elixir',
+					command: ['expert'],
+					filetypes: ['elixir'],
+					install: {
+						kind: 'download',
+						urls: { 'unsupported-platform': 'https://example.test/expert' },
+						command: 'mix escript.install hex expert',
+					},
+				},
+			],
+		}),
+	});
+
+	expect(loadLocalLspServers(dir, join(dir, 'empty')).servers[0]?.install).toEqual({
+		kind: 'manual',
+		command: 'mix escript.install hex expert',
+	});
+});
+
+test('local language server plugins reject download installs without a usable source', () => {
+	const dir = project({
+		'.dune/plugins/elixir/plugin.json': JSON.stringify({
+			id: 'elixir-tools',
+			version: '1.0.0',
+			languageServers: [
+				{
+					id: 'elixir',
+					command: ['expert'],
+					filetypes: ['elixir'],
+					install: {
+						kind: 'download',
+						urls: { 'unsupported-platform': 'https://example.test/expert' },
+					},
+				},
+			],
+		}),
+	});
+	const loaded = loadLocalLspServers(dir, join(dir, 'empty'));
+
+	expect(loaded.servers).toEqual([]);
+	expect(loaded.problems[0]?.reason).toBe('invalid language server');
+});
+
 test('invalid language server contributions are skipped with a problem', () => {
 	const dir = project({
 		'.dune/plugins/bad/plugin.json': JSON.stringify({

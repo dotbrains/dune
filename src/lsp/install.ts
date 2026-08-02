@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, renameSync, rmSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
@@ -15,7 +15,13 @@ export function installedCommand(command: string[], root = SERVER_ROOT): string[
 	const [executable, ...args] = command;
 	if (!executable) return null;
 	const local = join(root, 'node_modules', '.bin', executable);
-	return existsSync(local) ? [local, ...args] : null;
+	if (existsSync(local)) return [local, ...args];
+	const downloaded = join(
+		root,
+		'bin',
+		process.platform === 'win32' ? `${executable}.exe` : executable,
+	);
+	return existsSync(downloaded) ? [downloaded, ...args] : null;
 }
 
 export function hasNodeRuntime(): boolean {
@@ -61,6 +67,27 @@ export function installServer(packages: string[], root = SERVER_ROOT): Promise<s
 			return finish(firstLine(stderr) || `npm exited with code ${code}`);
 		});
 	});
+}
+
+export async function downloadServer(
+	url: string,
+	name: string,
+	root = SERVER_ROOT,
+): Promise<string | null> {
+	const target = join(root, 'bin', process.platform === 'win32' ? `${name}.exe` : name);
+	const partial = `${target}.part`;
+	try {
+		mkdirSync(join(root, 'bin'), { recursive: true });
+		const response = await fetch(url, { signal: AbortSignal.timeout(INSTALL_TIMEOUT_MS) });
+		if (!response.ok) return `HTTP ${response.status}`;
+		await Bun.write(partial, response);
+		if (process.platform !== 'win32') chmodSync(partial, 0o755);
+		renameSync(partial, target);
+		return null;
+	} catch (error) {
+		rmSync(partial, { force: true });
+		return error instanceof Error ? error.message : String(error);
+	}
 }
 
 function firstLine(text: string): string {

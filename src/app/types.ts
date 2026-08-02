@@ -1,6 +1,7 @@
 import type { Tone } from '../ui/StatusBar';
 import type { Config } from '../core/config';
 import type { TextEncoding } from '../core/fs';
+import type { FetchableInstall } from '../lsp/servers';
 
 export type Focus = 'tree' | 'editor';
 export type PickerState = 'files' | 'tabs' | null;
@@ -69,7 +70,7 @@ export type Prompt =
 	| { kind: 'deleteBranch'; name: string; force: boolean }
 	| { kind: 'mergeBranch'; name: string }
 	| { kind: 'pullPush'; branch: string; hasUpstream: boolean }
-	| { kind: 'installServer'; id: string; name: string; packages: string[] }
+	| { kind: 'installServer'; id: string; name: string; install: FetchableInstall }
 	| null;
 
 export type PromptKind = NonNullable<Prompt>['kind'];

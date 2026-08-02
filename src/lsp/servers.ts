@@ -8,7 +8,10 @@ export interface ServerSpec {
 
 export type ServerInstall =
 	| { kind: 'npm'; packages: string[] }
-	| { kind: 'manual'; command: string };
+	| { kind: 'manual'; command: string }
+	| { kind: 'download'; url: string };
+
+export type FetchableInstall = Exclude<ServerInstall, { kind: 'manual' }>;
 
 const npm = (...packages: string[]): ServerInstall => ({ kind: 'npm', packages });
 const manual = (command: string): ServerInstall => ({ kind: 'manual', command });
@@ -92,7 +95,9 @@ export function serverSpecs(extraServers: readonly ServerSpec[] = []): ServerSpe
 }
 
 export function installHint(install: ServerInstall): string {
-	return install.kind === 'npm' ? `npm i -g ${install.packages.join(' ')}` : install.command;
+	if (install.kind === 'npm') return `npm i -g ${install.packages.join(' ')}`;
+	if (install.kind === 'download') return `Download it from ${install.url}`;
+	return install.command;
 }
 
 export function resolveServer(
