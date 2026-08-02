@@ -241,6 +241,24 @@ test('auto-install can be disabled', async () => {
 	});
 });
 
+test('files with no server can ask for a plugin suggestion', () => {
+	const dir = mkdtempSync(join(tmpdir(), 'dune-lsp-suggest-'));
+	const path = join(dir, 'main.kt');
+	writeFileSync(path, 'fun main() {}\n');
+	const suggested: string[] = [];
+	const lsp = createAppLsp({
+		rootDir: dir,
+		config: { ...DEFAULTS, lsp: true },
+		say: () => {},
+		servers: () => [],
+		suggestServerPlugin: (filetype) => suggested.push(filetype),
+	});
+
+	expect(lsp.clientFor(path)).toBeNull();
+	expect(lsp.clientFor(path)).toBeNull();
+	expect(suggested).toEqual(['kotlin', 'kotlin']);
+});
+
 test('missing overridden servers do not show default install hints', async () => {
 	const { dir, path } = project();
 	await createRoot((dispose) => {

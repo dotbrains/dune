@@ -30,6 +30,7 @@ export interface MarketEntry {
 		themes: string[];
 		icons: string[];
 		languageServers: string[];
+		filetypes: string[];
 	};
 }
 
@@ -64,6 +65,7 @@ function parseEntry(raw: unknown): MarketEntry | null {
 			themes: ids(provides.themes),
 			icons: ids(provides.icons),
 			languageServers: ids(provides.languageServers),
+			filetypes: ids(provides.filetypes),
 		},
 	};
 }

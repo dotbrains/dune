@@ -67,7 +67,12 @@ const INDEX = {
 			name: 'Mono',
 			version: '1.2.0',
 			description: 'quiet appearance',
-			provides: { themes: ['mono-dark'], icons: ['mono-icons'], languageServers: [] },
+			provides: {
+				themes: ['mono-dark'],
+				icons: ['mono-icons'],
+				languageServers: [],
+				filetypes: [],
+			},
 		},
 	],
 };
@@ -114,7 +119,7 @@ test('a malformed catalog row is dropped, not fatal', () => {
 			name: 'ok',
 			version: '1.0.0',
 			description: '',
-			provides: { themes: [], icons: [], languageServers: [] },
+			provides: { themes: [], icons: [], languageServers: [], filetypes: [] },
 		},
 	]);
 });
@@ -126,7 +131,7 @@ test('catalog rows can advertise language server plugins', () => {
 				{
 					id: 'kotlin-tools',
 					version: '1.0.0',
-					provides: { languageServers: ['kotlin'] },
+					provides: { languageServers: ['kotlin'], filetypes: ['kotlin'] },
 				},
 			],
 		}),
@@ -136,7 +141,7 @@ test('catalog rows can advertise language server plugins', () => {
 			name: 'kotlin-tools',
 			version: '1.0.0',
 			description: '',
-			provides: { themes: [], icons: [], languageServers: ['kotlin'] },
+			provides: { themes: [], icons: [], languageServers: ['kotlin'], filetypes: ['kotlin'] },
 		},
 	]);
 });

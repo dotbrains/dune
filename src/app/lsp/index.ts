@@ -53,6 +53,7 @@ export function createAppLsp(deps: {
 	say: (msg: string, tone?: StatusMessage['tone']) => void;
 	setPrompt?: (prompt: Prompt) => void;
 	servers?: () => readonly ServerSpec[];
+	suggestServerPlugin?: (filetype: string) => void;
 }) {
 	const [problems, setProblems] = createStore<Record<string, Problem[]>>({});
 	const [generation, setGeneration] = createSignal(0);
@@ -130,7 +131,11 @@ export function createAppLsp(deps: {
 			deps.config.lspServers,
 			availableServers(),
 		);
-		if (!resolved) return null;
+		if (!resolved) {
+			const filetype = filetypeForPath(path);
+			if (filetype) deps.suggestServerPlugin?.(filetype);
+			return null;
+		}
 		const known = clients.get(resolved.id);
 		if (known !== undefined) return known;
 		const project = projectCommand(resolved.id, resolved.command, deps.rootDir);

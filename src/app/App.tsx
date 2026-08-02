@@ -19,8 +19,9 @@ import { createFileActions } from './fileActions';
 import { createGitCommands } from './gitCommands';
 import { useAppKeyboard } from './keyboard';
 import { startupOpen, useAppLifecycle } from './lifecycle';
-import { createAppLsp, problemFrom, wireAppLspEffects } from './lsp/index';
+import { problemFrom, wireAppLspEffects } from './lsp/index';
 import { createCompletionActions } from './lsp/completionActions';
+import { createDuneAppLsp } from './lsp/pluginSuggestion';
 import { createProblemUi } from './lsp/view';
 import { createMarkdownView } from './markdown/view';
 import { createNavigation } from './navigation';
@@ -128,7 +129,7 @@ export function App(props: AppTypes.AppProps) {
 		setFocus,
 		say,
 	});
-	const lsp = createAppLsp({ rootDir, config, say, setPrompt, servers: lspServers });
+	const lsp = createDuneAppLsp({ rootDir, config, say, setPrompt, servers: lspServers });
 	wireAppLspEffects({ lsp, config, tabs, buffers });
 	const expand = (path: string) => setExpanded((prev) => new Set(prev).add(path));
 	const discardBuffer = (path: string) => setBuffers(produce((draft) => void delete draft[path]));
