@@ -3,19 +3,31 @@ import type { Accessor } from 'solid-js';
 
 import type { Config } from '../../core/config';
 import type { AppearancePluginLoad } from '../../core/localThemes';
-import { fetchPlugin, readCachedCatalog, removeFromDisk, writePlugin } from '../../core/market';
+import {
+	fetchCatalog,
+	fetchPlugin,
+	readCachedCatalog,
+	removeFromDisk,
+	updatesFor,
+	writeCachedCatalog,
+	writePlugin,
+} from '../../core/market';
 import { isNewer } from '../../core/update';
 import type { Choice } from '../../ui/ChoiceModal';
 import { AppearancePluginsView } from '../../ui/overlays/AppearancePluginsView';
 
-export function appearancePluginChoices(appearance: AppearancePluginLoad): Choice[] {
+export function appearancePluginChoices(
+	appearance: AppearancePluginLoad,
+	config?: Pick<Config, 'pluginUpdates'>,
+): Choice[] {
 	const installed = appearance.plugins;
 	const installedById = new Map(installed.map((plugin) => [plugin.id, plugin]));
+	const cached = readCachedCatalog()?.plugins ?? [];
 	const installedChoices = installed.map((plugin) => ({
 		id: `installed:${plugin.id}`,
 		label: `${plugin.disabled ? 'Enable' : 'Disable'} ${plugin.id} ${plugin.version}`,
 	}));
-	const marketChoices = (readCachedCatalog()?.plugins ?? []).flatMap((plugin) => {
+	const marketChoices = cached.flatMap((plugin) => {
 		const current = installedById.get(plugin.id);
 		if (current && !isNewer(plugin.version, current.version)) return [];
 		const action = current ? 'Update' : 'Install';
@@ -33,6 +45,16 @@ export function appearancePluginChoices(appearance: AppearancePluginLoad): Choic
 		...(installedChoices.length === 0 && marketChoices.length === 0
 			? [{ id: 'noop:empty', label: 'No plugins listed; run Check appearance plugin market' }]
 			: []),
+		{ id: 'market:check', label: 'Check appearance plugin market' },
+		{ id: 'market:update', label: 'Update all appearance plugins' },
+		...(config
+			? [
+					{
+						id: 'market:toggle-updates',
+						label: `${config.pluginUpdates ? 'Disable' : 'Enable'} startup update checks`,
+					},
+				]
+			: []),
 		{ id: 'reload:disk', label: 'Reload from disk' },
 	];
 }
@@ -41,8 +63,10 @@ export function pickAppearancePlugin(
 	choice: string,
 	deps: {
 		config: Config;
+		appearance: Accessor<AppearancePluginLoad>;
 		patchConfig: (patch: Partial<Config>) => void;
 		reload: () => void;
+		refreshMarket: () => void;
 		close: () => void;
 		say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
 	},
@@ -54,6 +78,49 @@ export function pickAppearancePlugin(
 	}
 	if (!id || kind === 'noop') {
 		deps.say('Run Check appearance plugin market to refresh available plugins');
+		return;
+	}
+	if (kind === 'market' && id === 'toggle-updates') {
+		deps.patchConfig({ pluginUpdates: !deps.config.pluginUpdates });
+		deps.say(`Startup update checks ${deps.config.pluginUpdates ? 'disabled' : 'enabled'}`);
+		deps.refreshMarket();
+		return;
+	}
+	if (kind === 'market' && id === 'check') {
+		void (async () => {
+			const catalog = await fetchCatalog(deps.config.pluginRegistry);
+			if (!catalog) return deps.say('Could not reach appearance plugin market', 'warn');
+			writeCachedCatalog(catalog, Date.now());
+			deps.refreshMarket();
+			deps.say(
+				`Appearance plugin market: ${catalog.length} plugin${catalog.length === 1 ? '' : 's'}`,
+			);
+		})();
+		return;
+	}
+	if (kind === 'market' && id === 'update') {
+		void (async () => {
+			const catalog = await fetchCatalog(deps.config.pluginRegistry);
+			if (!catalog) return deps.say('Could not reach appearance plugin market', 'warn');
+			writeCachedCatalog(catalog, Date.now());
+			deps.refreshMarket();
+			const updates = updatesFor(deps.appearance().plugins, catalog);
+			if (updates.length === 0) return deps.say('Appearance plugins are up to date');
+			const results = await Promise.all(
+				updates.map(async (entry) => {
+					const fetched = await fetchPlugin(entry.id, { registry: deps.config.pluginRegistry });
+					const error = fetched.ok ? writePlugin(entry.id, fetched) : fetched.error;
+					return { id: entry.id, ok: !error };
+				}),
+			);
+			const updated = results.filter((result) => result.ok).length;
+			const failed = results.filter((result) => !result.ok).map((result) => result.id);
+			if (failed.length > 0) deps.say(`Could not update ${failed.join(', ')}`, 'error');
+			if (updated > 0) {
+				deps.reload();
+				deps.say(`Updated ${updated} appearance plugin${updated === 1 ? '' : 's'}`);
+			}
+		})();
 		return;
 	}
 	if (kind === 'installed') {
@@ -111,16 +178,23 @@ export function createAppearancePluginUi(deps: {
 	say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
 }) {
 	const [open, setOpen] = createSignal(false);
+	const [marketVersion, setMarketVersion] = createSignal(0);
+	const refreshMarket = () => setMarketVersion((version) => version + 1);
 	return {
 		open,
-		choices: () => appearancePluginChoices(deps.appearance()),
+		choices: () => {
+			void marketVersion();
+			return appearancePluginChoices(deps.appearance(), deps.config);
+		},
 		show: () => setOpen(true),
 		close: () => setOpen(false),
 		pick: (choice: string) =>
 			pickAppearancePlugin(choice, {
 				config: deps.config,
+				appearance: deps.appearance,
 				patchConfig: deps.patchConfig,
 				reload: deps.reload,
+				refreshMarket,
 				close: () => setOpen(false),
 				say: deps.say,
 			}),
@@ -135,12 +209,17 @@ export function createAppearancePluginUi(deps: {
 		view: () => (
 			<AppearancePluginOverlay
 				open={open}
-				choices={() => appearancePluginChoices(deps.appearance())}
+				choices={() => {
+					void marketVersion();
+					return appearancePluginChoices(deps.appearance(), deps.config);
+				}}
 				onPick={(choice) =>
 					pickAppearancePlugin(choice, {
 						config: deps.config,
+						appearance: deps.appearance,
 						patchConfig: deps.patchConfig,
 						reload: deps.reload,
+						refreshMarket,
 						close: () => setOpen(false),
 						say: deps.say,
 					})
