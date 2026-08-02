@@ -203,7 +203,7 @@ describe('registries', () => {
 			showDotfiles: true,
 			respectGitignore: false,
 			marketPlugins: [],
-			installedAppearancePlugins: [],
+			installedPlugins: [],
 		});
 		const leaves = flattenCommands(tree);
 
@@ -239,7 +239,7 @@ describe('registries', () => {
 					description: 'quiet monochrome icons for focused editing',
 				},
 			],
-			installedAppearancePlugins: [],
+			installedPlugins: [],
 		});
 		const leaves = flattenCommands(tree);
 
@@ -262,7 +262,7 @@ describe('registries', () => {
 			showDotfiles: true,
 			respectGitignore: false,
 			marketPlugins: [],
-			installedAppearancePlugins: [
+			installedPlugins: [
 				{ id: 'mono', version: '1.0.0', disabled: false },
 				{ id: 'paper', version: '2.0.0', disabled: true },
 			],

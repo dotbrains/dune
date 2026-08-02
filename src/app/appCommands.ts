@@ -2,6 +2,7 @@ import { createMemo, createSignal } from 'solid-js';
 
 import type { Config } from '../core/config';
 import type { AppearancePluginLoad } from '../core/localThemes';
+import { loadLocalLspServers } from '../core/plugins/localLspServers';
 import {
 	fetchCatalog,
 	fetchPlugin,
@@ -18,6 +19,7 @@ import type { Focus, Prompt } from './types';
 
 export function createAppCommands(deps: {
 	config: Config;
+	rootDir: string;
 	saveActive: () => void;
 	setPicker: (kind: 'files' | 'tabs') => void;
 	activePath: () => string | null;
@@ -285,7 +287,12 @@ export function createAppCommands(deps: {
 				showDotfiles: deps.config.showDotfiles,
 				respectGitignore: deps.config.respectGitignore,
 				marketPlugins: readCachedCatalog()?.plugins ?? [],
-				installedAppearancePlugins: deps.appearanceVersion().plugins,
+				installedPlugins: [
+					...deps.appearanceVersion().plugins,
+					...loadLocalLspServers(deps.rootDir).plugins.filter(
+						(plugin) => !deps.appearanceVersion().plugins.some((entry) => entry.id === plugin.id),
+					),
+				],
 			},
 		);
 	});

@@ -19,6 +19,7 @@ import type {
 
 export function createAppCommandTree(deps: {
 	config: Config;
+	rootDir: string;
 	buffers: Record<string, BufferState>;
 	activePath: Accessor<string | null>;
 	cursor: Accessor<{ line: number; col: number }>;
@@ -79,6 +80,7 @@ export function createAppCommandTree(deps: {
 }): Accessor<Command[]> {
 	return createAppCommands({
 		config: deps.config,
+		rootDir: deps.rootDir,
 		saveActive: deps.saveActive,
 		setPicker: (kind) => deps.setPicker(kind),
 		activePath: deps.activePath,

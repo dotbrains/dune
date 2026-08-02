@@ -68,6 +68,46 @@ test('the appearance plugins page removes installed plugins with Backspace', asy
 	expect(existsSync(join(USER_THEME_PLUGIN_DIR, 'mono'))).toBe(false);
 });
 
+test('the appearance plugins page lists and removes installed language server plugins', async () => {
+	const manifest = {
+		id: 'kotlin-tools',
+		name: 'Kotlin Tools',
+		version: '1.0.0',
+		languageServers: [
+			{
+				id: 'kotlin',
+				command: ['kotlin-language-server'],
+				filetypes: ['kotlin'],
+			},
+		],
+	};
+	expect(
+		writePlugin('kotlin-tools', {
+			ok: true,
+			id: 'kotlin-tools',
+			version: '1.0.0',
+			body: JSON.stringify(manifest),
+		}),
+	).toBeNull();
+
+	const t = await launch(fixture({ 'a.kt': 'fun main() {}\n' }));
+	await runCommand(t, 'Plugin manager');
+	await until(t, () => {
+		const frame = t.captureCharFrame();
+		return (
+			frame.includes('Installed kotlin-tools 1.0.0') &&
+			frame.includes('Kotlin Tools') &&
+			frame.includes('language servers: kotlin')
+		);
+	});
+	await press(t, (input) => input.pressBackspace());
+	await until(t, () =>
+		t.captureCharFrame().includes('Removed language server plugin kotlin-tools'),
+	);
+
+	expect(existsSync(join(USER_THEME_PLUGIN_DIR, 'kotlin-tools'))).toBe(false);
+});
+
 test('the appearance plugins page reloads plugins from disk', async () => {
 	const manifest = {
 		id: 'mono',

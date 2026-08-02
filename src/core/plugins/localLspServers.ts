@@ -12,7 +12,16 @@ export interface LocalLspServerProblem {
 
 export interface LocalLspServerLoad {
 	servers: ServerSpec[];
+	plugins: LocalLspServerPlugin[];
 	problems: LocalLspServerProblem[];
+}
+
+export interface LocalLspServerPlugin {
+	id: string;
+	name: string;
+	version: string;
+	detail: string;
+	source: string;
 }
 
 const MANIFEST = 'plugin.json';
@@ -73,6 +82,7 @@ export function loadLocalLspServers(
 ): LocalLspServerLoad {
 	const problems: LocalLspServerProblem[] = [];
 	const servers = new Map<string, ServerSpec>();
+	const plugins = new Map<string, LocalLspServerPlugin>();
 	const sources = [
 		...manifestsIn(userDir),
 		...manifestsIn(join(rootDir, PROJECT_CONFIG_DIR, 'plugins')),
@@ -87,7 +97,9 @@ export function loadLocalLspServers(
 			problems.push({ source, reason: error instanceof Error ? error.message : String(error) });
 			continue;
 		}
-		const entries = isRecord(raw) && Array.isArray(raw.languageServers) ? raw.languageServers : [];
+		if (!isRecord(raw)) continue;
+		const entries = Array.isArray(raw.languageServers) ? raw.languageServers : [];
+		const pluginServers: string[] = [];
 		for (const entry of entries) {
 			const server = parseServer(entry);
 			if (!server) {
@@ -95,8 +107,24 @@ export function loadLocalLspServers(
 				continue;
 			}
 			servers.set(server.id, server);
+			pluginServers.push(server.id);
+		}
+		if (
+			pluginServers.length > 0 &&
+			typeof raw.id === 'string' &&
+			ID.test(raw.id) &&
+			typeof raw.version === 'string' &&
+			raw.version.length > 0
+		) {
+			plugins.set(raw.id, {
+				id: raw.id,
+				name: typeof raw.name === 'string' && raw.name ? raw.name : raw.id,
+				version: raw.version,
+				detail: `language servers: ${pluginServers.join(', ')}`,
+				source,
+			});
 		}
 	}
 
-	return { servers: [...servers.values()], problems };
+	return { servers: [...servers.values()], plugins: [...plugins.values()], problems };
 }

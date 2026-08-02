@@ -5,6 +5,8 @@ import { relative } from 'node:path';
 
 import type { Config } from '../../core/config';
 import { USER_THEME_PLUGIN_DIR, type AppearancePluginLoad } from '../../core/localThemes';
+import { loadLocalLspServers } from '../../core/plugins/localLspServers';
+import type { LocalLspServerPlugin } from '../../core/plugins/localLspServers';
 import {
 	fetchCatalog,
 	fetchPlugin,
@@ -29,11 +31,16 @@ function displayPath(path: string): string {
 export function appearancePluginChoices(
 	appearance: AppearancePluginLoad,
 	config?: Pick<Config, 'pluginRegistry' | 'pluginUpdates'>,
+	lspPlugins: readonly LocalLspServerPlugin[] = [],
 ): Choice[] {
 	const installed = appearance.plugins;
-	const installedById = new Map(installed.map((plugin) => [plugin.id, plugin]));
+	const installedPlugins = [
+		...installed,
+		...lspPlugins.filter((plugin) => !installed.some((entry) => entry.id === plugin.id)),
+	];
+	const installedById = new Map(installedPlugins.map((plugin) => [plugin.id, plugin]));
 	const cached = readCachedCatalog()?.plugins ?? [];
-	const updates = updatesFor(installed, cached);
+	const updates = updatesFor(installedPlugins, cached);
 	const installedChoices = installed.map((plugin) => ({
 		id: `installed:${plugin.id}`,
 		label: [
@@ -44,6 +51,14 @@ export function appearancePluginChoices(
 			.filter(Boolean)
 			.join(' - '),
 	}));
+	const lspChoices = lspPlugins
+		.filter((plugin) => !installed.some((entry) => entry.id === plugin.id))
+		.map((plugin) => ({
+			id: `installed-lsp:${plugin.id}`,
+			label: [`Installed ${plugin.id} ${plugin.version}`, plugin.name, plugin.detail]
+				.filter(Boolean)
+				.join(' - '),
+		}));
 	const marketChoices = cached.flatMap((plugin) => {
 		const current = installedById.get(plugin.id);
 		if (current && !isNewer(plugin.version, current.version)) return [];
@@ -55,11 +70,12 @@ export function appearancePluginChoices(
 	});
 	return [
 		...installedChoices,
-		...(installedChoices.length > 0 && marketChoices.length > 0
+		...lspChoices,
+		...(installedChoices.length + lspChoices.length > 0 && marketChoices.length > 0
 			? [{ id: 'noop:available', label: 'Available from cached market' }]
 			: []),
 		...marketChoices,
-		...(installedChoices.length === 0 && marketChoices.length === 0
+		...(installedChoices.length + lspChoices.length === 0 && marketChoices.length === 0
 			? [{ id: 'noop:empty', label: 'No plugins listed; run Check appearance plugin market' }]
 			: []),
 		{
@@ -182,6 +198,10 @@ export function pickAppearancePlugin(
 		deps.say(`Appearance plugin ${id} ${off ? 'enabled' : 'disabled'}`);
 		return;
 	}
+	if (kind === 'installed-lsp') {
+		deps.say(`Language server plugin ${id} is installed`);
+		return;
+	}
 	if (kind !== 'market') return;
 	void (async () => {
 		const fetched = await fetchPlugin(id, { registry: deps.config.pluginRegistry });
@@ -205,7 +225,7 @@ export function deleteAppearancePlugin(
 	},
 ): void {
 	const [kind, id] = choice.split(':', 2);
-	if (kind !== 'installed' || !id) return;
+	if ((kind !== 'installed' && kind !== 'installed-lsp') || !id) return;
 	const error = removeFromDisk(id);
 	if (error) return deps.say(`Could not remove ${id}: ${error}`, 'error');
 	deps.patchConfig({
@@ -215,10 +235,11 @@ export function deleteAppearancePlugin(
 	});
 	deps.reload();
 	deps.close();
-	deps.say(`Removed appearance plugin ${id}`);
+	deps.say(`Removed ${kind === 'installed-lsp' ? 'language server' : 'appearance'} plugin ${id}`);
 }
 
 export function createAppearancePluginUi(deps: {
+	rootDir: string;
 	config: Config;
 	appearance: Accessor<AppearancePluginLoad>;
 	patchConfig: (patch: Partial<Config>) => void;
@@ -233,7 +254,11 @@ export function createAppearancePluginUi(deps: {
 		open,
 		choices: () => {
 			void marketVersion();
-			return appearancePluginChoices(deps.appearance(), deps.config);
+			return appearancePluginChoices(
+				deps.appearance(),
+				deps.config,
+				loadLocalLspServers(deps.rootDir).plugins,
+			);
 		},
 		show: () => setOpen(true),
 		close: () => setOpen(false),
@@ -261,7 +286,11 @@ export function createAppearancePluginUi(deps: {
 				open={open}
 				choices={() => {
 					void marketVersion();
-					return appearancePluginChoices(deps.appearance(), deps.config);
+					return appearancePluginChoices(
+						deps.appearance(),
+						deps.config,
+						loadLocalLspServers(deps.rootDir).plugins,
+					);
 				}}
 				onPick={(choice) =>
 					pickAppearancePlugin(choice, {

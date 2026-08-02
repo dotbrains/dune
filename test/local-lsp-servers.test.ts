@@ -32,6 +32,15 @@ test('local plugin manifests can contribute language servers', () => {
 				install: { kind: 'manual', command: 'brew install kotlin-language-server' },
 			},
 		],
+		plugins: [
+			{
+				id: 'kotlin-tools',
+				name: 'kotlin-tools',
+				version: '1.0.0',
+				detail: 'language servers: kotlin',
+				source: expect.stringContaining('kotlin/plugin.json'),
+			},
+		],
 		problems: [],
 	});
 });
@@ -47,6 +56,7 @@ test('invalid language server contributions are skipped with a problem', () => {
 	const loaded = loadLocalLspServers(dir, join(dir, 'empty'));
 
 	expect(loaded.servers).toEqual([]);
+	expect(loaded.plugins).toEqual([]);
 	expect(loaded.problems).toHaveLength(1);
 	expect(loaded.problems[0]?.reason).toBe('invalid language server');
 });

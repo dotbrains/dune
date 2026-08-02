@@ -112,6 +112,7 @@ export function App(props: AppTypes.AppProps) {
 	const reloadUi = () =>
 		reloadPlugins({ rootDir, config, setAppearancePlugins, setLspServers, lsp, say });
 	const appearancePluginUi = createAppearancePluginUi({
+		rootDir,
 		config,
 		appearance: appearancePlugins,
 		patchConfig: (patch) => patchConfig(patch, settingsPage() ?? 'user'),
@@ -251,10 +252,7 @@ export function App(props: AppTypes.AppProps) {
 		say,
 	);
 	const navigation = createNavigation({ activePath, cursor, openFile, setFocus, setGoto, say });
-	const goToDefinition = () => {
-		navigation.mark();
-		void completion.goToDefinition();
-	};
+	const goToDefinition = () => (navigation.mark(), void completion.goToDefinition());
 	const openPathUnderCursor = () => {
 		openPathUnderCursorAction({
 			activePath,
@@ -370,6 +368,7 @@ export function App(props: AppTypes.AppProps) {
 	});
 	const commands = createAppCommandTree({
 		config,
+		rootDir,
 		buffers,
 		saveActive,
 		setPicker,
