@@ -18,6 +18,7 @@ import {
 import type { Fetcher, MarketEntry } from '../../src/core/market';
 import { loadIconThemes } from '../../src/core/iconThemes';
 import { loadAppearancePlugins, loadLocalThemes } from '../../src/core/localThemes';
+import { loadLocalLspServers } from '../../src/core/plugins/localLspServers';
 
 const REGISTRY = 'https://example.test/plugins/';
 const MANIFEST = {
@@ -66,7 +67,20 @@ const INDEX = {
 			name: 'Mono',
 			version: '1.2.0',
 			description: 'quiet appearance',
-			provides: { themes: ['mono-dark'], icons: ['mono-icons'] },
+			provides: { themes: ['mono-dark'], icons: ['mono-icons'], languageServers: [] },
+		},
+	],
+};
+const LSP_MANIFEST = {
+	id: 'kotlin-tools',
+	name: 'Kotlin Tools',
+	version: '1.0.0',
+	languageServers: [
+		{
+			id: 'kotlin',
+			command: ['kotlin-language-server'],
+			filetypes: ['kotlin'],
+			install: { kind: 'manual', command: 'install kotlin-language-server' },
 		},
 	],
 };
@@ -100,7 +114,29 @@ test('a malformed catalog row is dropped, not fatal', () => {
 			name: 'ok',
 			version: '1.0.0',
 			description: '',
-			provides: { themes: [], icons: [] },
+			provides: { themes: [], icons: [], languageServers: [] },
+		},
+	]);
+});
+
+test('catalog rows can advertise language server plugins', () => {
+	expect(
+		parseCatalog({
+			plugins: [
+				{
+					id: 'kotlin-tools',
+					version: '1.0.0',
+					provides: { languageServers: ['kotlin'] },
+				},
+			],
+		}),
+	).toEqual([
+		{
+			id: 'kotlin-tools',
+			name: 'kotlin-tools',
+			version: '1.0.0',
+			description: '',
+			provides: { themes: [], icons: [], languageServers: ['kotlin'] },
 		},
 	]);
 });
@@ -180,6 +216,31 @@ test('a fetched manifest is written where appearance plugin loading finds it', a
 	expect(removeFromDisk('mono', root)).toBeNull();
 	expect(existsSync(join(root, 'mono'))).toBe(false);
 	expect(removeFromDisk('mono', root)).toBeNull();
+});
+
+test('a fetched language server manifest is written where plugin loading finds it', async () => {
+	const root = temp('lsp-plugins');
+	const project = temp('lsp-project');
+	const fetched = await fetchPlugin('kotlin-tools', {
+		registry: REGISTRY,
+		fetcher: serving({ [`${REGISTRY}kotlin-tools/plugin.json`]: LSP_MANIFEST }),
+	});
+
+	expect(writePlugin('kotlin-tools', fetched, root)).toBeNull();
+	expect(JSON.parse(readFileSync(join(root, 'kotlin-tools', 'plugin.json'), 'utf8'))).toEqual(
+		LSP_MANIFEST,
+	);
+
+	const lsp = loadLocalLspServers(project, root);
+	expect(lsp.problems).toEqual([]);
+	expect(lsp.servers).toEqual([
+		{
+			id: 'kotlin',
+			command: ['kotlin-language-server'],
+			filetypes: ['kotlin'],
+			install: { kind: 'manual', command: 'install kotlin-language-server' },
+		},
+	]);
 });
 
 test('the cache survives a round trip and knows when it is old', () => {

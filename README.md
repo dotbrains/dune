@@ -106,7 +106,8 @@ away. By default the tree lists dotfiles and gitignored files; use the View comm
 plain tree arrows, or point it at an icon theme from a local JSON plugin in
 `~/.config/dune/plugins/` or `<project>/.dune/plugins/`. The same plugin folders
 can also contribute local color themes with a `themes` array and language-server
-commands with a `languageServers` array. Set
+commands with a `languageServers` array. Market catalog entries can advertise those
+language-server plugins with `provides.languageServers`. Set
 `disabledAppearancePlugins` to a list of plugin ids to keep installed but inactive, or
 use the command palette's per-plugin enable/disable commands.
 Use `Settings: this project` to save overrides in `.dune/settings.json`; project values

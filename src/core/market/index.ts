@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path';
 
 import { loadIconThemes } from '../iconThemes';
 import { loadLocalThemes, USER_THEME_PLUGIN_DIR } from '../localThemes';
+import { loadLocalLspServers } from '../plugins/localLspServers';
 import { isNewer } from '../update';
 import { isThemeName } from '../../themes';
 import type { Config } from '../config';
@@ -28,6 +29,7 @@ export interface MarketEntry {
 	provides: {
 		themes: string[];
 		icons: string[];
+		languageServers: string[];
 	};
 }
 
@@ -58,7 +60,11 @@ function parseEntry(raw: unknown): MarketEntry | null {
 		name: typeof name === 'string' && name ? name : id,
 		version,
 		description: typeof description === 'string' ? description : '',
-		provides: { themes: ids(provides.themes), icons: ids(provides.icons) },
+		provides: {
+			themes: ids(provides.themes),
+			icons: ids(provides.icons),
+			languageServers: ids(provides.languageServers),
+		},
 	};
 }
 
@@ -134,10 +140,12 @@ async function validateManifest(id: string, body: string): Promise<FetchedPlugin
 		writeFileSync(join(plugin, 'plugin.json'), body);
 		const color = loadLocalThemes(root, root);
 		const icon = loadIconThemes(root, root);
-		const problem = color.problems[0]?.reason ?? icon.problems[0]?.reason;
+		const lsp = loadLocalLspServers(root, root);
+		const problem =
+			color.problems[0]?.reason ?? icon.problems[0]?.reason ?? lsp.problems[0]?.reason;
 		if (problem) return { ok: false, error: problem };
-		if (color.themes.length + icon.themes.length === 0) {
-			return { ok: false, error: `${id} does not provide an appearance plugin` };
+		if (color.themes.length + icon.themes.length + lsp.servers.length === 0) {
+			return { ok: false, error: `${id} does not provide a plugin contribution` };
 		}
 		return { ok: true, id, version: raw.version, body };
 	} finally {
