@@ -11,7 +11,6 @@ import fs from 'node:fs';
 import os from 'node:os';
 import { dirname, join } from 'node:path';
 
-import { isThemeName } from '../themes';
 import type { Formatters } from './format';
 import type { ThemeName } from '../themes';
 
@@ -147,10 +146,12 @@ export const DEFAULTS: Config = {
 function parsePartial(raw: unknown): Partial<Config> {
 	const obj = (raw ?? {}) as Partial<Record<keyof Config, unknown>>;
 	const config: Partial<Config> = {};
-	if (isThemeName(obj.theme)) config.theme = obj.theme;
+	if (typeof obj.theme === 'string' && obj.theme.length > 0) config.theme = obj.theme;
 	if (typeof obj.themeSync === 'boolean') config.themeSync = obj.themeSync;
-	if (isThemeName(obj.themeLight)) config.themeLight = obj.themeLight;
-	if (isThemeName(obj.themeDark)) config.themeDark = obj.themeDark;
+	if (typeof obj.themeLight === 'string' && obj.themeLight.length > 0)
+		config.themeLight = obj.themeLight;
+	if (typeof obj.themeDark === 'string' && obj.themeDark.length > 0)
+		config.themeDark = obj.themeDark;
 	if (typeof obj.transparent === 'boolean') config.transparent = obj.transparent;
 	if (typeof obj.iconTheme === 'string' && obj.iconTheme.length > 0)
 		config.iconTheme = obj.iconTheme;

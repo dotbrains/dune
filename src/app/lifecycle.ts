@@ -7,7 +7,7 @@ import type { Appearance } from '../core/appearance';
 import type { TreeNode } from '../core/fs';
 import type { FileStatus, LineChange, Upstream } from '../core/git';
 import { currentBranch, diffLines, ignoredAmong, statusMap, upstreamOf } from '../core/git';
-import { fetchCatalog, updatesFor } from '../core/market';
+import { fetchCatalog, missingConfiguredAppearancePlugins, updatesFor } from '../core/market';
 import { saveSession } from '../core/session';
 import { checkForUpdate } from '../core/update';
 import { watchTree } from '../core/fs';
@@ -31,7 +31,10 @@ export function useAppLifecycle(deps: {
 	openCol: number | null | undefined;
 	initialConfig: Config;
 	checkUpdates: boolean | undefined;
-	appearanceVersion: () => { plugins: readonly { id: string; version: string }[] };
+	appearanceVersion: () => {
+		iconThemes: readonly { id: string }[];
+		plugins: readonly { id: string; version: string }[];
+	};
 	restoredFailed: string | null | undefined;
 	activeBuffer: () => BufferState | undefined;
 	activePath: () => string | null;
@@ -93,7 +96,22 @@ export function useAppLifecycle(deps: {
 			void (async () => {
 				const catalog = await fetchCatalog(deps.config.pluginRegistry);
 				if (cancelled || !catalog) return;
-				const updates = updatesFor(deps.appearanceVersion().plugins, catalog);
+				const appearance = deps.appearanceVersion();
+				const missing = missingConfiguredAppearancePlugins(
+					deps.config,
+					appearance.iconThemes,
+					catalog,
+				);
+				if (missing.length === 1) {
+					const plugin = missing[0]!;
+					deps.say(`Install ${plugin.name} for configured appearance ${plugin.id}`, 'info');
+					return;
+				}
+				if (missing.length > 1) {
+					deps.say(`${missing.length} appearance plugins match your config`, 'info');
+					return;
+				}
+				const updates = updatesFor(appearance.plugins, catalog);
 				if (updates.length === 1) {
 					const plugin = updates[0]!;
 					deps.say(`${plugin.name} ${plugin.version} is available`, 'info');

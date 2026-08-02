@@ -193,6 +193,44 @@ test('startup reports available appearance plugin updates', async () => {
 	}
 });
 
+test('startup offers a plugin for a missing configured theme', async () => {
+	const realFetch = globalThis.fetch;
+	globalThis.fetch = ((url: string) =>
+		Promise.resolve(
+			String(url).includes('registry.npmjs.org')
+				? new Response(JSON.stringify({ version: '0.0.0' }))
+				: new Response(
+						JSON.stringify({
+							plugins: [
+								{
+									id: 'mono',
+									name: 'Mono',
+									version: '1.0.0',
+									provides: { themes: ['mono-dark'], icons: [] },
+								},
+							],
+						}),
+					),
+		)) as typeof fetch;
+	try {
+		const t = await launch(
+			fixture({ 'a.ts': 'const a = 1\n' }),
+			{
+				pluginRegistry: 'https://example.test/market',
+				themeSync: false,
+				theme: 'mono-dark',
+			},
+			{},
+			{ checkUpdates: true },
+		);
+		await until(t, () =>
+			t.captureCharFrame().includes('Install Mono for configured appearance mono'),
+		);
+	} finally {
+		globalThis.fetch = realFetch;
+	}
+});
+
 test('startup skips appearance plugin updates when disabled', async () => {
 	const realFetch = globalThis.fetch;
 	const requested: string[] = [];

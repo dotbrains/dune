@@ -6,6 +6,8 @@ import { dirname, join } from 'node:path';
 import { loadIconThemes } from '../iconThemes';
 import { loadLocalThemes, USER_THEME_PLUGIN_DIR } from '../localThemes';
 import { isNewer } from '../update';
+import { isThemeName } from '../../themes';
+import type { Config } from '../config';
 
 export const MARKET_URL = 'https://dune.dotbrains.dev/plugins/';
 export const CATALOG_MAX_AGE_MS = 6 * 60 * 60 * 1000;
@@ -197,4 +199,29 @@ export function updatesFor(
 		const current = versions.get(entry.id);
 		return current ? newer(entry.version, current) : false;
 	});
+}
+
+export function missingConfiguredAppearancePlugins(
+	config: Pick<Config, 'theme' | 'themeLight' | 'themeDark' | 'iconTheme'>,
+	iconThemes: readonly { id: string }[],
+	catalog: readonly MarketEntry[],
+): MarketEntry[] {
+	const wantedThemes = new Set<string>(
+		[config.theme, config.themeLight, config.themeDark].filter((id) => !isThemeName(id)),
+	);
+	const hasIconTheme =
+		config.iconTheme === 'none' ||
+		config.iconTheme === 'unicode' ||
+		iconThemes.some((theme) => theme.id === config.iconTheme);
+	const wantedIcon = hasIconTheme ? null : config.iconTheme;
+	const byId = new Map<string, MarketEntry>();
+	for (const entry of catalog) {
+		if (
+			entry.provides.themes.some((id) => wantedThemes.has(id)) ||
+			(wantedIcon !== null && entry.provides.icons.includes(wantedIcon))
+		) {
+			byId.set(entry.id, entry);
+		}
+	}
+	return [...byId.values()];
 }
