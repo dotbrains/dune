@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const root = join(import.meta.dir, '..');
+const root = join(import.meta.dir, '../..');
 const dist = mkdtempSync(join(tmpdir(), 'dune-formula-'));
 afterAll(() => rmSync(dist, { recursive: true, force: true }));
 
