@@ -84,6 +84,7 @@ export interface CommandActions {
 	toggleMarkdown: () => void;
 	openSettings: () => void;
 	openProjectSettings: () => void;
+	reloadAppearancePlugins: () => void;
 	setVim: (enabled: boolean) => void;
 	setTabSize: (size: number) => void;
 	setTheme: (name: ThemeName) => void;
@@ -255,13 +256,20 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 		{
 			id: 'themes',
 			label: 'Themes',
-			children: THEME_ENTRIES.map(([name]) => ({
-				id: `themes.${name}`,
-				label: `${check(ctx.activeTheme === name)}${themeLabels[name]}`,
-				preview: () => actions.previewTheme(name),
-				cancelPreview: actions.cancelThemePreview,
-				run: () => actions.setTheme(name),
-			})),
+			children: [
+				{
+					id: 'themes.reloadAppearancePlugins',
+					label: 'Reload local appearance plugins',
+					run: actions.reloadAppearancePlugins,
+				},
+				...THEME_ENTRIES.map(([name]) => ({
+					id: `themes.${name}`,
+					label: `${check(ctx.activeTheme === name)}${themeLabels[name]}`,
+					preview: () => actions.previewTheme(name),
+					cancelPreview: actions.cancelThemePreview,
+					run: () => actions.setTheme(name),
+				})),
+			],
 		},
 		{
 			id: 'editor',

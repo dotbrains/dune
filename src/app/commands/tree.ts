@@ -71,6 +71,8 @@ export function createAppCommandTree(deps: {
 	quit: () => void;
 	openSettings: () => void;
 	openProjectSettings: () => void;
+	reloadAppearancePlugins: () => void;
+	appearanceVersion: () => unknown;
 }): Accessor<Command[]> {
 	return createAppCommands({
 		config: deps.config,
@@ -115,6 +117,8 @@ export function createAppCommandTree(deps: {
 		toggleTransparent: deps.controls.toggleTransparent,
 		openSettings: deps.openSettings,
 		openProjectSettings: deps.openProjectSettings,
+		reloadAppearancePlugins: deps.reloadAppearancePlugins,
+		appearanceVersion: deps.appearanceVersion,
 		problemsList: deps.problemUi.list,
 		problemsNext: () => deps.problemUi.next(1),
 		problemsPrev: () => deps.problemUi.next(-1),

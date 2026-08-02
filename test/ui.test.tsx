@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { BaseRenderable, TextareaRenderable } from '@opentui/core';
@@ -350,6 +350,22 @@ describe('command palette', () => {
 			}),
 			{ iconTheme: 'unicode' },
 		);
+		await runCommand(t, 'Settings');
+		await gotoSettingsRow(t, 'File icons');
+		await press(t, (input) => input.pressArrow('right'));
+
+		expect(t.captureCharFrame()).toContain('Project Icons');
+		expect(saved().iconTheme).toBe('project-icons');
+	});
+
+	test('reloading appearance plugins refreshes settings choices', async () => {
+		const dir = fixture({ 'a.ts': 'const a = 1\n' });
+		const pluginDir = join(dir, '.dune/plugins/project');
+		mkdirSync(pluginDir, { recursive: true });
+		const t = await launch(dir, { iconTheme: 'unicode' });
+
+		writeFileSync(join(pluginDir, 'plugin.json'), ICON_PLUGIN);
+		await runCommand(t, 'Reload local appearance plugins');
 		await runCommand(t, 'Settings');
 		await gotoSettingsRow(t, 'File icons');
 		await press(t, (input) => input.pressArrow('right'));

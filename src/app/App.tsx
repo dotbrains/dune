@@ -10,6 +10,7 @@ import { setTheme } from '../themes';
 import type { VimMode } from '../editor/vim';
 import { createAppControls } from './appControls';
 import { AppView } from './AppView';
+import { reloadAppearancePlugins } from './appearance/reload';
 import { prepareStartup } from './appearance/startup';
 import { createAppCommandTree } from './commands/tree';
 import { READY } from './constants';
@@ -35,8 +36,9 @@ import type * as AppTypes from './types';
 export function App(props: AppTypes.AppProps) {
 	const renderer = useRenderer();
 	const dimensions = useTerminalDimensions();
-	const { rootDir, restored, appearancePlugins, pluginStatus, initialConfig, initialAppearance } =
-		prepareStartup(props);
+	const startup = prepareStartup(props);
+	const { rootDir, restored, pluginStatus, initialConfig, initialAppearance } = startup;
+	const [appearancePlugins, setAppearancePlugins] = createSignal(startup.appearancePlugins);
 	const [userConfig, setUserConfig] = createStore<Config>({ ...props.initialConfig });
 	const [projectConfig, setProjectConfig] = createStore<Partial<Config>>(props.projectConfig ?? {});
 	const [config, setConfig] = createStore<Config>(initialConfig);
@@ -327,7 +329,7 @@ export function App(props: AppTypes.AppProps) {
 	});
 	const settingRows = createAppSettingRows({
 		config,
-		iconThemes: () => appearancePlugins.iconThemes,
+		iconThemes: () => appearancePlugins().iconThemes,
 		controls,
 		patchConfig,
 		configScope: () => settingsPage() ?? 'user',
@@ -362,6 +364,9 @@ export function App(props: AppTypes.AppProps) {
 		controls,
 		openSettings: () => setSettingsPage('user'),
 		openProjectSettings: () => setSettingsPage('project'),
+		reloadAppearancePlugins: () =>
+			reloadAppearancePlugins({ rootDir, config, setAppearancePlugins, say }),
+		appearanceVersion: () => appearancePlugins(),
 		problemUi,
 		lspRestart: lsp.restart,
 		openLspStatus: () => setLspStatusOpen(true),
@@ -480,7 +485,7 @@ export function App(props: AppTypes.AppProps) {
 		<AppView
 			rootDir={rootDir}
 			config={config}
-			iconThemes={appearancePlugins.iconThemes}
+			iconThemes={appearancePlugins().iconThemes}
 			tabs={tabs()}
 			activePath={activePath()}
 			renderedMarkdownPath={renderedMarkdownPath()}
