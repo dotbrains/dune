@@ -48,6 +48,8 @@ export function createAppCommandTree(deps: {
 		applyVim: (enabled: boolean) => void;
 		applyTabSize: (size: number) => void;
 		applyTheme: (name: ThemeName) => void;
+		previewTheme: (name: ThemeName) => void;
+		cancelThemePreview: () => void;
 		toggleDotfiles: () => void;
 		toggleGitignored: () => void;
 		toggleTrim: () => void;
@@ -103,6 +105,8 @@ export function createAppCommandTree(deps: {
 		applyVim: deps.controls.applyVim,
 		applyTabSize: deps.controls.applyTabSize,
 		applyTheme: deps.controls.applyTheme,
+		previewTheme: deps.controls.previewTheme,
+		cancelThemePreview: deps.controls.cancelThemePreview,
 		toggleDotfiles: deps.controls.toggleDotfiles,
 		toggleGitignored: deps.controls.toggleGitignored,
 		toggleTrim: deps.controls.toggleTrim,

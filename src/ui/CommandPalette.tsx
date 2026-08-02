@@ -1,6 +1,6 @@
 import type { KeyEvent } from '@opentui/core';
 import { useKeyboard, useTerminalDimensions } from '@opentui/solid';
-import { createMemo, createSignal, For, Show } from 'solid-js';
+import { createEffect, createMemo, createSignal, For, onCleanup, Show } from 'solid-js';
 
 import type { Command, FlatCommand } from '../app/commands';
 import { flattenCommands } from '../app/commands';
@@ -19,6 +19,9 @@ export function CommandPalette(props: CommandPaletteProps) {
 	const [query, setQuery] = createSignal('');
 	const [trail, setTrail] = createSignal<Command[]>([]);
 	const [index, setIndex] = createSignal(0);
+	let committed = false;
+	let previewing: Command | null = null;
+	let cancelPreview: (() => void) | null = null;
 
 	const width = () => modalWidth(dimensions().width, 0.55, 58, 92);
 	/** Border, input, blank line and footer. */
@@ -37,6 +40,11 @@ export function CommandPalette(props: CommandPaletteProps) {
 	});
 
 	const selected = () => Math.min(index(), Math.max(0, rows().length - 1));
+	const clearPreview = () => {
+		cancelPreview?.();
+		cancelPreview = null;
+		previewing = null;
+	};
 
 	// A filter can match every leaf in the tree; rendering them all pushes the
 	// input and the footer off an 80x24 screen, so only a window is drawn.
@@ -57,6 +65,7 @@ export function CommandPalette(props: CommandPaletteProps) {
 			setIndex(0);
 			return;
 		}
+		committed = true;
 		props.onClose();
 		row.command.run?.();
 	};
@@ -69,6 +78,20 @@ export function CommandPalette(props: CommandPaletteProps) {
 		setTrail((t) => t.slice(0, -1));
 		setIndex(0);
 	};
+
+	createEffect(() => {
+		const command = rows()[selected()]?.command;
+		if (command === previewing) return;
+		clearPreview();
+		if (!command?.preview) return;
+		command.preview();
+		previewing = command;
+		cancelPreview = command.cancelPreview ?? null;
+	});
+
+	onCleanup(() => {
+		if (!committed) clearPreview();
+	});
 
 	useKeyboard((key: KeyEvent) => {
 		const k = key.name;

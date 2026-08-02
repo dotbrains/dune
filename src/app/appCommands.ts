@@ -45,6 +45,8 @@ export function createAppCommands(deps: {
 	applyVim: (enabled: boolean) => void;
 	applyTabSize: (size: number) => void;
 	applyTheme: (name: ThemeName) => void;
+	previewTheme: (name: ThemeName) => void;
+	cancelThemePreview: () => void;
 	toggleMarkdown: () => void;
 	toggleDotfiles: () => void;
 	toggleGitignored: () => void;
@@ -152,6 +154,8 @@ export function createAppCommands(deps: {
 				setVim: deps.applyVim,
 				setTabSize: deps.applyTabSize,
 				setTheme: deps.applyTheme,
+				previewTheme: deps.previewTheme,
+				cancelThemePreview: deps.cancelThemePreview,
 				lineOp: (op) => deps.setLineOp((prev) => ({ op, key: (prev?.key ?? 0) + 1 })),
 				toggleTrim: deps.toggleTrim,
 				toggleFormat: deps.toggleFormat,

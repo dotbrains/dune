@@ -12,6 +12,11 @@ import { createAppCommands } from './appCommands';
 import { promptTitleFor } from './prompts';
 import type { Focus, Prompt } from './types';
 
+function previewTheme(name: ThemeName) {
+	setTheme(name);
+	invalidateSyntaxStyle();
+}
+
 export function createAppControls(deps: {
 	config: Config;
 	configScope: () => 'user' | 'project';
@@ -29,6 +34,10 @@ export function createAppControls(deps: {
 		invalidateSyntaxStyle();
 		patch({ theme: name, themeSync: false });
 		deps.say(`Theme: ${themeLabels[name]}`);
+	};
+	const cancelThemePreview = () => {
+		setTheme(deps.config.theme);
+		invalidateSyntaxStyle();
 	};
 	const applyThemeSlot = (slot: 'themeLight' | 'themeDark', name: ThemeName) => {
 		const appearance = deps.currentAppearance();
@@ -109,6 +118,8 @@ export function createAppControls(deps: {
 	return {
 		applyTheme,
 		applyThemeSlot,
+		previewTheme,
+		cancelThemePreview,
 		applyTabSize,
 		applyVim,
 		confirmation,

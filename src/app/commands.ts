@@ -18,6 +18,8 @@ export interface Command {
 	label: string;
 	/** Keybinding shown right-aligned, e.g. "Ctrl+S". Leaves only. */
 	hint?: string;
+	preview?: () => void;
+	cancelPreview?: () => void;
 	run?: () => void;
 	children?: Command[];
 }
@@ -85,6 +87,8 @@ export interface CommandActions {
 	setVim: (enabled: boolean) => void;
 	setTabSize: (size: number) => void;
 	setTheme: (name: ThemeName) => void;
+	previewTheme: (name: ThemeName) => void;
+	cancelThemePreview: () => void;
 	lineOp: (op: 'comment' | 'up' | 'down' | 'duplicate') => void;
 	toggleTrim: () => void;
 	toggleFormat: () => void;
@@ -254,6 +258,8 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 			children: THEME_ENTRIES.map(([name]) => ({
 				id: `themes.${name}`,
 				label: `${check(ctx.activeTheme === name)}${themeLabels[name]}`,
+				preview: () => actions.previewTheme(name),
+				cancelPreview: actions.cancelThemePreview,
 				run: () => actions.setTheme(name),
 			})),
 		},
