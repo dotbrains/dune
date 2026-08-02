@@ -216,6 +216,7 @@ export function AppView(props: AppViewProps) {
 								expanded={props.expanded}
 								focused={props.focus === 'tree'}
 								width={props.treeWidth}
+								iconTheme={props.config.iconTheme}
 								gitStatus={props.gitStatus}
 								gitIgnored={props.gitIgnored}
 								cutPaths={props.cutPaths}

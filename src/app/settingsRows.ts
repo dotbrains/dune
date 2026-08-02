@@ -1,5 +1,5 @@
 import { createMemo } from 'solid-js';
-import { CURSOR_STYLES } from '../core/config';
+import { CURSOR_STYLES, ICON_THEMES } from '../core/config';
 import type { Config } from '../core/config';
 import type { ThemeName } from '../themes';
 import { themeLabels } from '../themes';
@@ -72,6 +72,16 @@ export function settingsRows(
 			label: 'Transparent background',
 			value: onOff(config.transparent),
 			change: actions.toggleTransparent,
+		},
+		{
+			section: 'Appearance',
+			label: 'File icons',
+			value: config.iconTheme === 'none' ? 'none' : 'Unicode shapes',
+			change: (dir) =>
+				actions.patchConfig(
+					{ iconTheme: cycle(ICON_THEMES, config.iconTheme, dir) },
+					actions.configScope(),
+				),
 		},
 		{
 			section: 'Editor',

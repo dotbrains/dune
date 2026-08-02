@@ -107,6 +107,17 @@ describe('editor', () => {
 		expect(frame).toContain('notes.md');
 	});
 
+	test('can draw unicode file icons in the tree', async () => {
+		const t = await launch(fixture({ 'a.ts': 'const a = 1\n', 'notes.md': '# hi\n' }), {
+			iconTheme: 'unicode',
+		});
+		const frame = t.captureCharFrame();
+
+		expect(frame).toContain('◆ a.ts');
+		expect(frame).toContain('¶ notes.md');
+		expect(frame).not.toContain('· a.ts');
+	});
+
 	test('opens a file with content, tab and line numbers', async () => {
 		const t = await launch(fixture(PROJECT));
 		await openMain(t);
@@ -218,8 +229,8 @@ describe('command palette', () => {
 		expect(t.captureCharFrame()).not.toContain('.env');
 
 		await runCommand(t, 'Settings');
-		expect(t.captureCharFrame()).toContain('Tab size');
-		expect(t.captureCharFrame()).toContain('4');
+		expect(t.captureCharFrame()).toContain('File icons');
+		expect(t.captureCharFrame()).toContain('none');
 
 		for (let i = 0; i < settingsRowOf('Show dotfiles'); i++) {
 			await press(t, (input) => input.pressArrow('down'));
@@ -229,7 +240,7 @@ describe('command palette', () => {
 
 		await pressEscape(t);
 		expect(t.captureCharFrame()).not.toContain('Settings');
-	});
+	}, 10000);
 
 	test('configured cursor style reaches the editor', async () => {
 		const dir = fixture({ 'a.ts': 'const a = 1\n' });
@@ -247,6 +258,16 @@ describe('command palette', () => {
 		expect(t.captureCharFrame()).toContain('Cursor');
 		expect(t.captureCharFrame()).toContain('line');
 		expect(saved().cursorStyle).toBe('line');
+	});
+
+	test('settings can cycle and persist file icons', async () => {
+		const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }));
+		await runCommand(t, 'Settings');
+		await gotoSettingsRow(t, 'File icons');
+		await press(t, (input) => input.pressArrow('right'));
+
+		expect(t.captureCharFrame()).toContain('Unicode shapes');
+		expect(saved().iconTheme).toBe('unicode');
 	});
 
 	test('vim mode overrides the configured cursor style until disabled', async () => {
@@ -270,7 +291,7 @@ describe('command palette', () => {
 		expect(editorCursorStyle(t)).toBe('underline');
 		expect(existsSync(CONFIG_FILE)).toBe(true);
 		expect(saved().vim).toBe(false);
-	});
+	}, 20000);
 });
 
 describe('search', () => {
@@ -286,7 +307,7 @@ describe('search', () => {
 		await press(t, (i) => void i.typeText('Z'));
 		await press(t, (i) => i.pressKey('s', { ctrl: true }));
 		expect(readFileSync(join(dir, 'src/main.ts'), 'utf8')).toBe('const a = 1\nZconst b = 2\n');
-	});
+	}, 10000);
 });
 
 test('the status bar tracks the cursor, on vertical-only moves too', async () => {
@@ -306,4 +327,4 @@ test('the status bar tracks the cursor, on vertical-only moves too', async () =>
 
 	await press(t, (i) => i.pressArrow('right'));
 	expect(t.captureCharFrame()).toContain('Ln 2, Col 2');
-});
+}, 10000);

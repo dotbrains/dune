@@ -25,6 +25,8 @@ export const projectConfigFile = (rootDir: string): string =>
 	join(rootDir, PROJECT_CONFIG_DIR, 'settings.json');
 export const CURSOR_STYLES = ['block', 'line', 'underline'] as const;
 export type CursorStyle = (typeof CURSOR_STYLES)[number];
+export const ICON_THEMES = ['none', 'unicode'] as const;
+export type IconThemeName = (typeof ICON_THEMES)[number];
 
 /** Narrow enough to still show a name, wide enough to leave the editor usable. */
 export const SIDEBAR_MIN = 15;
@@ -56,6 +58,8 @@ export interface Config {
 	themeDark: ThemeName;
 	/** Leave the editor and tab strip unpainted for translucent terminals. */
 	transparent: boolean;
+	/** File-tree glyph set; `none` keeps the plain expansion arrows. */
+	iconTheme: IconThemeName;
 	/** Modal editing (normal / insert / visual). */
 	vim: boolean;
 	/** Editor caret shape when vim mode is not overriding it. */
@@ -108,6 +112,7 @@ export const DEFAULTS: Config = {
 	themeLight: 'light',
 	themeDark: 'dark',
 	transparent: false,
+	iconTheme: 'none',
 	vim: false,
 	cursorStyle: 'block',
 	tabSize: 2,
@@ -138,6 +143,9 @@ function parsePartial(raw: unknown): Partial<Config> {
 	if (isThemeName(obj.themeLight)) config.themeLight = obj.themeLight;
 	if (isThemeName(obj.themeDark)) config.themeDark = obj.themeDark;
 	if (typeof obj.transparent === 'boolean') config.transparent = obj.transparent;
+	if (ICON_THEMES.includes(obj.iconTheme as IconThemeName)) {
+		config.iconTheme = obj.iconTheme as IconThemeName;
+	}
 	if (typeof obj.vim === 'boolean') config.vim = obj.vim;
 	if (CURSOR_STYLES.includes(obj.cursorStyle as CursorStyle)) {
 		config.cursorStyle = obj.cursorStyle as CursorStyle;

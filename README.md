@@ -100,7 +100,9 @@ The file tree supports keyboard and mouse navigation, preview tabs, bulk moves a
 copies, guarded deletes, git status marks, and dimming for gitignored paths. `Ctrl+C`
 copies when text is selected and quits when it is not, so unsaved work is not thrown
 away. By default the tree lists dotfiles and gitignored files; use the View commands
-`Show dotfiles` and `Hide gitignored files` to change that per user config.
+`Show dotfiles` and `Hide gitignored files` to change that per user config. Set
+`iconTheme` to `unicode` for one-cell file-type glyphs, or leave it at `none` for the
+plain tree arrows.
 Use `Settings: this project` to save overrides in `.dune/settings.json`; project values
 take precedence over `~/.config/dune/config.json` when that workspace opens.
 Auto-save on blur and tab switch is on by default and can be disabled from Settings.

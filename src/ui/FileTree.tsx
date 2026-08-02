@@ -3,6 +3,7 @@ import type { MouseEvent, ScrollBoxRenderable } from '@opentui/core';
 import { useTerminalDimensions } from '@opentui/solid';
 import { createEffect, createMemo, createSignal, For, on, onCleanup, Show } from 'solid-js';
 
+import type { IconThemeName } from '../core/config';
 import type { TreeNode } from '../core/fs';
 import type { FileStatus } from '../core/git';
 import { ui } from '../themes';
@@ -18,6 +19,8 @@ export interface FileTreeProps {
 	gitStatus: Map<string, FileStatus>;
 	/** Visible paths matched by gitignore, drawn dim when otherwise clean. */
 	gitIgnored: Set<string>;
+	/** File-tree glyph theme. */
+	iconTheme: IconThemeName;
 	/** Taken with `x` and waiting for a destination; drawn as in flight. */
 	cutPaths: string[];
 	/** Picked out with Shift+↑/↓, and what delete and move act on. */
@@ -64,6 +67,72 @@ export const statusColor = (status: FileStatus) =>
 		: status === 'deleted'
 			? ui.gitDeleted
 			: ui.gitModified;
+
+const FILE_ICONS: Record<string, string> = {
+	'package.json': '▤',
+	'bun.lock': '▤',
+	dockerfile: '▦',
+	makefile: '▦',
+	license: '¶',
+	'readme.md': '¶',
+};
+
+const EXTENSION_ICONS: Record<string, string> = {
+	ts: '◆',
+	tsx: '◆',
+	js: '◇',
+	jsx: '◇',
+	mjs: '◇',
+	cjs: '◇',
+	py: '◆',
+	rs: '◆',
+	go: '◆',
+	rb: '◆',
+	php: '◆',
+	java: '◆',
+	c: '◇',
+	h: '◇',
+	cpp: '◇',
+	zig: '◆',
+	lua: '◆',
+	swift: '◆',
+	sh: '▷',
+	bash: '▷',
+	zsh: '▷',
+	md: '¶',
+	txt: '¶',
+	json: '▤',
+	jsonc: '▤',
+	yaml: '▤',
+	yml: '▤',
+	toml: '▤',
+	html: '◈',
+	css: '◈',
+	scss: '◈',
+	png: '▣',
+	jpg: '▣',
+	jpeg: '▣',
+	gif: '▣',
+	svg: '▣',
+	pdf: '▣',
+	zip: '▦',
+	tar: '▦',
+	gz: '▦',
+	lock: '▪',
+};
+
+function treeGlyph(node: TreeNode, expanded: boolean, iconTheme: IconThemeName): string {
+	if (iconTheme === 'none') return node.isDir ? (expanded ? '▾' : '▸') : '·';
+	if (node.isDir) return expanded ? '▾' : '▸';
+	const name = node.name.toLowerCase();
+	const byName = FILE_ICONS[name];
+	if (byName) return byName;
+	for (let at = name.indexOf('.'); at !== -1; at = name.indexOf('.', at + 1)) {
+		const byExtension = EXTENSION_ICONS[name.slice(at + 1)];
+		if (byExtension) return byExtension;
+	}
+	return '·';
+}
 
 export function FileTree(props: FileTreeProps) {
 	/** A folder inherits the status of whatever changed inside it. */
@@ -222,7 +291,7 @@ export function FileTree(props: FileTreeProps) {
 							selected() ? (props.focused ? ui.treeSelectedBg : ui.treeFocusBg) : ui.panelBg;
 						/** Taken with `x` and waiting for a destination: drawn as already gone. */
 						const leaving = () => props.cutPaths.includes(node.path);
-						const arrow = () => (node.isDir ? (props.expanded.has(node.path) ? '▾' : '▸') : '·');
+						const glyph = () => treeGlyph(node, props.expanded.has(node.path), props.iconTheme);
 						const status = () => statusOf(node);
 						const ignored = () => props.gitIgnored.has(node.path);
 						const nameColor = () =>
@@ -254,10 +323,10 @@ export function FileTree(props: FileTreeProps) {
 									content={` ${'│ '.repeat(node.depth)}`}
 								/>
 								<text
-									fg={node.isDir ? ui.dim : ui.faint}
+									fg={props.iconTheme === 'none' || node.isDir ? ui.dim : nameColor()}
 									bg={bg()}
 									flexShrink={0}
-									content={`${arrow()} `}
+									content={`${glyph()} `}
 								/>
 								{/* The name takes the slack, so the mark is pushed to the panel's
                     right edge and every mark lines up in one column. */}
