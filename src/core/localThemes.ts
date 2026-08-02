@@ -16,6 +16,18 @@ export interface LocalThemeLoad {
 	problems: LocalThemeProblem[];
 }
 
+export interface AppearancePluginLoad {
+	iconThemes: readonly IconTheme[];
+	problems: LocalThemeProblem[];
+}
+
+export function appearancePluginStatus(
+	problems: readonly LocalThemeProblem[],
+): { msg: string; tone: 'warn' } | null {
+	const problem = problems[0];
+	return problem ? { msg: `Appearance plugin skipped: ${problem.reason}`, tone: 'warn' } : null;
+}
+
 export const USER_THEME_PLUGIN_DIR = join(dirname(CONFIG_FILE), 'plugins');
 
 const MANIFEST = 'plugin.json';
@@ -102,7 +114,12 @@ export function loadLocalThemes(rootDir: string, userDir = USER_THEME_PLUGIN_DIR
 	return { themes: [...themes].map(([id, theme]) => ({ id, theme })), problems };
 }
 
-export function loadAppearancePlugins(rootDir: string): readonly IconTheme[] {
-	registerLocalThemes(loadLocalThemes(rootDir).themes);
-	return loadIconThemes(rootDir).themes;
+export function loadAppearancePlugins(rootDir: string): AppearancePluginLoad {
+	const colorThemes = loadLocalThemes(rootDir);
+	const iconThemes = loadIconThemes(rootDir);
+	registerLocalThemes(colorThemes.themes);
+	return {
+		iconThemes: iconThemes.themes,
+		problems: [...colorThemes.problems, ...iconThemes.problems],
+	};
 }

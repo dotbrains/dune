@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -85,6 +85,18 @@ describe('the status bar', () => {
 		expect(row).not.toContain('⎇');
 		expect(row).toContain('ts');
 		expect(row.trimStart().startsWith('F1')).toBe(true);
+	});
+
+	test('local appearance plugin problems reach the status bar', async () => {
+		const dir = fixture({ 'a.ts': 'const a = 1\n' });
+		mkdirSync(join(dir, '.dune/plugins'), { recursive: true });
+		writeFileSync(
+			join(dir, '.dune/plugins/bad.json'),
+			JSON.stringify({ icons: [{ id: 'bad', name: 'Bad', file: '🚀' }] }),
+		);
+
+		const t = await launch(dir);
+		expect(bar(t)).toContain('Appearance plugin skipped: invalid icon theme');
 	});
 });
 

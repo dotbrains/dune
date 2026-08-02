@@ -1,17 +1,16 @@
 import { useRenderer, useTerminalDimensions } from '@opentui/solid';
 import { createMemo, createSignal } from 'solid-js';
 import { createStore, produce } from 'solid-js/store';
-import { detectAppearance } from '../core/appearance';
-import { resolveConfig, resolvedTheme, type Config } from '../core/config';
+import { resolvedTheme, type Config } from '../core/config';
 import { flattenVisible } from '../core/fs';
 import { currentBranch, type FileStatus, type LineChange, type Upstream } from '../core/git';
-import { loadAppearancePlugins } from '../core/localThemes';
 import { invalidateSyntaxStyle } from '../languages/highlight';
 import { checkForUpdate } from '../core/update';
-import { setTheme, setTransparency } from '../themes';
+import { setTheme } from '../themes';
 import type { VimMode } from '../editor/vim';
 import { createAppControls } from './appControls';
 import { AppView } from './AppView';
+import { prepareStartup } from './appearance/startup';
 import { createAppCommandTree } from './commands/tree';
 import { READY } from './constants';
 import { createDocumentActions } from './documentActions';
@@ -26,7 +25,6 @@ import { createMarkdownView } from './markdown/view';
 import { createNavigation } from './navigation';
 import { createFileOpener } from './openFile';
 import { createOverlayOpen } from './overlayState';
-import { restoreAppState } from './restore';
 import { createAppRuntime, selectedSingleLineText } from './runtime';
 import { createReplacementHandlers } from './searchReplace';
 import { createAppSettingRows } from './settings/view';
@@ -37,16 +35,11 @@ import type * as AppTypes from './types';
 export function App(props: AppTypes.AppProps) {
 	const renderer = useRenderer();
 	const dimensions = useTerminalDimensions();
-	const rootDir = props.rootDir;
-	const restored = restoreAppState(rootDir, props.openFile ?? null);
-	const iconThemes = loadAppearancePlugins(rootDir);
-	const initialConfig = resolveConfig(props.initialConfig, props.projectConfig ?? {});
-	const initialAppearance = detectAppearance();
-	initialConfig.theme = resolvedTheme(initialConfig, initialAppearance);
+	const { rootDir, restored, appearancePlugins, pluginStatus, initialConfig, initialAppearance } =
+		prepareStartup(props);
 	const [userConfig, setUserConfig] = createStore<Config>({ ...props.initialConfig });
 	const [projectConfig, setProjectConfig] = createStore<Partial<Config>>(props.projectConfig ?? {});
 	const [config, setConfig] = createStore<Config>(initialConfig);
-	void (setTheme(initialConfig.theme), setTransparency(initialConfig.transparent));
 	const [buffers, setBuffers] = createStore<Record<string, AppTypes.BufferState>>(restored.buffers);
 	const [expanded, setExpanded] = createSignal<Set<string>>(new Set(restored.expanded));
 	const [selectedPath, setSelectedPath] = createSignal<string | null>(restored.activePath);
@@ -90,7 +83,9 @@ export function App(props: AppTypes.AppProps) {
 	const [recentlyClosed, setRecentlyClosed] = createSignal<string[]>([]);
 	const [cursor, setCursor] = createSignal({ line: 0, col: 0 });
 	const [busy, setBusy] = createSignal<AppTypes.BusyState>(null);
-	const [status, setStatus] = createSignal<AppTypes.StatusMessage>({ msg: READY, tone: 'info' });
+	const [status, setStatus] = createSignal<AppTypes.StatusMessage>(
+		pluginStatus ?? { msg: READY, tone: 'info' },
+	);
 	const nodes = createMemo(() =>
 		flattenVisible(rootDir, expanded(), hiddenTreeNodes(rootDir, config)),
 	);
@@ -332,7 +327,7 @@ export function App(props: AppTypes.AppProps) {
 	});
 	const settingRows = createAppSettingRows({
 		config,
-		iconThemes: () => iconThemes,
+		iconThemes: () => appearancePlugins.iconThemes,
 		controls,
 		patchConfig,
 		configScope: () => settingsPage() ?? 'user',
@@ -485,7 +480,7 @@ export function App(props: AppTypes.AppProps) {
 		<AppView
 			rootDir={rootDir}
 			config={config}
-			iconThemes={iconThemes}
+			iconThemes={appearancePlugins.iconThemes}
 			tabs={tabs()}
 			activePath={activePath()}
 			renderedMarkdownPath={renderedMarkdownPath()}
