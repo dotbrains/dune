@@ -23,6 +23,7 @@ export function appearancePluginChoices(
 	const installed = appearance.plugins;
 	const installedById = new Map(installed.map((plugin) => [plugin.id, plugin]));
 	const cached = readCachedCatalog()?.plugins ?? [];
+	const updates = updatesFor(installed, cached);
 	const installedChoices = installed.map((plugin) => ({
 		id: `installed:${plugin.id}`,
 		label: [
@@ -51,8 +52,25 @@ export function appearancePluginChoices(
 		...(installedChoices.length === 0 && marketChoices.length === 0
 			? [{ id: 'noop:empty', label: 'No plugins listed; run Check appearance plugin market' }]
 			: []),
-		{ id: 'market:check', label: 'Check appearance plugin market' },
-		{ id: 'market:update', label: 'Update all appearance plugins' },
+		{
+			id: 'market:check',
+			label: [
+				'Check appearance plugin market',
+				cached.length > 0
+					? updates.length === 0
+						? 'up to date'
+						: `${updates.length} waiting`
+					: '',
+			]
+				.filter(Boolean)
+				.join(' - '),
+		},
+		{
+			id: 'market:update',
+			label: ['Update all appearance plugins', updates.map((plugin) => plugin.name).join(', ')]
+				.filter(Boolean)
+				.join(' - '),
+		},
 		{ id: 'market:registry', label: `Edit market registry: ${config?.pluginRegistry ?? ''}` },
 		...(config
 			? [

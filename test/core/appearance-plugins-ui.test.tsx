@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { USER_THEME_PLUGIN_DIR } from '../../src/core/localThemes';
 import { writePlugin } from '../../src/core/market';
 import { MARKET_URL } from '../../src/core/market';
-import { fixture, launch, press, runCommand, until } from '../helpers';
+import { fixture, launch, press, pressEscape, runCommand, until } from '../helpers';
 
 const testConfigFile = () => join(process.env.XDG_CONFIG_HOME!, 'dune', 'config.json');
 const OLD_REGISTRY = 'https://old.example.test/market';
@@ -207,12 +207,19 @@ test('the appearance plugins page can update every installed plugin', async () =
 		Promise.resolve(
 			String(url).endsWith('/mono/plugin.json')
 				? new Response(JSON.stringify(newManifest))
-				: new Response(JSON.stringify({ plugins: [{ id: 'mono', version: '1.1.0' }] })),
+				: new Response(
+						JSON.stringify({ plugins: [{ id: 'mono', name: 'Mono', version: '1.1.0' }] }),
+					),
 		)) as typeof fetch;
 	try {
 		const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }), {
 			pluginRegistry: 'https://example.test/market',
 		});
+		await runCommand(t, 'Check appearance plugin market');
+		await until(t, () => t.captureCharFrame().includes('Appearance plugin market: 1 plugin'));
+		await runCommand(t, 'Plugin manager');
+		await until(t, () => t.captureCharFrame().includes('Update all appearance plugins - Mono'));
+		await pressEscape(t);
 		await runCommand(t, 'Plugin manager');
 		await press(t, (input) => void input.typeText('Update all'));
 		await press(t, (input) => input.pressEnter());
