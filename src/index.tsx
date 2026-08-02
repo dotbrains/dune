@@ -6,8 +6,9 @@ import { App } from './app/App';
 import { flagOutput, resolveTarget } from './core/cli';
 import { detectAppearance } from './core/appearance';
 import { loadConfig, loadProjectConfig, resolveConfig, resolvedTheme } from './core/config';
+import { loadLocalThemes } from './core/localThemes';
 import { runUpgrade } from './core/upgrade';
-import { setTheme, setTransparency } from './themes';
+import { registerLocalThemes, setTheme, setTransparency } from './themes';
 
 const flag = flagOutput(process.argv[2]);
 if (flag !== null) {
@@ -27,6 +28,7 @@ if (!target) {
 }
 const { rootDir, openFile } = target;
 
+registerLocalThemes(loadLocalThemes(rootDir).themes);
 const config = loadConfig();
 const projectConfig = loadProjectConfig(rootDir);
 // Apply the resolved theme before the first render.

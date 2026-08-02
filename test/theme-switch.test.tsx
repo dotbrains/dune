@@ -86,9 +86,8 @@ test("switching themes never leaves a previous theme's colors behind", async () 
 	for (const name of themeIds()) {
 		setTheme(name);
 		invalidateSyntaxStyle();
-		expect(Object.keys(syntaxTheme).toSorted()).toEqual(
-			Object.keys(THEMES[name].syntax).toSorted(),
-		);
+		const theme = THEMES[name]!;
+		expect(Object.keys(syntaxTheme).toSorted()).toEqual(Object.keys(theme.syntax).toSorted());
 	}
 });
 
@@ -103,11 +102,12 @@ test('plain identifiers stay readable against the background in every theme', as
 		const groups = [
 			...(style as unknown as { getAllStyles: () => Map<string, unknown> }).getAllStyles().keys(),
 		];
+		const theme = THEMES[name]!;
 
-		const bg = luminance(THEMES[name].ui.bg);
+		const bg = luminance(theme.ui.bg);
 		for (const segment of segments) {
 			const group = groups.find((g) => style.getStyleId(g) === segment.styleId);
-			const fg = group ? (THEMES[name].syntax[group] as { fg?: string })?.fg : undefined;
+			const fg = group ? (theme.syntax[group] as { fg?: string })?.fg : undefined;
 			if (!fg) continue;
 			expect(`${name}/${group}:${Math.abs(luminance(fg) - bg) > 0.08}`).toBe(
 				`${name}/${group}:true`,
@@ -124,10 +124,11 @@ test('theme registry exposes every palette with stable chrome keys', () => {
 	expect(themeIds()).toContain('night-owl');
 
 	for (const name of themeIds()) {
-		expect(`${name}:${Object.keys(THEMES[name].ui).toSorted().join(',')}`).toBe(
+		const theme = THEMES[name]!;
+		expect(`${name}:${Object.keys(theme.ui).toSorted().join(',')}`).toBe(
 			`${name}:${uiKeys.join(',')}`,
 		);
-		expect(THEMES[name].name.length).toBeGreaterThan(0);
+		expect(theme.name.length).toBeGreaterThan(0);
 	}
 });
 

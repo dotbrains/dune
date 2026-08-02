@@ -103,7 +103,8 @@ away. By default the tree lists dotfiles and gitignored files; use the View comm
 `Show dotfiles` and `Hide gitignored files` to change that per user config. Set
 `iconTheme` to `unicode` for one-cell file-type glyphs, leave it at `none` for the
 plain tree arrows, or point it at an icon theme from a local JSON plugin in
-`~/.config/dune/plugins/` or `<project>/.dune/plugins/`.
+`~/.config/dune/plugins/` or `<project>/.dune/plugins/`. The same plugin folders
+can also contribute local color themes with a `themes` array.
 Use `Settings: this project` to save overrides in `.dune/settings.json`; project values
 take precedence over `~/.config/dune/config.json` when that workspace opens.
 Auto-save on blur and tab switch is on by default and can be disabled from Settings.

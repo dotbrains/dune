@@ -54,7 +54,7 @@ export function settingsRows(
 		{
 			section: 'Appearance',
 			label: 'Theme',
-			value: themeLabels[config.theme],
+			value: themeLabels[config.theme] ?? config.theme,
 			change: (dir) => actions.applyTheme(cycle(themes, config.theme, dir)),
 		},
 		{
@@ -66,13 +66,13 @@ export function settingsRows(
 		{
 			section: 'Appearance',
 			label: 'Light theme',
-			value: themeLabels[config.themeLight],
+			value: themeLabels[config.themeLight] ?? config.themeLight,
 			change: (dir) => actions.applyThemeSlot('themeLight', cycle(themes, config.themeLight, dir)),
 		},
 		{
 			section: 'Appearance',
 			label: 'Dark theme',
-			value: themeLabels[config.themeDark],
+			value: themeLabels[config.themeDark] ?? config.themeDark,
 			change: (dir) => actions.applyThemeSlot('themeDark', cycle(themes, config.themeDark, dir)),
 		},
 		{

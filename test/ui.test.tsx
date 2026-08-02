@@ -106,6 +106,44 @@ const ICON_PLUGIN = JSON.stringify({
 		},
 	],
 });
+const THEME_PLUGIN = JSON.stringify({
+	id: 'project-theme-pack',
+	name: 'Project Theme Pack',
+	version: '1.0.0',
+	themes: [
+		{
+			id: 'project-theme',
+			name: 'Project Theme',
+			ui: {
+				bg: '#101418',
+				panelBg: '#151b22',
+				barBg: '#0d1117',
+				statusBg: '#2f81f7',
+				statusFg: '#ffffff',
+				text: '#e6edf3',
+				dim: '#8b949e',
+				faint: '#6e7681',
+				accent: '#2f81f7',
+				activeTabFg: '#e6edf3',
+				inactiveTabFg: '#8b949e',
+				treeSelectedBg: '#1f6feb',
+				treeFocusBg: '#1b2633',
+				dirty: '#d29922',
+				error: '#f85149',
+				folder: '#79c0ff',
+				cursor: '#ffffff',
+				scrollbar: '#30363d',
+				gutter: '#6e7681',
+				currentLine: '#161b22',
+				indentGuide: '#21262d',
+				gitAdded: '#3fb950',
+				gitModified: '#d29922',
+				gitDeleted: '#f85149',
+			},
+			syntax: { keyword: { fg: '#ff7b72' }, comment: { fg: '#8b949e', italic: true } },
+		},
+	],
+});
 
 /** Expand src/ and open src/main.ts from the tree. */
 async function openMain(t: Harness) {
@@ -319,6 +357,22 @@ describe('command palette', () => {
 		expect(t.captureCharFrame()).toContain('Project Icons');
 		expect(saved().iconTheme).toBe('project-icons');
 	});
+
+	test('settings can cycle to a project theme plugin theme', async () => {
+		const t = await launch(
+			fixture({
+				'a.ts': 'const a = 1\n',
+				'.dune/plugins/project-theme/plugin.json': THEME_PLUGIN,
+			}),
+			{ theme: 'vesper', themeSync: false },
+		);
+		await runCommand(t, 'Settings');
+		await gotoSettingsRow(t, 'Theme');
+		await press(t, (input) => input.pressArrow('right'));
+
+		expect(t.captureCharFrame()).toContain('Project Theme');
+		expect(saved().theme).toBe('project-theme');
+	}, 10000);
 
 	test('vim mode overrides the configured cursor style until disabled', async () => {
 		const dir = fixture({ 'a.ts': 'const a = 1\n' });
