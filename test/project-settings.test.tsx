@@ -66,3 +66,28 @@ test('the project settings command writes only project overrides', async () => {
 	expect(localSettings(dir)).toEqual({ vim: true });
 	expect(existsSync(CONFIG_FILE)).toBe(false);
 });
+
+test('settings rows can be filtered before changing one', async () => {
+	const dir = project({});
+	const t = await launch(dir);
+	await runCommand(t, 'Settings: this project');
+
+	await press(t, (input) => void input.typeText('/'));
+	await press(t, (input) => void input.typeText('vim'));
+	let frame = t.captureCharFrame();
+	expect(frame).toContain('vim');
+	expect(frame).toContain('Type to filter');
+	expect(frame).toContain('Vim mode');
+	expect(frame).not.toContain('Tab size');
+
+	await press(t, (input) => input.pressEnter());
+	expect(localSettings(dir)).toEqual({ vim: true });
+
+	await press(t, (input) => void input.typeText('/zzzz'));
+	frame = t.captureCharFrame();
+	expect(frame).toContain('No matching settings');
+	await press(t, (input) => input.pressEscape());
+	expect(t.captureCharFrame()).toContain('Vim mode');
+	await press(t, (input) => input.pressEscape());
+	expect(t.captureCharFrame()).not.toContain('Filter settings');
+});
