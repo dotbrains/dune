@@ -36,6 +36,7 @@ export function appearancePluginChoices(appearance: AppearancePluginLoad): Choic
 		...(installedChoices.length === 0 && marketChoices.length === 0
 			? [{ id: 'noop:empty', label: 'No plugins listed; run Check appearance plugin market' }]
 			: []),
+		{ id: 'reload:disk', label: 'Reload from disk' },
 	];
 }
 
@@ -50,6 +51,10 @@ export function pickAppearancePlugin(
 	},
 ): void {
 	const [kind, id] = choice.split(':', 2);
+	if (kind === 'reload') {
+		deps.reload();
+		return;
+	}
 	if (!id || kind === 'noop') {
 		deps.say('Run Check appearance plugin market to refresh available plugins');
 		return;

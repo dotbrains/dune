@@ -162,6 +162,32 @@ test('the appearance plugins page removes installed plugins with Backspace', asy
 	expect(existsSync(join(USER_THEME_PLUGIN_DIR, 'mono'))).toBe(false);
 });
 
+test('the appearance plugins page reloads plugins from disk', async () => {
+	const manifest = {
+		id: 'mono',
+		name: 'Mono',
+		version: '1.0.0',
+		icons: [{ id: 'mono-icons', name: 'Mono Icons', file: 'f', folder: 'd', folderOpen: 'o' }],
+	};
+
+	const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }));
+	await runCommand(t, 'Plugin manager');
+	await until(t, () => t.captureCharFrame().includes('Reload from disk'));
+
+	expect(
+		writePlugin('mono', {
+			ok: true,
+			id: 'mono',
+			version: '1.0.0',
+			body: JSON.stringify(manifest),
+		}),
+	).toBeNull();
+
+	await press(t, (input) => void input.typeText('Reload'));
+	await press(t, (input) => input.pressEnter());
+	await until(t, () => t.captureCharFrame().includes('Disable mono 1.0.0'));
+});
+
 test('the appearance plugins page installs cached market plugins', async () => {
 	const realFetch = globalThis.fetch;
 	const manifest = {
