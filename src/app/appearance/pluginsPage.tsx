@@ -3,7 +3,7 @@ import type { Accessor } from 'solid-js';
 
 import type { Config } from '../../core/config';
 import type { AppearancePluginLoad } from '../../core/localThemes';
-import { fetchPlugin, readCachedCatalog, writePlugin } from '../../core/market';
+import { fetchPlugin, readCachedCatalog, removeFromDisk, writePlugin } from '../../core/market';
 import { isNewer } from '../../core/update';
 import type { Choice } from '../../ui/ChoiceModal';
 import { AppearancePluginsView } from '../../ui/overlays/AppearancePluginsView';
@@ -77,6 +77,30 @@ export function pickAppearancePlugin(
 	})();
 }
 
+export function deleteAppearancePlugin(
+	choice: string,
+	deps: {
+		config: Config;
+		patchConfig: (patch: Partial<Config>) => void;
+		reload: () => void;
+		close: () => void;
+		say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
+	},
+): void {
+	const [kind, id] = choice.split(':', 2);
+	if (kind !== 'installed' || !id) return;
+	const error = removeFromDisk(id);
+	if (error) return deps.say(`Could not remove ${id}: ${error}`, 'error');
+	deps.patchConfig({
+		disabledAppearancePlugins: deps.config.disabledAppearancePlugins.filter(
+			(entry) => entry !== id,
+		),
+	});
+	deps.reload();
+	deps.close();
+	deps.say(`Removed appearance plugin ${id}`);
+}
+
 export function createAppearancePluginUi(deps: {
 	config: Config;
 	appearance: Accessor<AppearancePluginLoad>;
@@ -98,12 +122,29 @@ export function createAppearancePluginUi(deps: {
 				close: () => setOpen(false),
 				say: deps.say,
 			}),
+		delete: (choice: string) =>
+			deleteAppearancePlugin(choice, {
+				config: deps.config,
+				patchConfig: deps.patchConfig,
+				reload: deps.reload,
+				close: () => setOpen(false),
+				say: deps.say,
+			}),
 		view: () => (
 			<AppearancePluginOverlay
 				open={open}
 				choices={() => appearancePluginChoices(deps.appearance())}
 				onPick={(choice) =>
 					pickAppearancePlugin(choice, {
+						config: deps.config,
+						patchConfig: deps.patchConfig,
+						reload: deps.reload,
+						close: () => setOpen(false),
+						say: deps.say,
+					})
+				}
+				onDelete={(choice) =>
+					deleteAppearancePlugin(choice, {
 						config: deps.config,
 						patchConfig: deps.patchConfig,
 						reload: deps.reload,
@@ -121,6 +162,7 @@ function AppearancePluginOverlay(props: {
 	open: Accessor<boolean>;
 	choices: Accessor<Choice[]>;
 	onPick: (choice: string) => void;
+	onDelete: (choice: string) => void;
 	onClose: () => void;
 }) {
 	return (
@@ -128,6 +170,7 @@ function AppearancePluginOverlay(props: {
 			<AppearancePluginsView
 				choices={props.choices()}
 				onPick={props.onPick}
+				onDelete={props.onDelete}
 				onClose={props.onClose}
 			/>
 		</Show>

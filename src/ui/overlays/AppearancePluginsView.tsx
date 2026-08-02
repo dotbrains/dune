@@ -4,14 +4,16 @@ import { ChoiceModal } from '../ChoiceModal';
 export function AppearancePluginsView(props: {
 	choices: Choice[];
 	onPick: (id: string) => void;
+	onDelete: (id: string) => void;
 	onClose: () => void;
 }) {
 	return (
 		<ChoiceModal
 			title="Appearance plugins"
-			message="Enter toggles installed plugins or installs cached market entries."
+			message="Enter toggles installed plugins or installs cached market entries. Backspace removes an installed plugin."
 			choices={props.choices}
 			onPick={props.onPick}
+			onDelete={props.onDelete}
 			onCancel={props.onClose}
 		/>
 	);

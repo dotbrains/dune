@@ -17,6 +17,7 @@ export interface ChoiceModalProps {
 	message: string;
 	choices: Choice[];
 	onPick: (id: string) => void;
+	onDelete?: (id: string) => void;
 	onCancel: () => void;
 }
 
@@ -56,7 +57,11 @@ export function ChoiceModal(props: ChoiceModalProps) {
 			if (count > 0) setIndex((i) => (i + 1) % count);
 		} else if (k === 'backspace') {
 			key.preventDefault();
-			setFilter(query().slice(0, -1));
+			if (query()) setFilter(query().slice(0, -1));
+			else {
+				const choice = choices()[index()];
+				if (choice) props.onDelete?.(choice.id);
+			}
 		} else if (k === 'return' || k === 'enter') {
 			key.preventDefault();
 			const choice = choices()[index()];
@@ -108,7 +113,7 @@ export function ChoiceModal(props: ChoiceModalProps) {
 				<text
 					fg={ui.dim}
 					bg={ui.panelBg}
-					content="type filter · ↑↓ choose · Enter confirm · Esc cancel"
+					content={`type filter · ↑↓ choose · Enter confirm${props.onDelete ? ' · Backspace delete' : ''} · Esc cancel`}
 				/>
 			</box>
 		</Overlay>
