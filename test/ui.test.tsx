@@ -70,7 +70,16 @@ test('summarizes loaded local appearance plugins', () => {
 		summarizeAppearancePlugins({
 			themes: [{ id: 'project-theme', theme: {} as never }],
 			iconThemes: [{ id: 'project-icons', name: 'Project Icons' } as never],
-			plugins: [{ id: 'pack', version: '1.0.0', source: 'plugin.json', disabled: false }],
+			plugins: [
+				{
+					id: 'pack',
+					name: 'Pack',
+					version: '1.0.0',
+					detail: 'themes: project-theme / icons: project-icons',
+					source: 'plugin.json',
+					disabled: false,
+				},
+			],
 			problems: [{ source: 'plugin.json', reason: 'invalid theme' }],
 		}),
 	).toBe('Local appearance plugins: 1 theme, 1 icon theme, pack 1.0.0, 1 problem');

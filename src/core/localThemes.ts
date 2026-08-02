@@ -25,7 +25,9 @@ export interface AppearancePluginLoad {
 
 export interface InstalledAppearancePlugin {
 	id: string;
+	name: string;
 	version: string;
+	detail: string;
 	source: string;
 	disabled: boolean;
 }
@@ -113,9 +115,25 @@ function loadInstalledPlugins(
 			(Array.isArray(raw.themes) && raw.themes.length > 0) ||
 			(Array.isArray(raw.icons) && raw.icons.length > 0);
 		if (hasAppearance) {
+			const themes = Array.isArray(raw.themes)
+				? raw.themes
+						.map((entry) => (isRecord(entry) && typeof entry.id === 'string' ? entry.id : null))
+						.filter((entry): entry is string => entry !== null)
+				: [];
+			const icons = Array.isArray(raw.icons)
+				? raw.icons
+						.map((entry) => (isRecord(entry) && typeof entry.id === 'string' ? entry.id : null))
+						.filter((entry): entry is string => entry !== null)
+				: [];
+			const parts = [
+				...(themes.length > 0 ? [`themes: ${themes.join(', ')}`] : []),
+				...(icons.length > 0 ? [`icons: ${icons.join(', ')}`] : []),
+			];
 			plugins.set(raw.id, {
 				id: raw.id,
+				name: typeof raw.name === 'string' && raw.name ? raw.name : raw.id,
 				version: raw.version,
+				detail: parts.join(' / '),
 				source,
 				disabled: disabled.includes(raw.id),
 			});

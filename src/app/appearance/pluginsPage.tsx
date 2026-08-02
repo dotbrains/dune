@@ -25,7 +25,13 @@ export function appearancePluginChoices(
 	const cached = readCachedCatalog()?.plugins ?? [];
 	const installedChoices = installed.map((plugin) => ({
 		id: `installed:${plugin.id}`,
-		label: `${plugin.disabled ? 'Enable' : 'Disable'} ${plugin.id} ${plugin.version}`,
+		label: [
+			`${plugin.disabled ? 'Enable' : 'Disable'} ${plugin.id} ${plugin.version}`,
+			plugin.name !== plugin.id ? plugin.name : '',
+			plugin.detail,
+		]
+			.filter(Boolean)
+			.join(' - '),
 	}));
 	const marketChoices = cached.flatMap((plugin) => {
 		const current = installedById.get(plugin.id);
@@ -33,7 +39,7 @@ export function appearancePluginChoices(
 		const action = current ? 'Update' : 'Install';
 		return {
 			id: `market:${plugin.id}`,
-			label: `${action} ${plugin.name} ${plugin.version}`,
+			label: [action, plugin.name, plugin.version, plugin.description].filter(Boolean).join(' '),
 		};
 	});
 	return [

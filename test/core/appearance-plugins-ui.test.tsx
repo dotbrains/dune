@@ -30,7 +30,11 @@ test('the appearance plugins page lists and toggles installed plugins', async ()
 	await runCommand(t, 'Plugin manager');
 	await until(t, () => {
 		const frame = t.captureCharFrame();
-		return frame.includes('Appearance plugins') && frame.includes('Disable mono 1.0.0');
+		return (
+			frame.includes('Appearance plugins') &&
+			frame.includes('Disable mono 1.0.0') &&
+			frame.includes('icons: mono-icons')
+		);
 	});
 	await press(t, (input) => input.pressEnter());
 	await until(t, () => t.captureCharFrame().includes('Appearance plugin mono disabled'));
@@ -126,7 +130,11 @@ test('the appearance plugins page installs cached market plugins', async () => {
 		await runCommand(t, 'Plugin manager');
 		await until(t, () => {
 			const frame = t.captureCharFrame();
-			return frame.includes('Appearance plugins') && frame.includes('Install Contrast 2.0.0');
+			return (
+				frame.includes('Appearance plugins') &&
+				frame.includes('Install Contrast 2.0.0') &&
+				frame.includes('high contrast icons')
+			);
 		});
 		await press(t, (input) => input.pressEnter());
 		await until(
