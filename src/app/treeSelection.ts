@@ -64,6 +64,28 @@ export function createTreeSelection(deps: {
 		deps.setSelectedPath(rows[next]!.path);
 	};
 
+	const collapseAll = (): boolean => {
+		let nextSelected = deps.selectedPath();
+		let changed = false;
+		deps.setExpanded((prev) => {
+			if (prev.size === 0) return prev;
+			changed = true;
+			const selected = deps.selectedPath();
+			if (selected) {
+				const parent = [...prev]
+					.toSorted((a, b) => a.length - b.length)
+					.find((path) => selected === path || selected.startsWith(`${path}/`));
+				nextSelected = parent ?? selected;
+			}
+			return new Set<string>();
+		});
+		if (!changed) return false;
+		deps.setSelectedPath(nextSelected);
+		deps.setMarked([]);
+		deps.setAnchor(null);
+		return true;
+	};
+
 	const toggleSidebar = () => {
 		if (deps.sidebar()) {
 			deps.setSidebar(false);
@@ -74,5 +96,5 @@ export function createTreeSelection(deps: {
 		focusTree();
 	};
 
-	return { extendSelection, focusTree, moveSelection, reveal, toggleSidebar };
+	return { collapseAll, extendSelection, focusTree, moveSelection, reveal, toggleSidebar };
 }

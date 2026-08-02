@@ -76,6 +76,7 @@ export interface CommandActions {
 	prevTab: () => void;
 	toggleFocus: () => void;
 	toggleSidebar: () => void;
+	collapseSidebar: () => void;
 	toggleDotfiles: () => void;
 	toggleGitignored: () => void;
 	toggleMarkdown: () => void;
@@ -223,6 +224,11 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 					label: 'Focus tree / editor',
 					hint: 'Tab in · Esc out',
 					run: actions.toggleFocus,
+				},
+				{
+					id: 'view.collapseSidebar',
+					label: 'Collapse folders in sidebar',
+					run: actions.collapseSidebar,
 				},
 				{
 					id: 'view.markdown',

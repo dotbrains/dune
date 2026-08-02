@@ -128,19 +128,20 @@ export function App(props: AppTypes.AppProps) {
 			return next;
 		});
 	const saveDirtyPathsRef = { run: (_paths: string[]) => {} };
-	const { extendSelection, focusTree, moveSelection, reveal, toggleSidebar } = createTreeSelection({
-		rootDir,
-		nodes,
-		sidebar,
-		selectedPath,
-		anchor,
-		setExpanded,
-		setSelectedPath,
-		setMarked,
-		setAnchor,
-		setSidebar,
-		setFocus,
-	});
+	const { collapseAll, extendSelection, focusTree, moveSelection, reveal, toggleSidebar } =
+		createTreeSelection({
+			rootDir,
+			nodes,
+			sidebar,
+			selectedPath,
+			anchor,
+			setExpanded,
+			setSelectedPath,
+			setMarked,
+			setAnchor,
+			setSidebar,
+			setFocus,
+		});
 	const { openFile, pinTab } = createFileOpener({
 		activePath,
 		buffers,
@@ -360,6 +361,7 @@ export function App(props: AppTypes.AppProps) {
 		setFocus,
 		focusTree,
 		toggleSidebar,
+		collapseSidebar: () => say(collapseAll() ? 'Collapsed sidebar folders' : 'No folders expanded'),
 		toggleMarkdown,
 		controls,
 		openSettings: () => setSettingsPage('user'),

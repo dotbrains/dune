@@ -41,6 +41,7 @@ export function createAppCommandTree(deps: {
 	setFocus: Setter<Focus>;
 	focusTree: () => void;
 	toggleSidebar: () => void;
+	collapseSidebar: () => void;
 	toggleMarkdown: () => void;
 	controls: {
 		withNode: (run: (node: TreeNode) => void) => () => void;
@@ -97,6 +98,7 @@ export function createAppCommandTree(deps: {
 		setFocus: deps.setFocus,
 		focusTree: deps.focusTree,
 		toggleSidebar: deps.toggleSidebar,
+		collapseSidebar: deps.collapseSidebar,
 		toggleMarkdown: deps.toggleMarkdown,
 		applyVim: deps.controls.applyVim,
 		applyTabSize: deps.controls.applyTabSize,

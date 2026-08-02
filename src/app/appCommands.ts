@@ -41,6 +41,7 @@ export function createAppCommands(deps: {
 	setFocus: (focus: Focus) => void;
 	focusTree: () => void;
 	toggleSidebar: () => void;
+	collapseSidebar: () => void;
 	applyVim: (enabled: boolean) => void;
 	applyTabSize: (size: number) => void;
 	applyTheme: (name: ThemeName) => void;
@@ -142,6 +143,7 @@ export function createAppCommands(deps: {
 				prevTab: () => deps.switchTab(-1),
 				toggleFocus: () => (deps.focus() === 'tree' ? deps.setFocus('editor') : deps.focusTree()),
 				toggleSidebar: deps.toggleSidebar,
+				collapseSidebar: deps.collapseSidebar,
 				toggleMarkdown: deps.toggleMarkdown,
 				toggleDotfiles: deps.toggleDotfiles,
 				toggleGitignored: deps.toggleGitignored,
