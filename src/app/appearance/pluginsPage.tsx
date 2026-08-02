@@ -1,8 +1,10 @@
 import { createSignal, Show } from 'solid-js';
 import type { Accessor } from 'solid-js';
+import { homedir } from 'node:os';
+import { relative } from 'node:path';
 
 import type { Config } from '../../core/config';
-import type { AppearancePluginLoad } from '../../core/localThemes';
+import { USER_THEME_PLUGIN_DIR, type AppearancePluginLoad } from '../../core/localThemes';
 import {
 	fetchCatalog,
 	fetchPlugin,
@@ -15,6 +17,14 @@ import {
 import { isNewer } from '../../core/update';
 import type { Choice } from '../../ui/ChoiceModal';
 import { AppearancePluginsView } from '../../ui/overlays/AppearancePluginsView';
+
+function displayPath(path: string): string {
+	const home = homedir();
+	const fromHome = relative(home, path);
+	if (fromHome === '') return '~';
+	if (!fromHome.startsWith('..')) return `~/${fromHome}`;
+	return path;
+}
 
 export function appearancePluginChoices(
 	appearance: AppearancePluginLoad,
@@ -80,7 +90,7 @@ export function appearancePluginChoices(
 					},
 				]
 			: []),
-		{ id: 'reload:disk', label: 'Reload from disk' },
+		{ id: 'reload:disk', label: `Reload from disk - ${displayPath(USER_THEME_PLUGIN_DIR)}` },
 	];
 }
 
