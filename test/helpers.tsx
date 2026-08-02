@@ -14,6 +14,8 @@ export const F1 = '\u001BOP';
 
 type TestGlobals = typeof globalThis & { duneTestFixtures?: Set<string> };
 
+export const liveHarnesses = new Set<Harness>();
+
 function fixtures() {
 	const globals = globalThis as TestGlobals;
 	return (globals.duneTestFixtures ??= new Set<string>());
@@ -67,6 +69,7 @@ export async function launch(
 			kittyKeyboard: options.kittyKeyboard,
 		},
 	);
+	liveHarnesses.add(t);
 	await settle(t);
 	return t;
 }

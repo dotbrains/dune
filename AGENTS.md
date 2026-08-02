@@ -209,6 +209,10 @@ Highlight helpers live in `test/syntax.ts` instead — `parseHighlights()` and
 `allSegments()` — so a unit test can use them without pulling in `<App/>`. Two rules the
 harness exists to encode:
 
+`test/setup.ts` destroys every harness returned by `launch()` after each test and removes
+temp fixture directories after the worker exits, so tests should not keep using a harness
+across test cases.
+
 - **Yield before capturing.** The reconciler flushes on a macrotask; a frame captured
   straight after a key still shows the previous state. `press()`/`settle()` handle it.
 - **Escape needs a gap.** Esc is the prefix of every arrow/function-key sequence, so the

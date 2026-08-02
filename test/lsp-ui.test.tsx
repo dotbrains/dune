@@ -61,11 +61,12 @@ describe('LSP diagnostics in the UI', () => {
 
 	test('go to definition opens the server target and selection', async () => {
 		const dir = fixture({
-			'a.ts': 'const a = beta\n',
+			'a.ts': 'const a = beta\nconst bad = oops\n',
 			'def.ts': '// declaration\nconst beta = 1\n',
 		});
 		const t = await launch(dir, lspConfig, {}, { openFile: join(dir, 'a.ts') });
 
+		await until(t, () => frame(t).includes('● 1'));
 		await press(t, (input) => void input.pressKeys([F12]));
 		await until(t, () => frame(t).includes('const beta = 1'));
 
@@ -75,11 +76,12 @@ describe('LSP diagnostics in the UI', () => {
 
 	test('open file under cursor falls back to the language server', async () => {
 		const dir = fixture({
-			'a.ts': "import { beta } from 'virtual-package'\n",
+			'a.ts': "import { beta } from 'virtual-package'\nconst bad = oops\n",
 			'def.ts': '// declaration\nconst beta = 1\n',
 		});
 		const t = await launch(dir, lspConfig, {}, { openFile: join(dir, 'a.ts') });
 
+		await until(t, () => frame(t).includes('● 1'));
 		await press(t, (input) => {
 			for (let n = 0; n < 24; n++) input.pressArrow('right');
 		});

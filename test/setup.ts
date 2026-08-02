@@ -1,4 +1,4 @@
-import { afterAll, beforeEach } from 'bun:test';
+import { afterAll, afterEach, beforeEach } from 'bun:test';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -46,6 +46,12 @@ beforeEach(() => {
 	setTransparency(false);
 	setTheme('dark');
 	invalidateSyntaxStyle();
+});
+
+afterEach(async () => {
+	const { liveHarnesses } = await import('./helpers');
+	for (const t of liveHarnesses) t.renderer.destroy();
+	liveHarnesses.clear();
 });
 
 afterAll(() => {
