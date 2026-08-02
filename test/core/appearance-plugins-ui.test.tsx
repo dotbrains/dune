@@ -79,6 +79,7 @@ test('the appearance plugins page reloads plugins from disk', async () => {
 	const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }));
 	await runCommand(t, 'Plugin manager');
 	await until(t, () => t.captureCharFrame().includes('Reload from disk'));
+	expect(t.captureCharFrame()).not.toContain('Update all appearance plugins');
 	expect(t.captureCharFrame()).toContain('Reload from disk - ');
 	expect(t.captureCharFrame()).toContain('dune/plugins');
 

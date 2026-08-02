@@ -75,12 +75,19 @@ export function appearancePluginChoices(
 				.filter(Boolean)
 				.join(' - '),
 		},
-		{
-			id: 'market:update',
-			label: ['Update all appearance plugins', updates.map((plugin) => plugin.name).join(', ')]
-				.filter(Boolean)
-				.join(' - '),
-		},
+		...(updates.length > 0
+			? [
+					{
+						id: 'market:update',
+						label: [
+							'Update all appearance plugins',
+							updates.map((plugin) => plugin.name).join(', '),
+						]
+							.filter(Boolean)
+							.join(' - '),
+					},
+				]
+			: []),
 		{ id: 'market:registry', label: `Edit market registry: ${config?.pluginRegistry ?? ''}` },
 		...(config
 			? [
