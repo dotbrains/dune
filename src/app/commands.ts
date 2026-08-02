@@ -33,9 +33,11 @@ export const KEYBINDABLE_COMMANDS: ReadonlyArray<{ id: string; label: string }> 
 	{ id: 'navigation.forward', label: 'Go forward' },
 	{ id: 'tabs.reopen', label: 'Reopen closed tab' },
 	{ id: 'goto', label: 'Go to line…' },
+	{ id: 'goto.definition', label: 'Go to definition' },
 	{ id: 'find.file', label: 'In current file' },
 	{ id: 'find.project', label: 'In project' },
 	{ id: 'file.new', label: 'New file' },
+	{ id: 'open.cursor', label: 'Open file under cursor' },
 	{ id: 'file.newDir', label: 'New folder' },
 	{ id: 'tabs.close', label: 'Close tab' },
 	{ id: 'view.sidebar', label: 'Toggle sidebar' },
@@ -188,7 +190,12 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 			label: 'File',
 			children: [
 				{ id: 'file.new', label: 'New file', hint: 'Ctrl+N', run: actions.newFile },
-				{ id: 'open.cursor', label: 'Open file under cursor', run: actions.openPathUnderCursor },
+				{
+					id: 'open.cursor',
+					label: 'Open file under cursor',
+					hint: `Ctrl+${ALT}+O`,
+					run: actions.openPathUnderCursor,
+				},
 				{ id: 'file.newDir', label: 'New folder', hint: `Ctrl+${ALT}+N`, run: actions.newFolder },
 				{ id: 'file.rename', label: 'Rename…', hint: 'r', run: actions.rename },
 				{ id: 'file.cut', label: 'Cut for moving', hint: 'x', run: actions.cutForMove },
@@ -351,6 +358,7 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 				{
 					id: 'goto.definition',
 					label: 'Go to definition',
+					hint: 'F12',
 					run: actions.goToDefinition,
 				},
 				{

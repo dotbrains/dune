@@ -6,6 +6,7 @@ import { fixture, launch, press, runCommand, settle, until } from './helpers';
 
 const FAKE = join(import.meta.dir, 'fixtures', 'fake-lsp.ts');
 const lspConfig = { lsp: true, lspServers: { typescript: [process.execPath, FAKE] } };
+const F12 = '\u001B[24~';
 
 const frame = (t: Awaited<ReturnType<typeof launch>>) => t.captureCharFrame();
 
@@ -65,7 +66,7 @@ describe('LSP diagnostics in the UI', () => {
 		});
 		const t = await launch(dir, lspConfig, {}, { openFile: join(dir, 'a.ts') });
 
-		await runCommand(t, 'Go to definition');
+		await press(t, (input) => void input.pressKeys([F12]));
 		await until(t, () => frame(t).includes('const beta = 1'));
 
 		expect(frame(t)).toContain('def.ts');

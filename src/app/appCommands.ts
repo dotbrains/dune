@@ -1,10 +1,7 @@
-import { dirname } from 'node:path';
-
 import { createMemo, createSignal } from 'solid-js';
 
 import type { Config } from '../core/config';
 import type { AppearancePluginLoad } from '../core/localThemes';
-import { pathTokenAt, resolvePathToken } from '../core/pathTarget';
 import {
 	fetchCatalog,
 	fetchPlugin,
@@ -16,6 +13,7 @@ import {
 import type { TreeNode } from '../core/fs';
 import type { ThemeName } from '../themes';
 import { buildCommands } from './commands';
+import { openPathUnderCursor } from './openPathUnderCursor';
 import type { Focus, Prompt } from './types';
 
 export function createAppCommands(deps: {
@@ -170,17 +168,17 @@ export function createAppCommands(deps: {
 			{
 				save: deps.saveActive,
 				openFile: () => deps.setPicker('files'),
-				openPathUnderCursor: () => {
-					const path = deps.activePath();
-					const line = deps.activeLine();
-					if (!path || line === null) return deps.say('Open a file first', 'warn');
-					const token = pathTokenAt(line, deps.cursor().col);
-					if (!token) return deps.say('No file path under cursor', 'warn');
-					const target = resolvePathToken(token, dirname(path), deps.targetDir());
-					deps.navigation.mark();
-					if (target) return deps.openResolvedFile(target);
-					void deps.completion.goToDefinition();
-				},
+				openPathUnderCursor: () =>
+					openPathUnderCursor({
+						activePath: deps.activePath,
+						activeLine: deps.activeLine,
+						cursorCol: () => deps.cursor().col,
+						rootDir: deps.targetDir,
+						openResolvedFile: deps.openResolvedFile,
+						markNavigation: deps.navigation.mark,
+						goToDefinition: () => void deps.completion.goToDefinition(),
+						say: deps.say,
+					}),
 				navigateBack: deps.navigation.back,
 				navigateForward: deps.navigation.forward,
 				switchTab: () => deps.setPicker('tabs'),

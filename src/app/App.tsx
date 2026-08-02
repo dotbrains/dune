@@ -25,6 +25,7 @@ import { createProblemUi } from './lsp/view';
 import { createMarkdownView } from './markdown/view';
 import { createNavigation } from './navigation';
 import { createFileOpener } from './openFile';
+import { openPathUnderCursor as openPathUnderCursorAction } from './openPathUnderCursor';
 import { createOverlayOpen } from './overlayState';
 import { createAppRuntime, selectedSingleLineText } from './runtime';
 import { createReplacementHandlers } from './searchReplace';
@@ -246,6 +247,25 @@ export function App(props: AppTypes.AppProps) {
 		say,
 	);
 	const navigation = createNavigation({ activePath, cursor, openFile, setFocus, setGoto, say });
+	const goToDefinition = () => {
+		navigation.mark();
+		void completion.goToDefinition();
+	};
+	const openPathUnderCursor = () => {
+		openPathUnderCursorAction({
+			activePath,
+			activeLine: () => {
+				const path = activePath();
+				return path ? (buffers[path]?.content.split('\n')[cursor().line] ?? null) : null;
+			},
+			cursorCol: () => cursor().col,
+			rootDir: targetDir,
+			openResolvedFile: openFile,
+			markNavigation: navigation.mark,
+			goToDefinition: () => void completion.goToDefinition(),
+			say,
+		});
+	};
 	const gitCommands = createGitCommands({
 		rootDir,
 		branch,
@@ -453,6 +473,7 @@ export function App(props: AppTypes.AppProps) {
 		quit,
 		navigateBack: navigation.back,
 		navigateForward: navigation.forward,
+		openPathUnderCursor,
 		reopenTab,
 		saveActive,
 		say,
@@ -475,6 +496,7 @@ export function App(props: AppTypes.AppProps) {
 		toggleSidebar,
 		toggleGitPanel: gitCommands.togglePanel,
 		toggleMarkdown,
+		goToDefinition,
 		problemsList: problemUi.list,
 		problemsNext: () => problemUi.next(1),
 		problemsPrev: () => problemUi.next(-1),

@@ -4,6 +4,8 @@ import { join } from 'node:path';
 
 import { fixture, launch, press, runCommand } from './helpers';
 
+const OPEN_UNDER_CURSOR = '\u001B\u000F';
+
 const PROJECT = {
 	'src/deeply/nested/target.ts': 'const found = 1\n',
 	'src/other.ts': 'const other = 2\n',
@@ -49,7 +51,7 @@ test('open file under cursor follows import paths', async () => {
 	await press(t, (i) => {
 		for (let n = 0; n < 22; n++) i.pressArrow('right');
 	});
-	await runCommand(t, 'Open file under cursor');
+	await press(t, (i) => void i.pressKeys([OPEN_UNDER_CURSOR]));
 
 	expect(t.captureCharFrame()).toContain('export default 1');
 	expect(t.captureCharFrame()).toContain('target.ts');

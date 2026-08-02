@@ -41,6 +41,7 @@ export function useAppKeyboard(deps: {
 	quit: () => void;
 	navigateBack: () => void;
 	navigateForward: () => void;
+	openPathUnderCursor: () => void;
 	reopenTab: () => void;
 	saveActive: () => void;
 	say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
@@ -63,6 +64,7 @@ export function useAppKeyboard(deps: {
 	toggleSidebar: () => void;
 	toggleGitPanel: () => void;
 	toggleMarkdown: () => void;
+	goToDefinition: () => void;
 	problemsList: () => void;
 	problemsNext: () => void;
 	problemsPrev: () => void;
@@ -78,9 +80,11 @@ export function useAppKeyboard(deps: {
 		'navigation.forward': deps.navigateForward,
 		'tabs.reopen': deps.reopenTab,
 		goto: () => deps.setPrompt({ kind: 'gotoLine' }),
+		'goto.definition': deps.goToDefinition,
 		'find.file': () => deps.setSearch({ scope: 'file' }),
 		'find.project': () => deps.setSearch({ scope: 'project' }),
 		'file.new': () => deps.setPrompt({ kind: 'newFile', dir: deps.targetDir() }),
+		'open.cursor': deps.openPathUnderCursor,
 		'file.newDir': () => deps.setPrompt({ kind: 'newFolder', dir: deps.targetDir() }),
 		'tabs.close': () => void (deps.activePath() && deps.closeTab(deps.activePath()!)),
 		'view.sidebar': deps.toggleSidebar,
@@ -127,6 +131,9 @@ export function useAppKeyboard(deps: {
 		// Also accepts Ctrl+Opt+P / Ctrl+Shift+P when the terminal reports the modifier.
 		if (key.ctrl && k === 'p') return claim(() => deps.setPalette(true));
 		if (k === 'f1') return claim(() => deps.setPalette(true));
+		if (k === 'f12' && !customizes('goto.definition')) return claim(deps.goToDefinition);
+		if (key.ctrl && chord(key) && k === 'o' && !customizes('open.cursor'))
+			return claim(deps.openPathUnderCursor);
 		if (key.ctrl && k === 'o' && !customizes('open')) return claim(() => deps.setPicker('files'));
 		if (key.ctrl && chord(key) && k === 't' && !customizes('tabs.reopen'))
 			return claim(deps.reopenTab);
