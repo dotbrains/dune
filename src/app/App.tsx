@@ -10,7 +10,7 @@ import { setTheme } from '../themes';
 import type { VimMode } from '../editor/vim';
 import { createAppControls } from './appControls';
 import { AppView } from './AppView';
-import { reloadAppearancePlugins } from './appearance/reload';
+import { reloadAppearancePlugins as reloadPlugins } from './appearance/reload';
 import { prepareStartup } from './appearance/startup';
 import { createAppCommandTree } from './commands/tree';
 import { READY } from './constants';
@@ -107,6 +107,7 @@ export function App(props: AppTypes.AppProps) {
 		setStatus,
 	});
 	const refreshTree = () => setExpanded((prev) => new Set(prev));
+	const reloadUi = () => reloadPlugins({ rootDir, config, setAppearancePlugins, say });
 	const { renderedMarkdownPath, toggleMarkdown } = createMarkdownView({
 		activePath,
 		renderedMarkdown,
@@ -364,8 +365,7 @@ export function App(props: AppTypes.AppProps) {
 		controls,
 		openSettings: () => setSettingsPage('user'),
 		openProjectSettings: () => setSettingsPage('project'),
-		reloadAppearancePlugins: () =>
-			reloadAppearancePlugins({ rootDir, config, setAppearancePlugins, say }),
+		reloadAppearancePlugins: reloadUi,
 		appearanceVersion: () => appearancePlugins(),
 		problemUi,
 		lspRestart: lsp.restart,

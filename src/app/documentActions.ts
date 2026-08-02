@@ -5,6 +5,7 @@ import { produce } from 'solid-js/store';
 import { removeAll } from '../core/bulk';
 import { formatterFor, parseFormatterEdit, runFormatter } from '../core/format';
 import { parseLspServerEdit } from '../core/lspSettings';
+import { fetchPlugin, writePlugin } from '../core/market';
 import { SIDEBAR_MAX, SIDEBAR_MIN } from '../core/config';
 import type { Config } from '../core/config';
 import { createDir, createFile, exists, mtimeOf, readTextFile, writeFile } from '../core/fs';
@@ -308,6 +309,17 @@ export function createDocumentActions(deps: {
 				return deps.say(`Sidebar width must be ${SIDEBAR_MIN}-${SIDEBAR_MAX}`, 'error');
 			deps.patchConfig({ sidebarWidth: width });
 			return deps.say(`Sidebar width: ${width}`);
+		}
+		if (p.kind === 'appearancePluginId') {
+			if (!name) return deps.say('Nothing entered', 'warn');
+			void (async () => {
+				const fetched = await fetchPlugin(name, { registry: deps.config.pluginRegistry });
+				if (!fetched.ok) return deps.say(`Plugin ${name}: ${fetched.error}`, 'error');
+				const error = writePlugin(name, fetched);
+				if (error) return deps.say(`Could not install ${name}: ${error}`, 'error');
+				deps.say(`Installed appearance plugin ${name} ${fetched.version}`);
+			})();
+			return;
 		}
 		if (p.kind === 'gotoLine') {
 			if (!name) return deps.say('Nothing entered', 'warn');

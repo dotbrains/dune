@@ -168,6 +168,7 @@ export function createAppCommands(deps: {
 					openProjectSettings: deps.openProjectSettings,
 					listAppearancePlugins: deps.listAppearancePlugins,
 					checkAppearanceMarket,
+					installAppearancePlugin: () => deps.setPrompt({ kind: 'appearancePluginId' }),
 					setVim: deps.applyVim,
 					setTabSize: deps.applyTabSize,
 					setTheme: deps.applyTheme,

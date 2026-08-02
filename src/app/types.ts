@@ -57,6 +57,7 @@ export type Prompt =
 	| { kind: 'typescriptTsdk' }
 	| { kind: 'keybindingCommand' }
 	| { kind: 'sidebarWidth' }
+	| { kind: 'appearancePluginId' }
 	| { kind: 'delete'; targets: string[] }
 	| { kind: 'closeDirty'; paths: string[]; names: string[] }
 	| { kind: 'quitDirty'; names: string[] }
