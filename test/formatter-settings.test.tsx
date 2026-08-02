@@ -27,6 +27,11 @@ test('formatter setting input parses add, remove and invalid forms', () => {
 		command: ['prettier', '--write'],
 	});
 	expect(parseFormatterEdit('ts =')).toEqual({ ok: true, key: 'ts', command: null });
+	expect(parseFormatterEdit('.JS, .jsx = oxfmt')).toEqual({
+		ok: true,
+		key: 'js,jsx',
+		command: ['oxfmt'],
+	});
 	expect(parseFormatterEdit('prettier --write')).toEqual({
 		ok: false,
 		error: 'Formatter syntax: extensions = command',
@@ -47,6 +52,17 @@ test('settings can add a formatter command', async () => {
 
 	expect(saved().formatters).toEqual({ 'ts,tsx': ['prettier', '--write'] });
 	expect(t.captureCharFrame()).toContain('1 configured');
+});
+
+test('settings stores formatter extensions without dots', async () => {
+	const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }));
+	await runCommand(t, 'Settings');
+	await gotoRow(t, 'Add/update formatter');
+	await press(t, (input) => input.pressEnter());
+	await press(t, (input) => void input.typeText('.JS, .jsx = oxfmt'));
+	await press(t, (input) => input.pressEnter());
+
+	expect(saved().formatters).toEqual({ 'js,jsx': ['oxfmt'] });
 });
 
 test('settings can remove a formatter command', async () => {

@@ -12,7 +12,12 @@ export type FormatterEdit =
 export function parseFormatterEdit(input: string): FormatterEdit {
 	const at = input.indexOf('=');
 	if (at < 0) return { ok: false, error: 'Formatter syntax: extensions = command' };
-	const key = input.slice(0, at).trim();
+	const key = input
+		.slice(0, at)
+		.split(',')
+		.map((part) => part.trim().replace(/^\./, '').toLowerCase())
+		.filter(Boolean)
+		.join(',');
 	if (!key) return { ok: false, error: 'Formatter needs an extension key' };
 	const command = input
 		.slice(at + 1)
