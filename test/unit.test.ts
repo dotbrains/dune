@@ -10,6 +10,7 @@ import { unifiedDiff } from '../src/core/diff';
 import { readFile } from '../src/core/fs';
 import { defaultBranch, failureLine, PUSH_REJECTED } from '../src/core/git';
 import { branchDiffFiles } from '../src/core/gitDiff';
+import { loadIconThemes } from '../src/core/iconThemes';
 import { searchProject, searchText } from '../src/core/search';
 import { isNewer } from '../src/core/update';
 import { THEMES } from '../src/themes';
@@ -169,6 +170,22 @@ describe('updates', () => {
 });
 
 describe('registries', () => {
+	test('icon theme plugins reject wide glyphs', () => {
+		const dir = mkdtempSync(join(tmpdir(), 'dune-icon-theme-'));
+		const plugin = join(dir, 'plugins');
+		mkdirSync(plugin);
+		writeFileSync(
+			join(plugin, 'wide.json'),
+			JSON.stringify({
+				icons: [{ id: 'wide', name: 'Wide', file: '🚀', folder: '▸', folderOpen: '▾' }],
+			}),
+		);
+
+		const load = loadIconThemes(dir, plugin);
+		expect(load.themes).toHaveLength(0);
+		expect(load.problems[0]?.reason).toBe('invalid icon theme');
+	});
+
 	test('every command leaf is runnable, unique, and reachable', () => {
 		const ran: string[] = [];
 		const actions = new Proxy({} as CommandActions, {

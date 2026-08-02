@@ -33,12 +33,15 @@ export const USER_ICON_PLUGIN_DIR = join(dirname(CONFIG_FILE), 'plugins');
 
 const MANIFEST = 'plugin.json';
 const HEX = /^#[\da-f]{6}$/i;
+const WIDE =
+	/[\u1100-\u115f\u2e80-\ua4cf\uac00-\ud7a3\uf900-\ufaff\ufe30-\ufe6f\uff00-\uff60\uffe0-\uffe6]|[\u{1f000}-\u{10ffff}]/u;
 
 const glyph = (value: unknown, fallback: string): IconRule | null => {
 	const raw = typeof value === 'string' ? { glyph: value } : value;
 	if (!raw || typeof raw !== 'object') return { glyph: fallback };
 	const obj = raw as { glyph?: unknown; color?: unknown };
-	if (typeof obj.glyph !== 'string' || Array.from(obj.glyph).length !== 1) return null;
+	if (typeof obj.glyph !== 'string' || Array.from(obj.glyph).length !== 1 || WIDE.test(obj.glyph))
+		return null;
 	const color = typeof obj.color === 'string' && HEX.test(obj.color) ? obj.color : undefined;
 	return color ? { glyph: obj.glyph, color } : { glyph: obj.glyph };
 };
