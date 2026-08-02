@@ -27,6 +27,7 @@ function rowOf(label: string): number {
 		autoSaveOnBlur: false,
 		showDotfiles: true,
 		respectGitignore: false,
+		marketPlugins: [],
 	});
 	return tree.findIndex((command) => command.label === label);
 }

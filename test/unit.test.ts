@@ -200,6 +200,7 @@ describe('registries', () => {
 			autoSaveOnBlur: false,
 			showDotfiles: true,
 			respectGitignore: false,
+			marketPlugins: [],
 		});
 		const leaves = flattenCommands(tree);
 

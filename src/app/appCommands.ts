@@ -1,6 +1,6 @@
 import { dirname } from 'node:path';
 
-import { createMemo } from 'solid-js';
+import { createMemo, createSignal } from 'solid-js';
 
 import type { Config } from '../core/config';
 import type { AppearancePluginLoad } from '../core/localThemes';
@@ -8,6 +8,7 @@ import { pathTokenAt, resolvePathToken } from '../core/pathTarget';
 import {
 	fetchCatalog,
 	fetchPlugin,
+	readCachedCatalog,
 	updatesFor,
 	writeCachedCatalog,
 	writePlugin,
@@ -105,13 +106,22 @@ export function createAppCommands(deps: {
 	setHelp: (show: boolean) => void;
 	quit: () => void;
 }) {
+	const [marketVersion, setMarketVersion] = createSignal(0);
 	const checkAppearanceMarket = async () => {
 		const catalog = await fetchCatalog(deps.config.pluginRegistry);
 		if (!catalog) return deps.say('Could not reach appearance plugin market', 'warn');
 		writeCachedCatalog(catalog, Date.now());
+		setMarketVersion((version) => version + 1);
 		deps.say(
 			`Appearance plugin market: ${catalog.length} plugin${catalog.length === 1 ? '' : 's'}`,
 		);
+	};
+	const installAppearancePluginById = async (id: string) => {
+		const fetched = await fetchPlugin(id, { registry: deps.config.pluginRegistry });
+		if (!fetched.ok) return deps.say(`Plugin ${id}: ${fetched.error}`, 'error');
+		const error = writePlugin(id, fetched);
+		if (error) return deps.say(`Could not install ${id}: ${error}`, 'error');
+		deps.say(`Installed appearance plugin ${id} ${fetched.version}`);
 	};
 	const checkAppearanceUpdates = async () => {
 		const installed = deps.appearanceVersion().plugins;
@@ -144,124 +154,125 @@ export function createAppCommands(deps: {
 		if (updated > 0) deps.say(`Updated ${updated} appearance plugin${updated === 1 ? '' : 's'}`);
 	};
 
-	return createMemo(
-		() => (
-			void deps.appearanceVersion(),
-			buildCommands(
-				{
-					save: deps.saveActive,
-					openFile: () => deps.setPicker('files'),
-					openPathUnderCursor: () => {
-						const path = deps.activePath();
-						const line = deps.activeLine();
-						if (!path || line === null) return deps.say('Open a file first', 'warn');
-						const token = pathTokenAt(line, deps.cursor().col);
-						if (!token) return deps.say('No file path under cursor', 'warn');
-						const target = resolvePathToken(token, dirname(path), deps.targetDir());
-						deps.navigation.mark();
-						if (target) return deps.openResolvedFile(target);
-						void deps.completion.goToDefinition();
-					},
-					navigateBack: deps.navigation.back,
-					navigateForward: deps.navigation.forward,
-					switchTab: () => deps.setPicker('tabs'),
-					closeOthers: () => {
-						const keep = deps.activePath();
-						if (keep)
-							deps.closeTabs(
-								deps.tabs().filter((path) => path !== keep),
-								'Closed other tabs',
-							);
-					},
-					closeAll: () => deps.closeTabs(deps.tabs(), 'Closed all tabs'),
-					gotoLine: () => deps.setPrompt({ kind: 'gotoLine' }),
-					undo: () => deps.setHistory((prev) => ({ kind: 'undo', key: (prev?.key ?? 0) + 1 })),
-					redo: () => deps.setHistory((prev) => ({ kind: 'redo', key: (prev?.key ?? 0) + 1 })),
-					findInFile: () => deps.setSearch({ scope: 'file' }),
-					findInProject: () => deps.setSearch({ scope: 'project' }),
-					replaceInFile: () => deps.setSearch({ scope: 'file', replacing: true }),
-					newFile: () => deps.setPrompt({ kind: 'newFile', dir: deps.targetDir() }),
-					newFolder: () => deps.setPrompt({ kind: 'newFolder', dir: deps.targetDir() }),
-					rename: deps.withNode((n) => deps.setPrompt({ kind: 'rename', target: n.path })),
-					remove: () => {
-						const targets = deps.actionTargets();
-						if (targets.length === 0) return deps.say('Nothing selected', 'warn');
-						deps.setPrompt({ kind: 'delete', targets });
-					},
-					cutForMove: () => deps.takeForPaste('cut'),
-					copyForPaste: () => deps.takeForPaste('copy'),
-					paste: deps.paste,
-					closeTab: () => void (deps.activePath() && deps.closeTab(deps.activePath()!)),
-					reopenTab: deps.reopenTab,
-					nextTab: () => deps.switchTab(1),
-					prevTab: () => deps.switchTab(-1),
-					toggleFocus: () => (deps.focus() === 'tree' ? deps.setFocus('editor') : deps.focusTree()),
-					toggleSidebar: deps.toggleSidebar,
-					collapseSidebar: deps.collapseSidebar,
-					toggleMarkdown: deps.toggleMarkdown,
-					toggleDotfiles: deps.toggleDotfiles,
-					toggleGitignored: deps.toggleGitignored,
-					openSettings: deps.openSettings,
-					openProjectSettings: deps.openProjectSettings,
-					listAppearancePlugins: deps.listAppearancePlugins,
-					checkAppearanceMarket,
-					checkAppearanceUpdates,
-					updateAppearancePlugins,
-					installAppearancePlugin: () => deps.setPrompt({ kind: 'appearancePluginId' }),
-					removeAppearancePlugin: () => deps.setPrompt({ kind: 'appearancePluginRemoveId' }),
-					setVim: deps.applyVim,
-					setTabSize: deps.applyTabSize,
-					setTheme: deps.applyTheme,
-					previewTheme: deps.previewTheme,
-					cancelThemePreview: deps.cancelThemePreview,
-					lineOp: (op) => deps.setLineOp((prev) => ({ op, key: (prev?.key ?? 0) + 1 })),
-					toggleTrim: deps.toggleTrim,
-					toggleFormat: deps.toggleFormat,
-					toggleAutoSave: deps.toggleAutoSave,
-					toggleTransparent: deps.toggleTransparent,
-					reloadAppearancePlugins: deps.reloadAppearancePlugins,
-					problemsList: deps.problemsList,
-					problemsNext: deps.problemsNext,
-					problemsPrev: deps.problemsPrev,
-					problemsRestart: deps.problemsRestart,
-					lspStatus: deps.lspStatus,
-					completion: deps.completion.show,
-					goToDefinition: deps.completion.goToDefinition,
-					commit: deps.gitCommands.openCommitPicker,
-					sourceControl: deps.gitCommands.togglePanel,
-					diffCurrent: () => deps.gitCommands.openDiff(deps.activePath()),
-					diffAll: () => deps.gitCommands.openDiff(),
-					compareBranches: deps.gitCommands.openBranchComparison,
-					compareBranchCommits: deps.gitCommands.openBranchCommitComparison,
-					compareAgainstBranch: deps.gitCommands.openDiffBasePicker,
-					compareAgainstHead: deps.gitCommands.resetDiffBase,
-					switchBranch: deps.gitCommands.openBranchSwitch,
-					newBranch: deps.gitCommands.openBranchPrompt,
-					newBranchFrom: deps.gitCommands.openBranchFrom,
-					mergeBranch: deps.gitCommands.openBranchMerge,
-					renameBranch: deps.gitCommands.openBranchRename,
-					deleteBranch: deps.gitCommands.openBranchDelete,
-					forceDeleteBranch: deps.gitCommands.openBranchForceDelete,
-					undoCommit: deps.gitCommands.confirmUndoCommit,
-					stash: deps.gitCommands.stash,
-					stashPop: deps.gitCommands.stashPop,
-					fetch: deps.gitCommands.fetch,
-					pull: deps.gitCommands.pull,
-					push: deps.gitCommands.push,
-					showHelp: () => deps.setHelp(true),
-					quit: deps.quit,
+	return createMemo(() => {
+		void deps.appearanceVersion();
+		void marketVersion();
+		return buildCommands(
+			{
+				save: deps.saveActive,
+				openFile: () => deps.setPicker('files'),
+				openPathUnderCursor: () => {
+					const path = deps.activePath();
+					const line = deps.activeLine();
+					if (!path || line === null) return deps.say('Open a file first', 'warn');
+					const token = pathTokenAt(line, deps.cursor().col);
+					if (!token) return deps.say('No file path under cursor', 'warn');
+					const target = resolvePathToken(token, dirname(path), deps.targetDir());
+					deps.navigation.mark();
+					if (target) return deps.openResolvedFile(target);
+					void deps.completion.goToDefinition();
 				},
-				{
-					vimEnabled: deps.config.vim,
-					activeTheme: deps.config.theme,
-					tabSize: deps.config.tabSize,
-					trimOnSave: deps.config.trimOnSave,
-					formatOnSave: deps.config.formatOnSave,
-					autoSaveOnBlur: deps.config.autoSaveOnBlur,
-					showDotfiles: deps.config.showDotfiles,
-					respectGitignore: deps.config.respectGitignore,
+				navigateBack: deps.navigation.back,
+				navigateForward: deps.navigation.forward,
+				switchTab: () => deps.setPicker('tabs'),
+				closeOthers: () => {
+					const keep = deps.activePath();
+					if (keep)
+						deps.closeTabs(
+							deps.tabs().filter((path) => path !== keep),
+							'Closed other tabs',
+						);
 				},
-			)
-		),
-	);
+				closeAll: () => deps.closeTabs(deps.tabs(), 'Closed all tabs'),
+				gotoLine: () => deps.setPrompt({ kind: 'gotoLine' }),
+				undo: () => deps.setHistory((prev) => ({ kind: 'undo', key: (prev?.key ?? 0) + 1 })),
+				redo: () => deps.setHistory((prev) => ({ kind: 'redo', key: (prev?.key ?? 0) + 1 })),
+				findInFile: () => deps.setSearch({ scope: 'file' }),
+				findInProject: () => deps.setSearch({ scope: 'project' }),
+				replaceInFile: () => deps.setSearch({ scope: 'file', replacing: true }),
+				newFile: () => deps.setPrompt({ kind: 'newFile', dir: deps.targetDir() }),
+				newFolder: () => deps.setPrompt({ kind: 'newFolder', dir: deps.targetDir() }),
+				rename: deps.withNode((n) => deps.setPrompt({ kind: 'rename', target: n.path })),
+				remove: () => {
+					const targets = deps.actionTargets();
+					if (targets.length === 0) return deps.say('Nothing selected', 'warn');
+					deps.setPrompt({ kind: 'delete', targets });
+				},
+				cutForMove: () => deps.takeForPaste('cut'),
+				copyForPaste: () => deps.takeForPaste('copy'),
+				paste: deps.paste,
+				closeTab: () => void (deps.activePath() && deps.closeTab(deps.activePath()!)),
+				reopenTab: deps.reopenTab,
+				nextTab: () => deps.switchTab(1),
+				prevTab: () => deps.switchTab(-1),
+				toggleFocus: () => (deps.focus() === 'tree' ? deps.setFocus('editor') : deps.focusTree()),
+				toggleSidebar: deps.toggleSidebar,
+				collapseSidebar: deps.collapseSidebar,
+				toggleMarkdown: deps.toggleMarkdown,
+				toggleDotfiles: deps.toggleDotfiles,
+				toggleGitignored: deps.toggleGitignored,
+				openSettings: deps.openSettings,
+				openProjectSettings: deps.openProjectSettings,
+				listAppearancePlugins: deps.listAppearancePlugins,
+				checkAppearanceMarket,
+				checkAppearanceUpdates,
+				updateAppearancePlugins,
+				installAppearancePlugin: () => deps.setPrompt({ kind: 'appearancePluginId' }),
+				installAppearancePluginById: (id) => void installAppearancePluginById(id),
+				removeAppearancePlugin: () => deps.setPrompt({ kind: 'appearancePluginRemoveId' }),
+				setVim: deps.applyVim,
+				setTabSize: deps.applyTabSize,
+				setTheme: deps.applyTheme,
+				previewTheme: deps.previewTheme,
+				cancelThemePreview: deps.cancelThemePreview,
+				lineOp: (op) => deps.setLineOp((prev) => ({ op, key: (prev?.key ?? 0) + 1 })),
+				toggleTrim: deps.toggleTrim,
+				toggleFormat: deps.toggleFormat,
+				toggleAutoSave: deps.toggleAutoSave,
+				toggleTransparent: deps.toggleTransparent,
+				reloadAppearancePlugins: deps.reloadAppearancePlugins,
+				problemsList: deps.problemsList,
+				problemsNext: deps.problemsNext,
+				problemsPrev: deps.problemsPrev,
+				problemsRestart: deps.problemsRestart,
+				lspStatus: deps.lspStatus,
+				completion: deps.completion.show,
+				goToDefinition: deps.completion.goToDefinition,
+				commit: deps.gitCommands.openCommitPicker,
+				sourceControl: deps.gitCommands.togglePanel,
+				diffCurrent: () => deps.gitCommands.openDiff(deps.activePath()),
+				diffAll: () => deps.gitCommands.openDiff(),
+				compareBranches: deps.gitCommands.openBranchComparison,
+				compareBranchCommits: deps.gitCommands.openBranchCommitComparison,
+				compareAgainstBranch: deps.gitCommands.openDiffBasePicker,
+				compareAgainstHead: deps.gitCommands.resetDiffBase,
+				switchBranch: deps.gitCommands.openBranchSwitch,
+				newBranch: deps.gitCommands.openBranchPrompt,
+				newBranchFrom: deps.gitCommands.openBranchFrom,
+				mergeBranch: deps.gitCommands.openBranchMerge,
+				renameBranch: deps.gitCommands.openBranchRename,
+				deleteBranch: deps.gitCommands.openBranchDelete,
+				forceDeleteBranch: deps.gitCommands.openBranchForceDelete,
+				undoCommit: deps.gitCommands.confirmUndoCommit,
+				stash: deps.gitCommands.stash,
+				stashPop: deps.gitCommands.stashPop,
+				fetch: deps.gitCommands.fetch,
+				pull: deps.gitCommands.pull,
+				push: deps.gitCommands.push,
+				showHelp: () => deps.setHelp(true),
+				quit: deps.quit,
+			},
+			{
+				vimEnabled: deps.config.vim,
+				activeTheme: deps.config.theme,
+				tabSize: deps.config.tabSize,
+				trimOnSave: deps.config.trimOnSave,
+				formatOnSave: deps.config.formatOnSave,
+				autoSaveOnBlur: deps.config.autoSaveOnBlur,
+				showDotfiles: deps.config.showDotfiles,
+				respectGitignore: deps.config.respectGitignore,
+				marketPlugins: readCachedCatalog()?.plugins ?? [],
+			},
+		);
+	});
 }

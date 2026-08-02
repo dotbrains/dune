@@ -89,6 +89,7 @@ export interface CommandActions {
 	checkAppearanceUpdates: () => void;
 	updateAppearancePlugins: () => void;
 	installAppearancePlugin: () => void;
+	installAppearancePluginById: (id: string) => void;
 	removeAppearancePlugin: () => void;
 	reloadAppearancePlugins: () => void;
 	setVim: (enabled: boolean) => void;
@@ -141,6 +142,7 @@ export interface CommandContext {
 	autoSaveOnBlur: boolean;
 	showDotfiles: boolean;
 	respectGitignore: boolean;
+	marketPlugins: readonly { id: string; name: string; version: string }[];
 }
 
 const TAB_SIZES = [2, 4, 8];
@@ -288,6 +290,11 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 					label: 'Install appearance plugin…',
 					run: actions.installAppearancePlugin,
 				},
+				...ctx.marketPlugins.map((plugin) => ({
+					id: `themes.installAppearancePlugin.${plugin.id}`,
+					label: `Install ${plugin.name} ${plugin.version}`,
+					run: () => actions.installAppearancePluginById(plugin.id),
+				})),
 				{
 					id: 'themes.removeAppearancePlugin',
 					label: 'Remove appearance plugin…',
