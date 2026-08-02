@@ -46,6 +46,7 @@ test('LSP settings parse and appear in settings rows', () => {
 			lspServers: { typescript: ['deno', 'lsp'] },
 			gitPanelView: 'list',
 		},
+		[],
 		{
 			applyTheme: () => {},
 			applyThemeSlot: () => {},

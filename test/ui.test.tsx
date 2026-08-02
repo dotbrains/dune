@@ -52,7 +52,7 @@ function settingsRowOf(label: string): number {
 		patchConfig: () => {},
 		configScope: () => 'user' as const,
 	};
-	return settingsRows(DEFAULTS, actions).findIndex((row) => row.label === label);
+	return settingsRows(DEFAULTS, [], actions).findIndex((row) => row.label === label);
 }
 
 const saved = () => JSON.parse(readFileSync(CONFIG_FILE, 'utf8')) as Record<string, unknown>;
@@ -89,6 +89,23 @@ const PROJECT = {
 	'notes.md': '# hi\n',
 };
 const SETTINGS_PROJECT = { 'main.ts': 'const value = 1\n', '.env': 'A=1\n' };
+const ICON_PLUGIN = JSON.stringify({
+	id: 'project-pack',
+	name: 'Project Pack',
+	version: '1.0.0',
+	icons: [
+		{
+			id: 'project-icons',
+			name: 'Project Icons',
+			file: '•',
+			folder: '▹',
+			folderOpen: '▿',
+			extensions: { ts: { glyph: 'T', color: '#3178c6' }, md: 'M' },
+			names: { 'package.json': 'P' },
+			folders: { src: 'S' },
+		},
+	],
+});
 
 /** Expand src/ and open src/main.ts from the tree. */
 async function openMain(t: Harness) {
@@ -116,6 +133,23 @@ describe('editor', () => {
 		expect(frame).toContain('◆ a.ts');
 		expect(frame).toContain('¶ notes.md');
 		expect(frame).not.toContain('· a.ts');
+	});
+
+	test('can draw project icon plugin themes in the tree', async () => {
+		const t = await launch(
+			fixture({
+				'src/a.ts': 'const a = 1\n',
+				'notes.md': '# hi\n',
+				'package.json': '{}\n',
+				'.dune/settings.json': JSON.stringify({ iconTheme: 'project-icons' }),
+				'.dune/plugins/project/plugin.json': ICON_PLUGIN,
+			}),
+		);
+		const frame = t.captureCharFrame();
+
+		expect(frame).toContain('S src');
+		expect(frame).toContain('M notes.md');
+		expect(frame).toContain('P package.json');
 	});
 
 	test('opens a file with content, tab and line numbers', async () => {
@@ -268,6 +302,22 @@ describe('command palette', () => {
 
 		expect(t.captureCharFrame()).toContain('Unicode shapes');
 		expect(saved().iconTheme).toBe('unicode');
+	});
+
+	test('settings can cycle to a project icon plugin theme', async () => {
+		const t = await launch(
+			fixture({
+				'a.ts': 'const a = 1\n',
+				'.dune/plugins/project/plugin.json': ICON_PLUGIN,
+			}),
+			{ iconTheme: 'unicode' },
+		);
+		await runCommand(t, 'Settings');
+		await gotoSettingsRow(t, 'File icons');
+		await press(t, (input) => input.pressArrow('right'));
+
+		expect(t.captureCharFrame()).toContain('Project Icons');
+		expect(saved().iconTheme).toBe('project-icons');
 	});
 
 	test('vim mode overrides the configured cursor style until disabled', async () => {

@@ -1,0 +1,120 @@
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+
+import { CONFIG_FILE, PROJECT_CONFIG_DIR } from './config';
+
+export interface IconRule {
+	glyph: string;
+	color?: string;
+}
+
+export interface IconTheme {
+	id: string;
+	name: string;
+	file: IconRule;
+	folder: IconRule;
+	folderOpen: IconRule;
+	extensions: Record<string, IconRule>;
+	names: Record<string, IconRule>;
+	folders: Record<string, IconRule>;
+}
+
+export interface IconThemeProblem {
+	source: string;
+	reason: string;
+}
+
+export interface IconThemeLoad {
+	themes: IconTheme[];
+	problems: IconThemeProblem[];
+}
+
+export const USER_ICON_PLUGIN_DIR = join(dirname(CONFIG_FILE), 'plugins');
+
+const MANIFEST = 'plugin.json';
+const HEX = /^#[\da-f]{6}$/i;
+
+const glyph = (value: unknown, fallback: string): IconRule | null => {
+	const raw = typeof value === 'string' ? { glyph: value } : value;
+	if (!raw || typeof raw !== 'object') return { glyph: fallback };
+	const obj = raw as { glyph?: unknown; color?: unknown };
+	if (typeof obj.glyph !== 'string' || Array.from(obj.glyph).length !== 1) return null;
+	const color = typeof obj.color === 'string' && HEX.test(obj.color) ? obj.color : undefined;
+	return color ? { glyph: obj.glyph, color } : { glyph: obj.glyph };
+};
+
+const rules = (value: unknown): Record<string, IconRule> | null => {
+	if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+	const parsed: Record<string, IconRule> = {};
+	for (const [key, raw] of Object.entries(value)) {
+		const rule = glyph(raw, '');
+		if (!rule || rule.glyph === '') return null;
+		parsed[key.toLowerCase()] = rule;
+	}
+	return parsed;
+};
+
+function manifestsIn(dir: string): string[] {
+	let entries: { name: string; isDir: boolean }[];
+	try {
+		entries = readdirSync(dir, { withFileTypes: true }).map((entry) => ({
+			name: entry.name,
+			isDir: entry.isDirectory(),
+		}));
+	} catch {
+		return [];
+	}
+	return entries
+		.filter((entry) =>
+			entry.isDir ? true : entry.name.endsWith('.json') && entry.name !== 'index.json',
+		)
+		.map((entry) => (entry.isDir ? join(dir, entry.name, MANIFEST) : join(dir, entry.name)))
+		.toSorted();
+}
+
+function parseIconTheme(raw: unknown): IconTheme | null {
+	if (!raw || typeof raw !== 'object') return null;
+	const obj = raw as Record<string, unknown>;
+	if (typeof obj.id !== 'string' || typeof obj.name !== 'string') return null;
+	const file = glyph(obj.file, '·');
+	const folder = glyph(obj.folder, '▸');
+	const folderOpen = glyph(obj.folderOpen, '▾');
+	const extensions = rules(obj.extensions);
+	const names = rules(obj.names);
+	const folders = rules(obj.folders);
+	if (!file || !folder || !folderOpen || !extensions || !names || !folders) return null;
+	return { id: obj.id, name: obj.name, file, folder, folderOpen, extensions, names, folders };
+}
+
+export function loadIconThemes(rootDir: string, userDir = USER_ICON_PLUGIN_DIR): IconThemeLoad {
+	const problems: IconThemeProblem[] = [];
+	const themes = new Map<string, IconTheme>();
+	const sources = [
+		...manifestsIn(userDir),
+		...manifestsIn(join(rootDir, PROJECT_CONFIG_DIR, 'plugins')),
+	];
+
+	for (const source of sources) {
+		if (!existsSync(source)) continue;
+		let raw: unknown;
+		try {
+			raw = JSON.parse(readFileSync(source, 'utf8'));
+		} catch (error) {
+			problems.push({ source, reason: error instanceof Error ? error.message : String(error) });
+			continue;
+		}
+		const icons = Array.isArray((raw as { icons?: unknown }).icons)
+			? (raw as { icons: unknown[] }).icons
+			: [];
+		for (const entry of icons) {
+			const theme = parseIconTheme(entry);
+			if (!theme) {
+				problems.push({ source, reason: 'invalid icon theme' });
+				continue;
+			}
+			themes.set(theme.id, theme);
+		}
+	}
+
+	return { themes: [...themes.values()], problems };
+}

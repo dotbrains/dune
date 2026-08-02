@@ -5,6 +5,7 @@ import { detectAppearance } from '../core/appearance';
 import { resolveConfig, resolvedTheme, type Config } from '../core/config';
 import { flattenVisible } from '../core/fs';
 import { currentBranch, type FileStatus, type LineChange, type Upstream } from '../core/git';
+import { loadIconThemes } from '../core/iconThemes';
 import { invalidateSyntaxStyle } from '../languages/highlight';
 import { checkForUpdate } from '../core/update';
 import { setTheme, setTransparency } from '../themes';
@@ -39,13 +40,13 @@ export function App(props: AppTypes.AppProps) {
 	const rootDir = props.rootDir;
 	const restored = restoreAppState(rootDir, props.openFile ?? null);
 	const initialConfig = resolveConfig(props.initialConfig, props.projectConfig ?? {});
+	const iconThemes = loadIconThemes(rootDir).themes;
 	const initialAppearance = detectAppearance();
 	initialConfig.theme = resolvedTheme(initialConfig, initialAppearance);
 	const [userConfig, setUserConfig] = createStore<Config>({ ...props.initialConfig });
 	const [projectConfig, setProjectConfig] = createStore<Partial<Config>>(props.projectConfig ?? {});
 	const [config, setConfig] = createStore<Config>(initialConfig);
-	setTheme(initialConfig.theme);
-	setTransparency(initialConfig.transparent);
+	void (setTheme(initialConfig.theme), setTransparency(initialConfig.transparent));
 	const [buffers, setBuffers] = createStore<Record<string, AppTypes.BufferState>>(restored.buffers);
 	const [expanded, setExpanded] = createSignal<Set<string>>(new Set(restored.expanded));
 	const [selectedPath, setSelectedPath] = createSignal<string | null>(restored.activePath);
@@ -70,7 +71,6 @@ export function App(props: AppTypes.AppProps) {
 	const [conflict, setConflict] = createSignal<AppTypes.Conflict | null>(null);
 	const [search, setSearch] = createSignal<AppTypes.SearchState>(null);
 	const [problemsOpen, setProblemsOpen] = createSignal(false);
-	const selection = () => selectedSingleLineText(renderer);
 	const [picker, setPicker] = createSignal<AppTypes.PickerState>(null);
 	const [clipboard, setClipboard] = createSignal({ paths: [] as string[], mode: 'cut' as const });
 	const cut = () => (clipboard().mode === 'cut' ? clipboard().paths : []);
@@ -332,6 +332,7 @@ export function App(props: AppTypes.AppProps) {
 	});
 	const settingRows = createAppSettingRows({
 		config,
+		iconThemes: () => iconThemes,
 		controls,
 		patchConfig,
 		configScope: () => settingsPage() ?? 'user',
@@ -484,6 +485,7 @@ export function App(props: AppTypes.AppProps) {
 		<AppView
 			rootDir={rootDir}
 			config={config}
+			iconThemes={iconThemes}
 			tabs={tabs()}
 			activePath={activePath()}
 			renderedMarkdownPath={renderedMarkdownPath()}
@@ -544,7 +546,7 @@ export function App(props: AppTypes.AppProps) {
 			update={update()}
 			peek={peek()}
 			help={help()}
-			selection={selection()}
+			selection={selectedSingleLineText(renderer)}
 			canNavigateBack={navigation.canBack()}
 			canNavigateForward={navigation.canForward()}
 			onSelectTab={openFile}

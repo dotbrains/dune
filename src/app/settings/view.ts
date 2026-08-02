@@ -1,9 +1,11 @@
 import type { Config } from '../../core/config';
+import type { IconTheme } from '../../core/iconThemes';
 import type { createAppControls } from '../appControls';
 import { createSettingsRows } from '../settingsRows';
 
 export function createAppSettingRows(deps: {
 	config: Config;
+	iconThemes: () => readonly IconTheme[];
 	controls: Pick<
 		ReturnType<typeof createAppControls>,
 		| 'applyTheme'
@@ -28,6 +30,7 @@ export function createAppSettingRows(deps: {
 }) {
 	return createSettingsRows({
 		config: deps.config,
+		iconThemes: deps.iconThemes,
 		applyTheme: deps.controls.applyTheme,
 		applyThemeSlot: deps.controls.applyThemeSlot,
 		applyTabSize: deps.controls.applyTabSize,

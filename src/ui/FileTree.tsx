@@ -6,6 +6,7 @@ import { createEffect, createMemo, createSignal, For, on, onCleanup, Show } from
 import type { IconThemeName } from '../core/config';
 import type { TreeNode } from '../core/fs';
 import type { FileStatus } from '../core/git';
+import type { IconRule, IconTheme } from '../core/iconThemes';
 import { ui } from '../themes';
 
 export interface FileTreeProps {
@@ -21,6 +22,8 @@ export interface FileTreeProps {
 	gitIgnored: Set<string>;
 	/** File-tree glyph theme. */
 	iconTheme: IconThemeName;
+	/** Icon themes loaded from local and project manifests. */
+	iconThemes: readonly IconTheme[];
 	/** Taken with `x` and waiting for a destination; drawn as in flight. */
 	cutPaths: string[];
 	/** Picked out with Shift+↑/↓, and what delete and move act on. */
@@ -68,62 +71,62 @@ export const statusColor = (status: FileStatus) =>
 			? ui.gitDeleted
 			: ui.gitModified;
 
-const FILE_ICONS: Record<string, string> = {
-	'package.json': '▤',
-	'bun.lock': '▤',
-	dockerfile: '▦',
-	makefile: '▦',
-	license: '¶',
-	'readme.md': '¶',
+const FILE_ICONS: Record<string, IconRule> = {
+	'package.json': { glyph: '▤' },
+	'bun.lock': { glyph: '▤' },
+	dockerfile: { glyph: '▦' },
+	makefile: { glyph: '▦' },
+	license: { glyph: '¶' },
+	'readme.md': { glyph: '¶' },
 };
 
-const EXTENSION_ICONS: Record<string, string> = {
-	ts: '◆',
-	tsx: '◆',
-	js: '◇',
-	jsx: '◇',
-	mjs: '◇',
-	cjs: '◇',
-	py: '◆',
-	rs: '◆',
-	go: '◆',
-	rb: '◆',
-	php: '◆',
-	java: '◆',
-	c: '◇',
-	h: '◇',
-	cpp: '◇',
-	zig: '◆',
-	lua: '◆',
-	swift: '◆',
-	sh: '▷',
-	bash: '▷',
-	zsh: '▷',
-	md: '¶',
-	txt: '¶',
-	json: '▤',
-	jsonc: '▤',
-	yaml: '▤',
-	yml: '▤',
-	toml: '▤',
-	html: '◈',
-	css: '◈',
-	scss: '◈',
-	png: '▣',
-	jpg: '▣',
-	jpeg: '▣',
-	gif: '▣',
-	svg: '▣',
-	pdf: '▣',
-	zip: '▦',
-	tar: '▦',
-	gz: '▦',
-	lock: '▪',
+const EXTENSION_ICONS: Record<string, IconRule> = {
+	ts: { glyph: '◆' },
+	tsx: { glyph: '◆' },
+	js: { glyph: '◇' },
+	jsx: { glyph: '◇' },
+	mjs: { glyph: '◇' },
+	cjs: { glyph: '◇' },
+	py: { glyph: '◆' },
+	rs: { glyph: '◆' },
+	go: { glyph: '◆' },
+	rb: { glyph: '◆' },
+	php: { glyph: '◆' },
+	java: { glyph: '◆' },
+	c: { glyph: '◇' },
+	h: { glyph: '◇' },
+	cpp: { glyph: '◇' },
+	zig: { glyph: '◆' },
+	lua: { glyph: '◆' },
+	swift: { glyph: '◆' },
+	sh: { glyph: '▷' },
+	bash: { glyph: '▷' },
+	zsh: { glyph: '▷' },
+	md: { glyph: '¶' },
+	txt: { glyph: '¶' },
+	json: { glyph: '▤' },
+	jsonc: { glyph: '▤' },
+	yaml: { glyph: '▤' },
+	yml: { glyph: '▤' },
+	toml: { glyph: '▤' },
+	html: { glyph: '◈' },
+	css: { glyph: '◈' },
+	scss: { glyph: '◈' },
+	png: { glyph: '▣' },
+	jpg: { glyph: '▣' },
+	jpeg: { glyph: '▣' },
+	gif: { glyph: '▣' },
+	svg: { glyph: '▣' },
+	pdf: { glyph: '▣' },
+	zip: { glyph: '▦' },
+	tar: { glyph: '▦' },
+	gz: { glyph: '▦' },
+	lock: { glyph: '▪' },
 };
 
-function treeGlyph(node: TreeNode, expanded: boolean, iconTheme: IconThemeName): string {
-	if (iconTheme === 'none') return node.isDir ? (expanded ? '▾' : '▸') : '·';
-	if (node.isDir) return expanded ? '▾' : '▸';
+function builtinGlyph(node: TreeNode, expanded: boolean, iconTheme: IconThemeName): IconRule {
+	if (iconTheme === 'none') return { glyph: node.isDir ? (expanded ? '▾' : '▸') : '·' };
+	if (node.isDir) return { glyph: expanded ? '▾' : '▸' };
 	const name = node.name.toLowerCase();
 	const byName = FILE_ICONS[name];
 	if (byName) return byName;
@@ -131,7 +134,20 @@ function treeGlyph(node: TreeNode, expanded: boolean, iconTheme: IconThemeName):
 		const byExtension = EXTENSION_ICONS[name.slice(at + 1)];
 		if (byExtension) return byExtension;
 	}
-	return '·';
+	return { glyph: '·' };
+}
+
+function themedGlyph(node: TreeNode, expanded: boolean, theme: IconTheme): IconRule {
+	if (node.isDir)
+		return theme.folders[node.name.toLowerCase()] ?? (expanded ? theme.folderOpen : theme.folder);
+	const name = node.name.toLowerCase();
+	const byName = theme.names[name];
+	if (byName) return byName;
+	for (let at = name.indexOf('.'); at !== -1; at = name.indexOf('.', at + 1)) {
+		const byExtension = theme.extensions[name.slice(at + 1)];
+		if (byExtension) return byExtension;
+	}
+	return theme.file;
 }
 
 export function FileTree(props: FileTreeProps) {
@@ -291,7 +307,11 @@ export function FileTree(props: FileTreeProps) {
 							selected() ? (props.focused ? ui.treeSelectedBg : ui.treeFocusBg) : ui.panelBg;
 						/** Taken with `x` and waiting for a destination: drawn as already gone. */
 						const leaving = () => props.cutPaths.includes(node.path);
-						const glyph = () => treeGlyph(node, props.expanded.has(node.path), props.iconTheme);
+						const theme = () => props.iconThemes.find((entry) => entry.id === props.iconTheme);
+						const glyph = () =>
+							theme()
+								? themedGlyph(node, props.expanded.has(node.path), theme()!)
+								: builtinGlyph(node, props.expanded.has(node.path), props.iconTheme);
 						const status = () => statusOf(node);
 						const ignored = () => props.gitIgnored.has(node.path);
 						const nameColor = () =>
@@ -323,10 +343,13 @@ export function FileTree(props: FileTreeProps) {
 									content={` ${'│ '.repeat(node.depth)}`}
 								/>
 								<text
-									fg={props.iconTheme === 'none' || node.isDir ? ui.dim : nameColor()}
+									fg={
+										glyph().color ??
+										(props.iconTheme === 'none' || node.isDir ? ui.dim : nameColor())
+									}
 									bg={bg()}
 									flexShrink={0}
-									content={`${glyph()} `}
+									content={`${glyph().glyph} `}
 								/>
 								{/* The name takes the slack, so the mark is pushed to the panel's
                     right edge and every mark lines up in one column. */}

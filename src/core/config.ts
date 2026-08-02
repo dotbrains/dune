@@ -26,7 +26,7 @@ export const projectConfigFile = (rootDir: string): string =>
 export const CURSOR_STYLES = ['block', 'line', 'underline'] as const;
 export type CursorStyle = (typeof CURSOR_STYLES)[number];
 export const ICON_THEMES = ['none', 'unicode'] as const;
-export type IconThemeName = (typeof ICON_THEMES)[number];
+export type IconThemeName = string;
 
 /** Narrow enough to still show a name, wide enough to leave the editor usable. */
 export const SIDEBAR_MIN = 15;
@@ -143,9 +143,8 @@ function parsePartial(raw: unknown): Partial<Config> {
 	if (isThemeName(obj.themeLight)) config.themeLight = obj.themeLight;
 	if (isThemeName(obj.themeDark)) config.themeDark = obj.themeDark;
 	if (typeof obj.transparent === 'boolean') config.transparent = obj.transparent;
-	if (ICON_THEMES.includes(obj.iconTheme as IconThemeName)) {
-		config.iconTheme = obj.iconTheme as IconThemeName;
-	}
+	if (typeof obj.iconTheme === 'string' && obj.iconTheme.length > 0)
+		config.iconTheme = obj.iconTheme;
 	if (typeof obj.vim === 'boolean') config.vim = obj.vim;
 	if (CURSOR_STYLES.includes(obj.cursorStyle as CursorStyle)) {
 		config.cursorStyle = obj.cursorStyle as CursorStyle;

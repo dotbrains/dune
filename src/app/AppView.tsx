@@ -8,18 +8,17 @@ import type { Config } from '../core/config';
 import type { TreeNode } from '../core/fs';
 import type { FileStatus, LineChange, Upstream } from '../core/git';
 import type { DiffFile } from '../core/gitDiff';
+import type { IconTheme } from '../core/iconThemes';
 import { isImagePath } from '../core/image';
 import { isPdfPath } from '../core/pdf';
 import type { Match } from '../core/search';
-import type { ProblemSeverity } from '../lsp/protocol';
-import type { CompletionItem } from '../lsp/protocol';
+import type { CompletionItem, ProblemSeverity } from '../lsp/protocol';
 import type { CompletionReply } from '../lsp/completion';
 import type { VimMode } from '../editor/vim';
 import { languageLabel } from '../languages';
 import { filetypeForPath } from '../languages/highlight';
 import { ui } from '../themes';
-import { ChoiceModal } from '../ui/ChoiceModal';
-import type { Choice } from '../ui/ChoiceModal';
+import { ChoiceModal, type Choice } from '../ui/ChoiceModal';
 import { CommandPalette } from '../ui/CommandPalette';
 import { CommitModal } from '../ui/CommitModal';
 import type { CommitFile } from '../ui/CommitModal';
@@ -54,6 +53,7 @@ const GRIP = [0, 1, 2, 3, 4];
 interface AppViewProps {
 	rootDir: string;
 	config: Config;
+	iconThemes: readonly IconTheme[];
 	tabs: string[];
 	activePath: string | null;
 	renderedMarkdownPath: string | null;
@@ -217,6 +217,7 @@ export function AppView(props: AppViewProps) {
 								focused={props.focus === 'tree'}
 								width={props.treeWidth}
 								iconTheme={props.config.iconTheme}
+								iconThemes={props.iconThemes}
 								gitStatus={props.gitStatus}
 								gitIgnored={props.gitIgnored}
 								cutPaths={props.cutPaths}

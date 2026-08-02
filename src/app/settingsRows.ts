@@ -1,6 +1,7 @@
 import { createMemo } from 'solid-js';
 import { CURSOR_STYLES, ICON_THEMES } from '../core/config';
 import type { Config } from '../core/config';
+import type { IconTheme } from '../core/iconThemes';
 import type { ThemeName } from '../themes';
 import { themeLabels } from '../themes';
 import type { SettingRow } from '../ui/overlays/SettingsView';
@@ -20,6 +21,7 @@ function cycle<T>(values: readonly T[], current: T, dir: 1 | -1): T {
 
 export function settingsRows(
 	config: Config,
+	iconThemes: readonly IconTheme[],
 	actions: {
 		applyTheme: (name: ThemeName) => void;
 		applyThemeSlot: (slot: 'themeLight' | 'themeDark', name: ThemeName) => void;
@@ -42,6 +44,12 @@ export function settingsRows(
 	},
 ): SettingRow[] {
 	const themes = Object.keys(themeLabels) as ThemeName[];
+	const iconOptions = [
+		...ICON_THEMES.map((id) => ({ id, name: id === 'none' ? 'none' : 'Unicode shapes' })),
+		...iconThemes.map((theme) => ({ id: theme.id, name: theme.name })),
+	];
+	const iconValue =
+		iconOptions.find((option) => option.id === config.iconTheme)?.name ?? config.iconTheme;
 	return [
 		{
 			section: 'Appearance',
@@ -76,10 +84,16 @@ export function settingsRows(
 		{
 			section: 'Appearance',
 			label: 'File icons',
-			value: config.iconTheme === 'none' ? 'none' : 'Unicode shapes',
+			value: iconValue,
 			change: (dir) =>
 				actions.patchConfig(
-					{ iconTheme: cycle(ICON_THEMES, config.iconTheme, dir) },
+					{
+						iconTheme: cycle(
+							iconOptions.map((option) => option.id),
+							config.iconTheme,
+							dir,
+						),
+					},
 					actions.configScope(),
 				),
 		},
@@ -214,6 +228,11 @@ export function settingsRows(
 	];
 }
 
-export function createSettingsRows(deps: Parameters<typeof settingsRows>[1] & { config: Config }) {
-	return createMemo(() => settingsRows(deps.config, deps));
+export function createSettingsRows(
+	deps: Parameters<typeof settingsRows>[2] & {
+		config: Config;
+		iconThemes: () => readonly IconTheme[];
+	},
+) {
+	return createMemo(() => settingsRows(deps.config, deps.iconThemes(), deps));
 }
