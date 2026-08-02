@@ -8,10 +8,12 @@ import type { TreeNode } from '../core/fs';
 import type { FileStatus, LineChange, Upstream } from '../core/git';
 import { currentBranch, diffLines, ignoredAmong, statusMap, upstreamOf } from '../core/git';
 import { fetchCatalog, missingConfiguredAppearancePlugins, updatesFor } from '../core/market';
+import { loadLocalLspServers } from '../core/plugins/localLspServers';
 import { saveSession } from '../core/session';
 import { checkForUpdate } from '../core/update';
 import { watchTree } from '../core/fs';
 import { watchAppearance } from '../core/appearance';
+import { installedMarketPlugins } from './appearance/pluginsPage';
 import { clashWarning } from './clashes';
 import { CLASH_CHANGED, CLASH_DELETED, READY } from './constants';
 import type { AppProps, BufferState, DiskSync } from './types';
@@ -111,7 +113,10 @@ export function useAppLifecycle(deps: {
 					deps.say(`${missing.length} appearance plugins match your config`, 'info');
 					return;
 				}
-				const updates = updatesFor(appearance.plugins, catalog);
+				const updates = updatesFor(
+					installedMarketPlugins(appearance, loadLocalLspServers(deps.rootDir).plugins),
+					catalog,
+				);
 				if (updates.length === 1) {
 					const plugin = updates[0]!;
 					deps.say(`${plugin.name} ${plugin.version} is available`, 'info');

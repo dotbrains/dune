@@ -193,6 +193,51 @@ test('startup reports available appearance plugin updates', async () => {
 	}
 });
 
+test('startup reports available language server plugin updates', async () => {
+	const realFetch = globalThis.fetch;
+	const manifest = {
+		id: 'kotlin-tools',
+		name: 'Kotlin Tools',
+		version: '1.0.0',
+		languageServers: [
+			{
+				id: 'kotlin',
+				command: ['kotlin-language-server'],
+				filetypes: ['kotlin'],
+			},
+		],
+	};
+	expect(
+		writePlugin('kotlin-tools', {
+			ok: true,
+			id: 'kotlin-tools',
+			version: '1.0.0',
+			body: JSON.stringify(manifest),
+		}),
+	).toBeNull();
+	globalThis.fetch = ((url: string) =>
+		Promise.resolve(
+			String(url).includes('registry.npmjs.org')
+				? new Response(JSON.stringify({ version: '0.0.0' }))
+				: new Response(
+						JSON.stringify({
+							plugins: [{ id: 'kotlin-tools', name: 'Kotlin Tools', version: '1.1.0' }],
+						}),
+					),
+		)) as typeof fetch;
+	try {
+		const t = await launch(
+			fixture({ 'a.kt': 'fun main() {}\n' }),
+			{ pluginRegistry: 'https://example.test/market' },
+			{},
+			{ checkUpdates: true },
+		);
+		await until(t, () => t.captureCharFrame().includes('Kotlin Tools 1.1.0 is available'));
+	} finally {
+		globalThis.fetch = realFetch;
+	}
+});
+
 test('startup offers a plugin for a missing configured theme', async () => {
 	const realFetch = globalThis.fetch;
 	globalThis.fetch = ((url: string) =>

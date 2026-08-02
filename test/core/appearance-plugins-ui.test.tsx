@@ -276,6 +276,58 @@ test('the appearance plugins page can update every installed plugin', async () =
 	}
 });
 
+test('the appearance plugins page can update installed language server plugins', async () => {
+	const realFetch = globalThis.fetch;
+	const installedManifest = {
+		id: 'kotlin-tools',
+		name: 'Kotlin Tools',
+		version: '1.0.0',
+		languageServers: [
+			{
+				id: 'kotlin',
+				command: ['kotlin-language-server'],
+				filetypes: ['kotlin'],
+			},
+		],
+	};
+	const updatedManifest = { ...installedManifest, version: '1.1.0' };
+	expect(
+		writePlugin('kotlin-tools', {
+			ok: true,
+			id: 'kotlin-tools',
+			version: '1.0.0',
+			body: JSON.stringify(installedManifest),
+		}),
+	).toBeNull();
+	globalThis.fetch = ((url: string) =>
+		Promise.resolve(
+			String(url).endsWith('/kotlin-tools/plugin.json')
+				? new Response(JSON.stringify(updatedManifest))
+				: new Response(
+						JSON.stringify({
+							plugins: [{ id: 'kotlin-tools', name: 'Kotlin Tools', version: '1.1.0' }],
+						}),
+					),
+		)) as typeof fetch;
+	try {
+		const t = await launch(fixture({ 'a.kt': 'fun main() {}\n' }), {
+			pluginRegistry: 'https://example.test/market',
+		});
+		await runCommand(t, 'Check appearance plugin market');
+		await until(t, () => t.captureCharFrame().includes('Appearance plugin market: 1 plugin'));
+		await runCommand(t, 'Plugin manager');
+		await press(t, (input) => void input.typeText('Update all'));
+		await press(t, (input) => input.pressEnter());
+		await until(t, () => t.captureCharFrame().includes('Updated 1 appearance plugin'));
+
+		expect(
+			JSON.parse(readFileSync(join(USER_THEME_PLUGIN_DIR, 'kotlin-tools/plugin.json'), 'utf8')),
+		).toEqual(updatedManifest);
+	} finally {
+		globalThis.fetch = realFetch;
+	}
+});
+
 test('the appearance plugins page toggles startup update checks', async () => {
 	const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }), { pluginUpdates: true });
 	await runCommand(t, 'Plugin manager');

@@ -28,16 +28,25 @@ function displayPath(path: string): string {
 	return path;
 }
 
+export type InstalledMarketPlugin = { id: string; version: string; disabled?: boolean };
+
+export function installedMarketPlugins(
+	appearance: { plugins: readonly InstalledMarketPlugin[] },
+	lspPlugins: readonly LocalLspServerPlugin[],
+): InstalledMarketPlugin[] {
+	return [
+		...appearance.plugins,
+		...lspPlugins.filter((plugin) => !appearance.plugins.some((entry) => entry.id === plugin.id)),
+	];
+}
+
 export function appearancePluginChoices(
 	appearance: AppearancePluginLoad,
 	config?: Pick<Config, 'pluginRegistry' | 'pluginUpdates'>,
 	lspPlugins: readonly LocalLspServerPlugin[] = [],
 ): Choice[] {
 	const installed = appearance.plugins;
-	const installedPlugins = [
-		...installed,
-		...lspPlugins.filter((plugin) => !installed.some((entry) => entry.id === plugin.id)),
-	];
+	const installedPlugins = installedMarketPlugins(appearance, lspPlugins);
 	const installedById = new Map(installedPlugins.map((plugin) => [plugin.id, plugin]));
 	const cached = readCachedCatalog()?.plugins ?? [];
 	const updates = updatesFor(installedPlugins, cached);
@@ -127,6 +136,7 @@ export function pickAppearancePlugin(
 		reload: () => void;
 		refreshMarket: () => void;
 		close: () => void;
+		installedPlugins: () => readonly InstalledMarketPlugin[];
 		say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
 	},
 ): void {
@@ -168,7 +178,7 @@ export function pickAppearancePlugin(
 			if (!catalog) return deps.say('Could not reach appearance plugin market', 'warn');
 			writeCachedCatalog(catalog, Date.now());
 			deps.refreshMarket();
-			const updates = updatesFor(deps.appearance().plugins, catalog);
+			const updates = updatesFor(deps.installedPlugins(), catalog);
 			if (updates.length === 0) return deps.say('Appearance plugins are up to date');
 			const results = await Promise.all(
 				updates.map(async (entry) => {
@@ -271,6 +281,8 @@ export function createAppearancePluginUi(deps: {
 				reload: deps.reload,
 				refreshMarket,
 				close: () => setOpen(false),
+				installedPlugins: () =>
+					installedMarketPlugins(deps.appearance(), loadLocalLspServers(deps.rootDir).plugins),
 				say: deps.say,
 			}),
 		delete: (choice: string) =>
@@ -301,6 +313,8 @@ export function createAppearancePluginUi(deps: {
 						reload: deps.reload,
 						refreshMarket,
 						close: () => setOpen(false),
+						installedPlugins: () =>
+							installedMarketPlugins(deps.appearance(), loadLocalLspServers(deps.rootDir).plugins),
 						say: deps.say,
 					})
 				}
