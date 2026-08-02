@@ -5,7 +5,13 @@ import { createMemo } from 'solid-js';
 import type { Config } from '../core/config';
 import type { AppearancePluginLoad } from '../core/localThemes';
 import { pathTokenAt, resolvePathToken } from '../core/pathTarget';
-import { fetchCatalog, updatesFor, writeCachedCatalog } from '../core/market';
+import {
+	fetchCatalog,
+	fetchPlugin,
+	updatesFor,
+	writeCachedCatalog,
+	writePlugin,
+} from '../core/market';
 import type { TreeNode } from '../core/fs';
 import type { ThemeName } from '../themes';
 import { buildCommands } from './commands';
@@ -117,6 +123,26 @@ export function createAppCommands(deps: {
 		if (updates.length === 0) return deps.say('Appearance plugins are up to date');
 		deps.say(`Appearance plugin updates: ${updates.map((entry) => entry.id).join(', ')}`);
 	};
+	const updateAppearancePlugins = async () => {
+		const installed = deps.appearanceVersion().plugins;
+		if (installed.length === 0) return deps.say('No local appearance plugins');
+		const catalog = await fetchCatalog(deps.config.pluginRegistry);
+		if (!catalog) return deps.say('Could not reach appearance plugin market', 'warn');
+		writeCachedCatalog(catalog, Date.now());
+		const updates = updatesFor(installed, catalog);
+		if (updates.length === 0) return deps.say('Appearance plugins are up to date');
+		const results = await Promise.all(
+			updates.map(async (entry) => {
+				const fetched = await fetchPlugin(entry.id, { registry: deps.config.pluginRegistry });
+				const error = fetched.ok ? writePlugin(entry.id, fetched) : fetched.error;
+				return { id: entry.id, ok: !error };
+			}),
+		);
+		const updated = results.filter((result) => result.ok).length;
+		const failed = results.filter((result) => !result.ok).map((result) => result.id);
+		if (failed.length > 0) deps.say(`Could not update ${failed.join(', ')}`, 'error');
+		if (updated > 0) deps.say(`Updated ${updated} appearance plugin${updated === 1 ? '' : 's'}`);
+	};
 
 	return createMemo(
 		() => (
@@ -180,6 +206,7 @@ export function createAppCommands(deps: {
 					listAppearancePlugins: deps.listAppearancePlugins,
 					checkAppearanceMarket,
 					checkAppearanceUpdates,
+					updateAppearancePlugins,
 					installAppearancePlugin: () => deps.setPrompt({ kind: 'appearancePluginId' }),
 					removeAppearancePlugin: () => deps.setPrompt({ kind: 'appearancePluginRemoveId' }),
 					setVim: deps.applyVim,

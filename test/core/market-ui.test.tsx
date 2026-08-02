@@ -124,3 +124,41 @@ test('the palette can check appearance plugin updates', async () => {
 		globalThis.fetch = realFetch;
 	}
 });
+
+test('the palette can update appearance plugins', async () => {
+	const realFetch = globalThis.fetch;
+	const oldManifest = {
+		id: 'mono',
+		name: 'Mono',
+		version: '1.0.0',
+		icons: [{ id: 'mono-icons', name: 'Mono Icons', file: 'f', folder: 'd', folderOpen: 'o' }],
+	};
+	const newManifest = { ...oldManifest, version: '1.1.0' };
+	expect(
+		writePlugin('mono', {
+			ok: true,
+			id: 'mono',
+			version: '1.0.0',
+			body: JSON.stringify(oldManifest),
+		}),
+	).toBeNull();
+	globalThis.fetch = ((url: string) =>
+		Promise.resolve(
+			String(url).endsWith('/mono/plugin.json')
+				? new Response(JSON.stringify(newManifest))
+				: new Response(JSON.stringify({ plugins: [{ id: 'mono', version: '1.1.0' }] })),
+		)) as typeof fetch;
+	try {
+		const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }), {
+			pluginRegistry: 'https://example.test/market',
+		});
+		await runCommand(t, 'Update appearance plugins');
+		await until(t, () => t.captureCharFrame().includes('Updated 1 appearance plugin'));
+
+		expect(
+			JSON.parse(readFileSync(join(USER_THEME_PLUGIN_DIR, 'mono/plugin.json'), 'utf8')),
+		).toEqual(newManifest);
+	} finally {
+		globalThis.fetch = realFetch;
+	}
+});
