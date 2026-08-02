@@ -412,6 +412,7 @@ export function AppView(props: AppViewProps) {
 				<SettingsView
 					rows={props.settingRows}
 					scope={props.settingsScope}
+					disabled={Boolean(props.promptTitle || props.confirmation)}
 					onClose={() => props.onCloseSettings()}
 				/>
 			</Show>

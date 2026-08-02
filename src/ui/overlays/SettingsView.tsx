@@ -17,6 +17,7 @@ export interface SettingRow {
 export function SettingsView(props: {
 	rows: SettingRow[];
 	scope: 'user' | 'project';
+	disabled?: boolean;
 	onClose: () => void;
 }) {
 	const dimensions = useTerminalDimensions();
@@ -42,6 +43,7 @@ export function SettingsView(props: {
 	};
 
 	useKeyboard((key: KeyEvent) => {
+		if (props.disabled) return;
 		if (filtering()) {
 			if (key.name === 'escape') {
 				if (filter()) {
