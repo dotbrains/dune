@@ -45,7 +45,7 @@ bun run build            # compile a binary for this machine into dist/<target>/
 ./dist/*/dune .          # run what you just built (bin/dune.js finds it too)
 bun run build linux-x64  # …or for a named target, if its native package is installed
 bun run release          # package dist/ for GitHub Packages + release archives
-bun run formula          # Homebrew formula for those archives (not published anywhere yet)
+bun run formula          # Homebrew formula + bottle archives for dist/release/
 bun run test             # unit + UI, one worker per core (~20s; 87s without --parallel)
 bun test test/foo.tsx    # a single file, where the flag buys nothing
 bun run check-types      # tsc --noEmit
@@ -120,10 +120,10 @@ would spend its life fetching a release that does not exist. Re-running a shippe
 is safe — `release.ts` skips a version already on the registry and the upload clobbers its
 assets.
 
-Homebrew is not wired up yet. `scripts/formula.ts` generates a working formula from the
-archives in `dist/release/`, but nothing publishes it: that needs a `dotbrains/homebrew-tap`
-repository and a `TAP_TOKEN` secret, then a step in the release workflow to commit the
-formula there.
+`scripts/formula.ts` generates a working Homebrew formula and bottle archives from
+`dist/release/` plus the binaries in `dist/<target>/`; the release workflow uploads them
+as release assets. Nothing commits the formula to a tap yet: that still needs a
+`dotbrains/homebrew-tap` repository and a `TAP_TOKEN` secret.
 
 ## Architecture
 
