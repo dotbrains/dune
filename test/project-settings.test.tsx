@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { CONFIG_FILE } from '../src/core/config';
-import { fixture, launch, press, runCommand } from './helpers';
+import { fixture, launch, press, pressEscape, runCommand } from './helpers';
 import type { Harness } from './helpers';
 
 const project = (settings: Record<string, unknown> | string) =>
@@ -87,8 +87,8 @@ test('settings rows can be filtered before changing one', async () => {
 	await press(t, (input) => void input.typeText('/zzzz'));
 	frame = t.captureCharFrame();
 	expect(frame).toContain('No matching settings');
-	await press(t, (input) => input.pressEscape());
+	await pressEscape(t);
 	expect(t.captureCharFrame()).toContain('Vim mode');
-	await press(t, (input) => input.pressEscape());
+	await pressEscape(t);
 	expect(t.captureCharFrame()).not.toContain('Filter settings');
 });
