@@ -17,6 +17,7 @@ export interface LocalThemeLoad {
 }
 
 export interface AppearancePluginLoad {
+	themes: readonly { id: string; theme: Theme }[];
 	iconThemes: readonly IconTheme[];
 	problems: LocalThemeProblem[];
 }
@@ -119,6 +120,7 @@ export function loadAppearancePlugins(rootDir: string): AppearancePluginLoad {
 	const iconThemes = loadIconThemes(rootDir);
 	registerLocalThemes(colorThemes.themes);
 	return {
+		themes: colorThemes.themes,
 		iconThemes: iconThemes.themes,
 		problems: [...colorThemes.problems, ...iconThemes.problems],
 	};

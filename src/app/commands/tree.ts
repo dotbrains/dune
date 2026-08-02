@@ -2,8 +2,10 @@ import type { Accessor, Setter } from 'solid-js';
 
 import type { Config } from '../../core/config';
 import type { TreeNode } from '../../core/fs';
+import type { AppearancePluginLoad } from '../../core/localThemes';
 import type { ThemeName } from '../../themes';
 import { createAppCommands } from '../appCommands';
+import { summarizeAppearancePlugins } from '../appearance/reload';
 import type { Command } from '../commands';
 import type { Navigation } from '../navigation';
 import type {
@@ -72,7 +74,7 @@ export function createAppCommandTree(deps: {
 	openSettings: () => void;
 	openProjectSettings: () => void;
 	reloadAppearancePlugins: () => void;
-	appearanceVersion: () => unknown;
+	appearanceVersion: () => AppearancePluginLoad;
 }): Accessor<Command[]> {
 	return createAppCommands({
 		config: deps.config,
@@ -117,6 +119,7 @@ export function createAppCommandTree(deps: {
 		toggleTransparent: deps.controls.toggleTransparent,
 		openSettings: deps.openSettings,
 		openProjectSettings: deps.openProjectSettings,
+		listAppearancePlugins: () => deps.say(summarizeAppearancePlugins(deps.appearanceVersion())),
 		reloadAppearancePlugins: deps.reloadAppearancePlugins,
 		appearanceVersion: deps.appearanceVersion,
 		problemsList: deps.problemUi.list,

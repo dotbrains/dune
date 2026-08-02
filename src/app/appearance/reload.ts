@@ -23,3 +23,16 @@ export function reloadAppearancePlugins(deps: {
 	if (status) deps.say(status.msg, status.tone);
 	else deps.say(`Reloaded appearance plugins`);
 }
+
+export function summarizeAppearancePlugins(load: AppearancePluginLoad): string {
+	const themeCount = load.themes.length;
+	const iconCount = load.iconThemes.length;
+	const problemCount = load.problems.length;
+	if (themeCount === 0 && iconCount === 0 && problemCount === 0) {
+		return `No local appearance plugins`;
+	}
+	const parts = [`${themeCount} theme${themeCount === 1 ? '' : 's'}`];
+	parts.push(`${iconCount} icon theme${iconCount === 1 ? '' : 's'}`);
+	if (problemCount > 0) parts.push(`${problemCount} problem${problemCount === 1 ? '' : 's'}`);
+	return `Local appearance plugins: ${parts.join(', ')}`;
+}

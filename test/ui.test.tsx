@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { BaseRenderable, TextareaRenderable } from '@opentui/core';
 import { testRender } from '@opentui/solid';
 
+import { summarizeAppearancePlugins } from '../src/app/appearance/reload';
 import { buildCommands } from '../src/app/commands';
 import type { Command, CommandActions } from '../src/app/commands';
 import { settingsRows } from '../src/app/settingsRows';
@@ -56,6 +57,19 @@ function settingsRowOf(label: string): number {
 }
 
 const saved = () => JSON.parse(readFileSync(CONFIG_FILE, 'utf8')) as Record<string, unknown>;
+
+test('summarizes loaded local appearance plugins', () => {
+	expect(summarizeAppearancePlugins({ themes: [], iconThemes: [], problems: [] })).toBe(
+		'No local appearance plugins',
+	);
+	expect(
+		summarizeAppearancePlugins({
+			themes: [{ id: 'project-theme', theme: {} as never }],
+			iconThemes: [{ id: 'project-icons', name: 'Project Icons' } as never],
+			problems: [{ source: 'plugin.json', reason: 'invalid theme' }],
+		}),
+	).toBe('Local appearance plugins: 1 theme, 1 icon theme, 1 problem');
+});
 
 function findTextarea(node: BaseRenderable): TextareaRenderable | null {
 	if (node instanceof TextareaRenderable) return node;
@@ -372,6 +386,20 @@ describe('command palette', () => {
 
 		expect(t.captureCharFrame()).toContain('Project Icons');
 		expect(saved().iconTheme).toBe('project-icons');
+	});
+
+	test('can list local appearance plugins from the palette', async () => {
+		const t = await launch(
+			fixture({
+				'a.ts': 'const a = 1\n',
+				'.dune/plugins/project-icons/plugin.json': ICON_PLUGIN,
+				'.dune/plugins/project-theme/plugin.json': THEME_PLUGIN,
+			}),
+		);
+
+		await runCommand(t, 'List local appearance plugins');
+
+		expect(t.captureCharFrame()).toContain('Local appearance plugins: 1 theme, 1 icon theme');
 	});
 
 	test('settings can cycle to a project theme plugin theme', async () => {

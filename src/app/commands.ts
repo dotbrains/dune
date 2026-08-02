@@ -84,6 +84,7 @@ export interface CommandActions {
 	toggleMarkdown: () => void;
 	openSettings: () => void;
 	openProjectSettings: () => void;
+	listAppearancePlugins: () => void;
 	reloadAppearancePlugins: () => void;
 	setVim: (enabled: boolean) => void;
 	setTabSize: (size: number) => void;
@@ -257,6 +258,11 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 			id: 'themes',
 			label: 'Themes',
 			children: [
+				{
+					id: 'themes.listAppearancePlugins',
+					label: 'List local appearance plugins',
+					run: actions.listAppearancePlugins,
+				},
 				{
 					id: 'themes.reloadAppearancePlugins',
 					label: 'Reload local appearance plugins',

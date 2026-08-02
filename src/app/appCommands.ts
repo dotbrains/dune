@@ -62,6 +62,7 @@ export function createAppCommands(deps: {
 	completion: { show: () => void; goToDefinition: () => void };
 	openSettings: () => void;
 	openProjectSettings: () => void;
+	listAppearancePlugins: () => void;
 	reloadAppearancePlugins: () => void;
 	appearanceVersion: () => unknown;
 	setLineOp: (
@@ -155,6 +156,7 @@ export function createAppCommands(deps: {
 					toggleGitignored: deps.toggleGitignored,
 					openSettings: deps.openSettings,
 					openProjectSettings: deps.openProjectSettings,
+					listAppearancePlugins: deps.listAppearancePlugins,
 					setVim: deps.applyVim,
 					setTabSize: deps.applyTabSize,
 					setTheme: deps.applyTheme,
