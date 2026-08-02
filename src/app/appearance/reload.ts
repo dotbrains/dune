@@ -15,7 +15,11 @@ export function reloadAppearancePlugins(deps: {
 	setAppearancePlugins: Setter<AppearancePluginLoad>;
 	say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
 }) {
-	const next = loadAppearancePlugins(deps.rootDir);
+	const next = loadAppearancePlugins(
+		deps.rootDir,
+		undefined,
+		deps.config.disabledAppearancePlugins,
+	);
 	deps.setAppearancePlugins(next);
 	setTheme(resolvedTheme(deps.config, null));
 	invalidateSyntaxStyle();
@@ -27,7 +31,9 @@ export function reloadAppearancePlugins(deps: {
 export function summarizeAppearancePlugins(load: AppearancePluginLoad): string {
 	const themeCount = load.themes.length;
 	const iconCount = load.iconThemes.length;
-	const pluginNames = load.plugins.map((plugin) => `${plugin.id} ${plugin.version}`);
+	const pluginNames = load.plugins.map(
+		(plugin) => `${plugin.disabled ? 'off ' : ''}${plugin.id} ${plugin.version}`,
+	);
 	const problemCount = load.problems.length;
 	if (themeCount === 0 && iconCount === 0 && pluginNames.length === 0 && problemCount === 0) {
 		return `No local appearance plugins`;

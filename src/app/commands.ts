@@ -91,6 +91,7 @@ export interface CommandActions {
 	updateAppearancePlugins: () => void;
 	installAppearancePlugin: () => void;
 	installAppearancePluginById: (id: string) => void;
+	toggleAppearancePlugin: (id: string) => void;
 	removeAppearancePlugin: () => void;
 	reloadAppearancePlugins: () => void;
 	setVim: (enabled: boolean) => void;
@@ -144,7 +145,7 @@ export interface CommandContext {
 	showDotfiles: boolean;
 	respectGitignore: boolean;
 	marketPlugins: readonly { id: string; name: string; version: string; description: string }[];
-	installedAppearancePlugins: readonly { id: string; version: string }[];
+	installedAppearancePlugins: readonly { id: string; version: string; disabled: boolean }[];
 }
 
 const TAB_SIZES = [2, 4, 8];
@@ -311,6 +312,11 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 					label: 'Remove appearance plugin…',
 					run: actions.removeAppearancePlugin,
 				},
+				...ctx.installedAppearancePlugins.map((plugin) => ({
+					id: `themes.toggleAppearancePlugin.${plugin.id}`,
+					label: `${plugin.disabled ? 'Enable' : 'Disable'} ${plugin.id} ${plugin.version}`,
+					run: () => actions.toggleAppearancePlugin(plugin.id),
+				})),
 				{
 					id: 'themes.reloadAppearancePlugins',
 					label: 'Reload local appearance plugins',

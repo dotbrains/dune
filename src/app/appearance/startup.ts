@@ -8,9 +8,13 @@ import type { AppProps } from '../types';
 export function prepareStartup(props: AppProps) {
 	const rootDir = props.rootDir;
 	const restored = restoreAppState(rootDir, props.openFile ?? null);
-	const appearancePlugins = loadAppearancePlugins(rootDir);
-	const pluginStatus = appearancePluginStatus(appearancePlugins.problems);
 	const initialConfig = resolveConfig(props.initialConfig, props.projectConfig ?? {});
+	const appearancePlugins = loadAppearancePlugins(
+		rootDir,
+		undefined,
+		initialConfig.disabledAppearancePlugins,
+	);
+	const pluginStatus = appearancePluginStatus(appearancePlugins.problems);
 	const initialAppearance = detectAppearance();
 	initialConfig.theme = resolvedTheme(initialConfig, initialAppearance);
 	void (setTheme(initialConfig.theme), setTransparency(initialConfig.transparent));

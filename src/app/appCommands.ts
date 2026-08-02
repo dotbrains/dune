@@ -153,6 +153,14 @@ export function createAppCommands(deps: {
 		if (failed.length > 0) deps.say(`Could not update ${failed.join(', ')}`, 'error');
 		if (updated > 0) deps.say(`Updated ${updated} appearance plugin${updated === 1 ? '' : 's'}`);
 	};
+	const toggleAppearancePlugin = (id: string) => {
+		const disabled = deps.config.disabledAppearancePlugins;
+		const off = disabled.includes(id);
+		const next = off ? disabled.filter((entry) => entry !== id) : [...disabled, id];
+		deps.patchConfig({ disabledAppearancePlugins: next });
+		deps.reloadAppearancePlugins();
+		deps.say(`Appearance plugin ${id} ${off ? 'enabled' : 'disabled'}`);
+	};
 
 	return createMemo(() => {
 		void deps.appearanceVersion();
@@ -219,6 +227,7 @@ export function createAppCommands(deps: {
 				updateAppearancePlugins,
 				installAppearancePlugin: () => deps.setPrompt({ kind: 'appearancePluginId' }),
 				installAppearancePluginById: (id) => void installAppearancePluginById(id),
+				toggleAppearancePlugin,
 				removeAppearancePlugin: () => deps.setPrompt({ kind: 'appearancePluginRemoveId' }),
 				setVim: deps.applyVim,
 				setTabSize: deps.applyTabSize,

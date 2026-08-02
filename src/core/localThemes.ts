@@ -27,6 +27,7 @@ export interface InstalledAppearancePlugin {
 	id: string;
 	version: string;
 	source: string;
+	disabled: boolean;
 }
 
 export function appearancePluginStatus(
@@ -92,6 +93,7 @@ function parseTheme(raw: unknown): { id: string; theme: Theme } | null {
 function loadInstalledPlugins(
 	rootDir: string,
 	userDir = USER_THEME_PLUGIN_DIR,
+	disabled: readonly string[] = [],
 ): InstalledAppearancePlugin[] {
 	const sources = [
 		...manifestsIn(userDir),
@@ -110,12 +112,23 @@ function loadInstalledPlugins(
 		const hasAppearance =
 			(Array.isArray(raw.themes) && raw.themes.length > 0) ||
 			(Array.isArray(raw.icons) && raw.icons.length > 0);
-		if (hasAppearance) plugins.set(raw.id, { id: raw.id, version: raw.version, source });
+		if (hasAppearance) {
+			plugins.set(raw.id, {
+				id: raw.id,
+				version: raw.version,
+				source,
+				disabled: disabled.includes(raw.id),
+			});
+		}
 	}
 	return [...plugins.values()];
 }
 
-export function loadLocalThemes(rootDir: string, userDir = USER_THEME_PLUGIN_DIR): LocalThemeLoad {
+export function loadLocalThemes(
+	rootDir: string,
+	userDir = USER_THEME_PLUGIN_DIR,
+	disabled: readonly string[] = [],
+): LocalThemeLoad {
 	const problems: LocalThemeProblem[] = [];
 	const themes = new Map<string, Theme>();
 	const sources = [
@@ -132,6 +145,7 @@ export function loadLocalThemes(rootDir: string, userDir = USER_THEME_PLUGIN_DIR
 			problems.push({ source, reason: error instanceof Error ? error.message : String(error) });
 			continue;
 		}
+		if (isRecord(raw) && typeof raw.id === 'string' && disabled.includes(raw.id)) continue;
 		const entries = Array.isArray((raw as { themes?: unknown }).themes)
 			? (raw as { themes: unknown[] }).themes
 			: [];
@@ -151,14 +165,15 @@ export function loadLocalThemes(rootDir: string, userDir = USER_THEME_PLUGIN_DIR
 export function loadAppearancePlugins(
 	rootDir: string,
 	userDir = USER_THEME_PLUGIN_DIR,
+	disabled: readonly string[] = [],
 ): AppearancePluginLoad {
-	const colorThemes = loadLocalThemes(rootDir, userDir);
-	const iconThemes = loadIconThemes(rootDir, userDir);
+	const colorThemes = loadLocalThemes(rootDir, userDir, disabled);
+	const iconThemes = loadIconThemes(rootDir, userDir, disabled);
 	registerLocalThemes(colorThemes.themes);
 	return {
 		themes: colorThemes.themes,
 		iconThemes: iconThemes.themes,
-		plugins: loadInstalledPlugins(rootDir, userDir),
+		plugins: loadInstalledPlugins(rootDir, userDir, disabled),
 		problems: [...colorThemes.problems, ...iconThemes.problems],
 	};
 }

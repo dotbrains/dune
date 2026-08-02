@@ -89,7 +89,11 @@ function parseIconTheme(raw: unknown): IconTheme | null {
 	return { id: obj.id, name: obj.name, file, folder, folderOpen, extensions, names, folders };
 }
 
-export function loadIconThemes(rootDir: string, userDir = USER_ICON_PLUGIN_DIR): IconThemeLoad {
+export function loadIconThemes(
+	rootDir: string,
+	userDir = USER_ICON_PLUGIN_DIR,
+	disabled: readonly string[] = [],
+): IconThemeLoad {
 	const problems: IconThemeProblem[] = [];
 	const themes = new Map<string, IconTheme>();
 	const sources = [
@@ -105,6 +109,10 @@ export function loadIconThemes(rootDir: string, userDir = USER_ICON_PLUGIN_DIR):
 		} catch (error) {
 			problems.push({ source, reason: error instanceof Error ? error.message : String(error) });
 			continue;
+		}
+		if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+			const id = (raw as { id?: unknown }).id;
+			if (typeof id === 'string' && disabled.includes(id)) continue;
 		}
 		const icons = Array.isArray((raw as { icons?: unknown }).icons)
 			? (raw as { icons: unknown[] }).icons

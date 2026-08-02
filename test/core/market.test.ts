@@ -170,6 +170,11 @@ test('a fetched manifest is written where appearance plugin loading finds it', a
 	expect(icons.themes.map((entry) => entry.id)).toEqual(['mono-icons']);
 	expect(appearance.plugins.map((entry) => `${entry.id}@${entry.version}`)).toEqual(['mono@1.2.0']);
 
+	const disabled = loadAppearancePlugins(project, root, ['mono']);
+	expect(disabled.themes).toEqual([]);
+	expect(disabled.iconThemes).toEqual([]);
+	expect(disabled.plugins.map((entry) => `${entry.id}:${entry.disabled}`)).toEqual(['mono:true']);
+
 	expect(writePlugin('other', fetched, root)).toBe('other manifest id mismatch');
 	expect(removeFromDisk('../outside', root)).toContain('not a plugin id');
 	expect(removeFromDisk('mono', root)).toBeNull();

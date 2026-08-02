@@ -108,6 +108,8 @@ export interface Config {
 	pluginRegistry: string;
 	/** Check the appearance plugin catalog at startup for installed plugin updates. */
 	pluginUpdates: boolean;
+	/** Local appearance plugin ids to list but not register. */
+	disabledAppearancePlugins: string[];
 }
 
 export const DEFAULTS: Config = {
@@ -139,6 +141,7 @@ export const DEFAULTS: Config = {
 	keybindings: {},
 	pluginRegistry: 'https://dune.dotbrains.dev/plugins/',
 	pluginUpdates: true,
+	disabledAppearancePlugins: [],
 };
 
 function parsePartial(raw: unknown): Partial<Config> {
@@ -210,6 +213,11 @@ function parsePartial(raw: unknown): Partial<Config> {
 		config.pluginRegistry = obj.pluginRegistry;
 	}
 	if (typeof obj.pluginUpdates === 'boolean') config.pluginUpdates = obj.pluginUpdates;
+	if (Array.isArray(obj.disabledAppearancePlugins)) {
+		config.disabledAppearancePlugins = obj.disabledAppearancePlugins.filter(
+			(entry): entry is string => typeof entry === 'string' && /^[\w.-]+$/.test(entry),
+		);
+	}
 	if (
 		typeof obj.sidebarWidth === 'number' &&
 		obj.sidebarWidth >= SIDEBAR_MIN &&

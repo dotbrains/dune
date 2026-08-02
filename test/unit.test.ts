@@ -248,6 +248,31 @@ describe('registries', () => {
 		);
 	});
 
+	test('appearance plugin commands can disable and enable installed plugins', () => {
+		const actions = new Proxy({} as CommandActions, {
+			get: () => () => {},
+		});
+		const tree = buildCommands(actions, {
+			vimEnabled: false,
+			activeTheme: 'dark',
+			tabSize: 2,
+			trimOnSave: false,
+			formatOnSave: false,
+			autoSaveOnBlur: false,
+			showDotfiles: true,
+			respectGitignore: false,
+			marketPlugins: [],
+			installedAppearancePlugins: [
+				{ id: 'mono', version: '1.0.0', disabled: false },
+				{ id: 'paper', version: '2.0.0', disabled: true },
+			],
+		});
+		const labels = flattenCommands(tree).map((leaf) => leaf.command.label);
+
+		expect(labels).toContain('Disable mono 1.0.0');
+		expect(labels).toContain('Enable paper 2.0.0');
+	});
+
 	test('settings expose appearance plugin update checks', () => {
 		const rows = settingsRows(DEFAULTS, [], {
 			applyTheme: () => {},
