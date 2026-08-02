@@ -57,6 +57,7 @@
 		"ci": "bun run check-types && bun run lint && bun run format:check && bun run budget && bun run test:ci && bun run build"
 	},
 	"dependencies": {
+		"@hyzyla/pdfium": "^2.1.13",
 		"@opentui/core": "^0.4.5",
 		"@opentui/solid": "^0.4.5",
 		"fast-png": "^8.0.0",

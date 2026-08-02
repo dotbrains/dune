@@ -24,6 +24,7 @@ scripts/
     cli.ts           argv -> project directory + optional single file
     config.ts        user settings plus per-project overrides in .dune/settings.json
     fs.ts            file listing, read/write, binary guard, directory watcher
+    pdf.ts           PDFium-backed page rendering for read-only PDF viewer tabs
     search.ts        in-file/project search, fuzzy matching, replace
     git.ts           read-only queries: diff hunks, status, branch, ahead/behind
     markdown.ts      markdown path detection for rendered document tabs
@@ -54,7 +55,7 @@ scripts/
     typing.ts        auto-closing pairs and indentation on Enter
   ui/                presentational components, no app state
     EditorPane, FileTree, Tabs, StatusBar, CommandPalette, FilePicker,
-    SearchPanel, MarkdownView, UpdateBanner, Overlay, TextInput, PromptModal,
+    SearchPanel, MarkdownView, ViewerPane, ImageView, PdfView, UpdateBanner, Overlay, TextInput, PromptModal,
     ConfirmModal, ChoiceModal, HelpOverlay
 ```
 

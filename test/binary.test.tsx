@@ -7,7 +7,8 @@ import { encode } from 'fast-png';
 
 import { decodeImage, imageCells, isImagePath } from '../src/core/image';
 import type { RawImage } from '../src/core/image';
-import { fixture, launch, press, settle } from './helpers';
+import { isPdfPath, openPdf, pdfRenderSize, stepPdfZoom } from '../src/core/pdf';
+import { fixture, launch, press, settle, until } from './helpers';
 
 /** A project with a real binary file next to a text one. */
 function project() {
@@ -39,6 +40,38 @@ function imageProject(): { dir: string; png: string } {
 	).flat();
 	writeFileSync(png, encode({ width: 4, height: 8, data: new Uint8Array(pixels), channels: 4 }));
 	return { dir, png };
+}
+
+function pdfBytes(): Uint8Array {
+	const encoder = new TextEncoder();
+	const stream = (content: string) =>
+		`<< /Length ${encoder.encode(content).byteLength} >>\nstream\n${content}\nendstream`;
+	const objects = [
+		'<< /Type /Catalog /Pages 2 0 R >>',
+		'<< /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >>',
+		'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 20 20] /Resources << >> /Contents 4 0 R >>',
+		stream('1 0 0 rg\n0 0 20 20 re f'),
+		'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 20 20] /Resources << >> /Contents 6 0 R >>',
+		stream('0 0 1 rg\n0 0 20 20 re f'),
+	];
+	let body = '%PDF-1.4\n';
+	const offsets: number[] = [];
+	for (const [index, object] of objects.entries()) {
+		offsets.push(encoder.encode(body).byteLength);
+		body += `${index + 1} 0 obj\n${object}\nendobj\n`;
+	}
+	const xref = encoder.encode(body).byteLength;
+	const rows = offsets.map((offset) => `${offset.toString().padStart(10, '0')} 00000 n `);
+	body += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${rows.join('\n')}\n`;
+	body += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+	return encoder.encode(body);
+}
+
+function pdfProject(): { dir: string; pdf: string } {
+	const dir = fixture({ 'main.ts': 'const answer = 42\n' });
+	const pdf = join(dir, 'sample.pdf');
+	writeFileSync(pdf, pdfBytes());
+	return { dir, pdf };
 }
 
 test('a binary file is listed but does not open', async () => {
@@ -127,6 +160,25 @@ test('image helpers decode still images and pack terminal cells', () => {
 	expect([...odd.cells]).toEqual([10, 20, 30, 255, 0, 0, 0, 0]);
 });
 
+test('pdf helpers render pages as images', async () => {
+	const { pdf } = pdfProject();
+	expect(isPdfPath('/tmp/report.pdf')).toBe(true);
+	expect(isPdfPath('/tmp/report.PDF')).toBe(true);
+	expect(isPdfPath('/tmp/report.png')).toBe(false);
+	expect(pdfRenderSize(20, 20, 10, 5, 100)).toEqual({ width: 10, height: 10 });
+	expect(stepPdfZoom(100, 1)).toBe(125);
+	expect(stepPdfZoom(25, -1)).toBe(25);
+
+	const opened = await openPdf(pdf);
+	expect(opened.pageCount).toBe(2);
+	const red = await opened.renderPage(0, 10, 5, 100);
+	expect(red).toMatchObject({ width: 10, height: 10 });
+	expect(Array.from(red.pixels.slice(0, 4))).toEqual([255, 0, 0, 255]);
+	const blue = await opened.renderPage(1, 10, 5, 100);
+	expect(Array.from(blue.pixels.slice(0, 4))).toEqual([0, 0, 255, 255]);
+	opened.close();
+});
+
 test('image files open as read-only viewer tabs', async () => {
 	const { dir, png } = imageProject();
 	const t = await launch(dir, {}, { width: 80, height: 24 }, { openFile: png });
@@ -168,3 +220,32 @@ test('image tabs survive session restore', async () => {
 	const second = await launch(dir, {}, { width: 80, height: 24 });
 	expect(second.captureCharFrame()).toContain('logo.png - 4x8 - 1 KB');
 });
+
+test('pdf files open as read-only viewer tabs', async () => {
+	const { dir, pdf } = pdfProject();
+	const t = await launch(dir, {}, { width: 80, height: 24 }, { openFile: pdf });
+	await until(t, () => t.captureCharFrame().includes('sample.pdf - 1/2 - 100%'), 100);
+
+	expect(t.captureCharFrame()).toContain('sample.pdf - 1/2 - 100%');
+	expect(t.captureCharFrame()).toContain('▀');
+	expect(t.captureCharFrame()).toContain('pdf');
+
+	const before = [...(await Bun.file(pdf).bytes())];
+	await press(t, (input) => input.pressKey('s', { ctrl: true }));
+	expect([...(await Bun.file(pdf).bytes())]).toEqual(before);
+});
+
+test('the file picker opens PDF tabs and restores them', async () => {
+	const { dir } = pdfProject();
+	const first = await launch(dir, {}, { width: 80, height: 24 });
+
+	await press(first, (input) => input.pressKey('o', { ctrl: true }));
+	await press(first, (input) => void input.typeText('sample'));
+	await press(first, (input) => input.pressEnter());
+	await until(first, () => first.captureCharFrame().includes('sample.pdf - 1/2 - 100%'), 100);
+	expect(first.captureCharFrame()).toContain('sample.pdf - 1/2 - 100%');
+
+	const second = await launch(dir, {}, { width: 80, height: 24 });
+	await until(second, () => second.captureCharFrame().includes('sample.pdf - 1/2 - 100%'), 100);
+	expect(second.captureCharFrame()).toContain('sample.pdf - 1/2 - 100%');
+}, 10000);

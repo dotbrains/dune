@@ -1,5 +1,6 @@
 import { BinaryFileError, exists, mtimeOf, readTextFile } from '../core/fs';
 import { isImagePath } from '../core/image';
+import { isPdfPath } from '../core/pdf';
 import { loadSession } from '../core/session';
 import type { BufferState } from './types';
 
@@ -14,7 +15,7 @@ export interface RestoredAppState {
 
 export function restoreAppState(rootDir: string, single: string | null): RestoredAppState {
 	if (single) {
-		if (isImagePath(single))
+		if (isImagePath(single) || isPdfPath(single))
 			return {
 				buffers: {},
 				tabs: [single],
@@ -57,7 +58,7 @@ export function restoreAppState(rootDir: string, single: string | null): Restore
 	const saved = loadSession(rootDir);
 	const buffers: Record<string, BufferState> = {};
 	for (const path of saved.tabs) {
-		if (isImagePath(path)) continue;
+		if (isImagePath(path) || isPdfPath(path)) continue;
 		try {
 			const file = readTextFile(path);
 			buffers[path] = {
@@ -68,7 +69,9 @@ export function restoreAppState(rootDir: string, single: string | null): Restore
 			};
 		} catch {}
 	}
-	const tabs = saved.tabs.filter((path) => buffers[path] || (isImagePath(path) && exists(path)));
+	const tabs = saved.tabs.filter(
+		(path) => buffers[path] || ((isImagePath(path) || isPdfPath(path)) && exists(path)),
+	);
 	const activePath =
 		saved.activePath && tabs.includes(saved.activePath) ? saved.activePath : (tabs[0] ?? null);
 	return {

@@ -118,8 +118,10 @@ translucent terminal themes.
 Set `gitPanelView` to `list` to show changed files as flat paths in the source control
 panel instead of the default folder tree.
 
-PNG and JPEG files open as read-only image tabs. They are rendered in the editor slot,
-restore with the rest of the session, and are never treated as editable buffers.
+PNG, JPEG and PDF files open as read-only viewer tabs. Images render directly in the
+editor slot; PDFs render one page at a time with `PageUp` / `PageDown`, `+` / `-` zoom,
+arrow-key panning, and `0` to fit again. Viewer tabs restore with the rest of the
+session and are never treated as editable buffers.
 
 Markdown files can be read as rendered documents with `Ctrl+Opt+M` or
 `Markdown: rendered / source` from the command palette. The same tab toggles between the

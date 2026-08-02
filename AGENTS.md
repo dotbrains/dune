@@ -11,7 +11,7 @@ reconciler on a native Zig core). Shipped as a standalone binary — GitHub Pack
 Homebrew, a curl installer — and run as a CLI.
 
 Features: file tree with bulk file operations, preview/pinned tabs, editor navigation history, git status marks and
-gitignored dimming, tree-sitter syntax highlighting, rendered markdown tabs, search (current file and
+gitignored dimming, tree-sitter syntax highlighting, rendered markdown tabs, image/PDF viewer tabs, search (current file and
 project-wide), command palette, themes with transparent-background mode, vim mode, configurable cursor shape, git marks in tree/gutter/status bar,
 file watching with conflict prompts, language server diagnostics/completion/status,
 per-project session restore, and a startup update check.
@@ -64,7 +64,8 @@ to break:
 - **Assets must be static `with { type: 'file' }` imports.** Bun embeds only what it can
   see at build time, so a computed specifier or an `import.meta.resolve` call leaves the
   binary without that file. Every grammar and query goes through
-  `src/languages/grammars.ts` for this reason.
+  `src/languages/grammars.ts` for this reason, and the PDFium wasm goes through
+  `src/core/pdf.ts`.
 - **The binary must not autoload `bunfig.toml`.** dune is opened inside other people's
   projects, and a standalone Bun binary otherwise reads the `bunfig.toml` it finds there —
   whose `preload` fails to resolve and kills startup. `build.ts` turns that off.

@@ -9,6 +9,7 @@ import type { TreeNode } from '../core/fs';
 import type { FileStatus, LineChange, Upstream } from '../core/git';
 import type { DiffFile } from '../core/gitDiff';
 import { isImagePath } from '../core/image';
+import { isPdfPath } from '../core/pdf';
 import type { Match } from '../core/search';
 import type { ProblemSeverity } from '../lsp/protocol';
 import type { CompletionItem } from '../lsp/protocol';
@@ -28,7 +29,6 @@ import { EditorPane } from '../ui/EditorPane';
 import { FilePicker } from '../ui/FilePicker';
 import { FileTree } from '../ui/FileTree';
 import { HelpOverlay } from '../ui/HelpOverlay';
-import { ImageView } from '../ui/ImageView';
 import { KeyPeek } from '../ui/KeyPeek';
 import { LspStatusView } from '../ui/overlays/LspStatusView';
 import { MarkdownView } from '../ui/MarkdownView';
@@ -42,6 +42,7 @@ import { StatusBar } from '../ui/StatusBar';
 import type { Tone } from '../ui/StatusBar';
 import { Tabs } from '../ui/Tabs';
 import { UpdateBanner } from '../ui/UpdateBanner';
+import { ViewerPane } from '../ui/ViewerPane';
 import type { SearchOptions } from '../core/search';
 import type { UpdateInfo } from '../core/update';
 import type { Command } from './commands';
@@ -168,6 +169,10 @@ export function AppView(props: AppViewProps) {
 	const dimensions = useTerminalDimensions();
 	const activeImage = () =>
 		props.activePath && isImagePath(props.activePath) ? props.activePath : null;
+	const activePdf = () =>
+		props.activePath && isPdfPath(props.activePath) ? props.activePath : null;
+	const activeViewer = () => activeImage() || activePdf();
+	const textBufferActive = () => props.activePath && !activeViewer() && !props.renderedMarkdownPath;
 	const editorSlotFocused = () => props.focus === 'editor' || props.renderedMarkdownPath !== null;
 	const editorWidth = () =>
 		Math.max(1, dimensions().width - (props.sidebar ? props.treeWidth + 1 : 0));
@@ -259,7 +264,7 @@ export function AppView(props: AppViewProps) {
 					</box>
 				</Show>
 				<Show
-					when={activeImage()}
+					when={activeViewer()}
 					fallback={
 						<Show
 							when={props.renderedMarkdownPath}
@@ -311,10 +316,12 @@ export function AppView(props: AppViewProps) {
 					}
 				>
 					{(path: () => string) => (
-						<ImageView
+						<ViewerPane
 							path={path()}
 							width={editorWidth()}
 							height={editorHeight()}
+							focused={editorSlotFocused()}
+							blocked={props.blocked}
 							onFocus={props.onEditorFocus}
 						/>
 					)}
@@ -326,21 +333,17 @@ export function AppView(props: AppViewProps) {
 				filetype={
 					activeImage()
 						? 'image'
-						: props.renderedMarkdownPath
-							? 'md'
-							: props.activePath
-								? languageLabel(filetypeForPath(props.activePath!) ?? 'plain')
-								: undefined
+						: activePdf()
+							? 'pdf'
+							: props.renderedMarkdownPath
+								? 'md'
+								: props.activePath
+									? languageLabel(filetypeForPath(props.activePath!) ?? 'plain')
+									: undefined
 				}
-				cursor={
-					props.activePath && !activeImage() && !props.renderedMarkdownPath
-						? props.cursor
-						: undefined
-				}
+				cursor={textBufferActive() ? props.cursor : undefined}
 				dirty={props.activeBuffer?.dirty ?? false}
-				vimMode={
-					props.activePath && !activeImage() && !props.renderedMarkdownPath ? props.vimMode : null
-				}
+				vimMode={textBufferActive() ? props.vimMode : null}
 				branch={props.branch}
 				ahead={props.upstream?.ahead ?? 0}
 				behind={props.upstream?.behind ?? 0}
