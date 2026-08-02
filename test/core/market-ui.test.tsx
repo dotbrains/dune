@@ -108,6 +108,89 @@ test('the palette can install an appearance plugin from the market list', async 
 	}
 });
 
+test('the appearance plugins page lists and toggles installed plugins', async () => {
+	const manifest = {
+		id: 'mono',
+		name: 'Mono',
+		version: '1.0.0',
+		icons: [{ id: 'mono-icons', name: 'Mono Icons', file: 'f', folder: 'd', folderOpen: 'o' }],
+	};
+	expect(
+		writePlugin('mono', {
+			ok: true,
+			id: 'mono',
+			version: '1.0.0',
+			body: JSON.stringify(manifest),
+		}),
+	).toBeNull();
+
+	const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }));
+	await runCommand(t, 'Plugin manager');
+	await until(t, () => {
+		const frame = t.captureCharFrame();
+		return frame.includes('Appearance plugins') && frame.includes('Disable mono 1.0.0');
+	});
+	await press(t, (input) => input.pressEnter());
+	await until(t, () => t.captureCharFrame().includes('Appearance plugin mono disabled'));
+
+	await runCommand(t, 'Plugin manager');
+	await until(t, () => t.captureCharFrame().includes('Enable mono 1.0.0'));
+});
+
+test('the appearance plugins page installs cached market plugins', async () => {
+	const realFetch = globalThis.fetch;
+	const manifest = {
+		id: 'contrast',
+		name: 'Contrast',
+		version: '2.0.0',
+		icons: [
+			{ id: 'contrast-icons', name: 'Contrast Icons', file: 'f', folder: 'd', folderOpen: 'o' },
+		],
+	};
+	globalThis.fetch = ((url: string) =>
+		Promise.resolve(
+			String(url).endsWith('/contrast/plugin.json')
+				? new Response(JSON.stringify(manifest))
+				: new Response(
+						JSON.stringify({
+							plugins: [
+								{
+									id: 'contrast',
+									name: 'Contrast',
+									version: '2.0.0',
+									description: 'high contrast icons',
+								},
+							],
+						}),
+					),
+		)) as typeof fetch;
+	try {
+		const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }), {
+			pluginRegistry: 'https://example.test/market',
+		});
+		await runCommand(t, 'Check appearance plugin market');
+		await until(t, () => t.captureCharFrame().includes('Appearance plugin market: 1 plugin'));
+		await runCommand(t, 'Plugin manager');
+		await until(t, () => {
+			const frame = t.captureCharFrame();
+			return frame.includes('Appearance plugins') && frame.includes('Install Contrast 2.0.0');
+		});
+		await press(t, (input) => input.pressEnter());
+		await until(
+			t,
+			() => t.captureCharFrame().includes('Installed appearance plugin contrast 2.0.0'),
+			80,
+		);
+		await until(t, () => existsSync(join(USER_THEME_PLUGIN_DIR, 'contrast/plugin.json')), 80);
+
+		expect(
+			JSON.parse(readFileSync(join(USER_THEME_PLUGIN_DIR, 'contrast/plugin.json'), 'utf8')),
+		).toEqual(manifest);
+	} finally {
+		globalThis.fetch = realFetch;
+	}
+});
+
 test('the market list labels installed plugin updates', async () => {
 	const realFetch = globalThis.fetch;
 	const manifest = {

@@ -85,6 +85,7 @@ export interface CommandActions {
 	toggleMarkdown: () => void;
 	openSettings: () => void;
 	openProjectSettings: () => void;
+	openAppearancePlugins: () => void;
 	listAppearancePlugins: () => void;
 	checkAppearanceMarket: () => void;
 	checkAppearanceUpdates: () => void;
@@ -269,6 +270,11 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 			id: 'themes',
 			label: 'Themes',
 			children: [
+				{
+					id: 'themes.appearancePlugins',
+					label: 'Plugin manager',
+					run: actions.openAppearancePlugins,
+				},
 				{
 					id: 'themes.listAppearancePlugins',
 					label: 'List local appearance plugins',

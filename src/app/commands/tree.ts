@@ -73,6 +73,7 @@ export function createAppCommandTree(deps: {
 	quit: () => void;
 	openSettings: () => void;
 	openProjectSettings: () => void;
+	openAppearancePlugins: () => void;
 	reloadAppearancePlugins: () => void;
 	appearanceVersion: () => AppearancePluginLoad;
 }): Accessor<Command[]> {
@@ -119,6 +120,7 @@ export function createAppCommandTree(deps: {
 		toggleTransparent: deps.controls.toggleTransparent,
 		openSettings: deps.openSettings,
 		openProjectSettings: deps.openProjectSettings,
+		openAppearancePlugins: deps.openAppearancePlugins,
 		listAppearancePlugins: () => deps.say(summarizeAppearancePlugins(deps.appearanceVersion())),
 		reloadAppearancePlugins: deps.reloadAppearancePlugins,
 		appearanceVersion: deps.appearanceVersion,

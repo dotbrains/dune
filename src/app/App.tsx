@@ -9,6 +9,7 @@ import { setTheme } from '../themes';
 import type { VimMode } from '../editor/vim';
 import { createAppControls } from './appControls';
 import { AppView } from './AppView';
+import { createAppearancePluginUi } from './appearance/pluginsPage';
 import { reloadAppearancePlugins as reloadPlugins } from './appearance/reload';
 import { prepareStartup } from './appearance/startup';
 import { createAppCommandTree } from './commands/tree';
@@ -107,6 +108,13 @@ export function App(props: AppTypes.AppProps) {
 	});
 	const refreshTree = () => setExpanded((prev) => new Set(prev));
 	const reloadUi = () => reloadPlugins({ rootDir, config, setAppearancePlugins, say });
+	const appearancePluginUi = createAppearancePluginUi({
+		config,
+		appearance: appearancePlugins,
+		patchConfig: (patch) => patchConfig(patch, settingsPage() ?? 'user'),
+		reload: reloadUi,
+		say,
+	});
 	const { renderedMarkdownPath, toggleMarkdown } = createMarkdownView({
 		activePath,
 		renderedMarkdown,
@@ -304,6 +312,7 @@ export function App(props: AppTypes.AppProps) {
 		help,
 		search,
 		settingsPage: () => settingsPage() !== null,
+		appearancePluginsOpen: appearancePluginUi.open,
 		lspStatusOpen,
 		diff: gitCommands.diff,
 		update,
@@ -364,6 +373,7 @@ export function App(props: AppTypes.AppProps) {
 		controls,
 		openSettings: () => setSettingsPage('user'),
 		openProjectSettings: () => setSettingsPage('project'),
+		openAppearancePlugins: appearancePluginUi.show,
 		reloadAppearancePlugins: reloadUi,
 		appearanceVersion: () => appearancePlugins(),
 		problemUi,
@@ -481,129 +491,132 @@ export function App(props: AppTypes.AppProps) {
 		say,
 	});
 	return (
-		<AppView
-			rootDir={rootDir}
-			config={config}
-			iconThemes={appearancePlugins().iconThemes}
-			tabs={tabs()}
-			activePath={activePath()}
-			renderedMarkdownPath={renderedMarkdownPath()}
-			activeBuffer={activeBuffer()}
-			buffers={buffers}
-			previewPath={previewPath()}
-			sidebar={sidebar()}
-			nodes={nodes()}
-			selectedPath={selectedPath()}
-			expanded={expanded()}
-			focus={focus()}
-			treeWidth={treeWidth()}
-			gitStatus={gitStatus()}
-			gitIgnored={gitIgnored()}
-			cutPaths={cut()}
-			markedPaths={marked()}
-			resizing={resizing()}
-			reloadKey={reloadKey()}
-			goto={goto()}
-			history={history()}
-			edit={edit()}
-			lineOp={lineOp()}
-			completion={completion.request()}
-			gitLines={gitLines()}
-			problems={problemUi.lines()}
-			problemCounts={problemUi.counts()}
-			problemChoices={problemUi.choices()}
-			problemsOpen={problemsOpen()}
-			lspStatusRows={lsp.statusRows()}
-			lspStatusOpen={lspStatusOpen()}
-			notice={notice()}
-			blocked={overlay()}
-			status={status()}
-			cursor={cursor()}
-			vimMode={vimMode()}
-			branch={branch()}
-			diffBase={diffBase()}
-			upstream={upstream()}
-			busy={busy()}
-			promptTitle={controls.promptTitle()}
-			promptValue={controls.promptValue()}
-			confirmation={controls.confirmation()}
-			search={search()}
-			picker={picker()}
-			gitPanel={gitCommands.panel()}
-			palette={palette()}
-			settingsPage={settingsPage() !== null}
-			settingsScope={settingsPage() ?? 'user'}
-			diff={gitCommands.diff()}
-			diffTitle={gitCommands.diffTitle()}
-			commands={commands()}
-			settingRows={settingRows()}
-			commitFiles={gitCommands.commitFiles()}
-			branchChoices={gitCommands.branchChoices()}
-			branchChoiceTitle={gitCommands.branchChoiceTitle()}
-			branchChoiceMessage={gitCommands.branchChoiceMessage()}
-			conflict={conflict()}
-			update={update()}
-			peek={peek()}
-			help={help()}
-			selection={selectedSingleLineText(renderer)}
-			canNavigateBack={navigation.canBack()}
-			canNavigateForward={navigation.canForward()}
-			onSelectTab={openFile}
-			onCloseTab={closeTab}
-			onNavigateBack={navigation.back}
-			onNavigateForward={navigation.forward}
-			onOverflowTabs={() => setPicker('tabs')}
-			onResizeDrag={(event) => resizing() && resizeSidebar(event.x)}
-			onResizeEnd={() => setResizing(false)}
-			onActivateNode={activateNode}
-			onPinNode={(node) => pinTab(node.path)}
-			onTreeFocus={() => setFocus('tree')}
-			onGitDiff={gitCommands.openDiff}
-			onGitCommit={gitCommands.openCommitPicker}
-			onGitPush={gitCommands.push}
-			onGitBranchAction={gitCommands.openPanelBranchAction}
-			onResizeStart={(event) => {
-				setResizing(true);
-				resizeSidebar(event.x);
-			}}
-			onEditorChange={onEditorChange}
-			onCursor={setCursor}
-			onEditorFocus={() => setFocus('editor')}
-			onVimMode={setVimMode}
-			onToggleMarkdown={toggleMarkdown}
-			onComplete={completion.complete}
-			onResolveCompletion={completion.resolve}
-			onQuit={quit}
-			onSubmitPrompt={(value) => {
-				if (prompt()?.kind === 'gotoLine') navigation.mark();
-				submitPrompt(value);
-			}}
-			onCancelPrompt={() => setPrompt(null)}
-			onConfirmPrompt={confirmPrompt}
-			onPickSearch={jumpTo}
-			onReplaceOne={replaceOne}
-			onReplaceAll={replaceEvery}
-			onCloseSearch={() => setSearch(null)}
-			onPickFile={(path: string) => void (setPicker(null), openFile(path))}
-			onClosePicker={() => setPicker(null)}
-			onClosePalette={() => setPalette(false)}
-			onCloseSettings={() => setSettingsPage(null)}
-			onPickProblem={problemUi.pick}
-			onCloseProblems={() => setProblemsOpen(false)}
-			onCloseLspStatus={() => setLspStatusOpen(false)}
-			onCloseDiff={gitCommands.closeDiff}
-			onCommitFiles={gitCommands.startCommit}
-			onCancelCommit={gitCommands.cancelCommit}
-			onPickBranch={gitCommands.pickBranch}
-			onCloseBranchChoices={gitCommands.closeBranchChoices}
-			onResolveConflict={resolveConflict}
-			onCancelConflict={() => setConflict(null)}
-			onCloseUpdate={() => setUpdate(null)}
-			onSkipUpdate={() => {
-				const info = update();
-				if (info) patchConfig({ skipUpdate: info.latest });
-				setUpdate(null);
-			}}
-		/>
+		<>
+			<AppView
+				rootDir={rootDir}
+				config={config}
+				iconThemes={appearancePlugins().iconThemes}
+				tabs={tabs()}
+				activePath={activePath()}
+				renderedMarkdownPath={renderedMarkdownPath()}
+				activeBuffer={activeBuffer()}
+				buffers={buffers}
+				previewPath={previewPath()}
+				sidebar={sidebar()}
+				nodes={nodes()}
+				selectedPath={selectedPath()}
+				expanded={expanded()}
+				focus={focus()}
+				treeWidth={treeWidth()}
+				gitStatus={gitStatus()}
+				gitIgnored={gitIgnored()}
+				cutPaths={cut()}
+				markedPaths={marked()}
+				resizing={resizing()}
+				reloadKey={reloadKey()}
+				goto={goto()}
+				history={history()}
+				edit={edit()}
+				lineOp={lineOp()}
+				completion={completion.request()}
+				gitLines={gitLines()}
+				problems={problemUi.lines()}
+				problemCounts={problemUi.counts()}
+				problemChoices={problemUi.choices()}
+				problemsOpen={problemsOpen()}
+				lspStatusRows={lsp.statusRows()}
+				lspStatusOpen={lspStatusOpen()}
+				notice={notice()}
+				blocked={overlay()}
+				status={status()}
+				cursor={cursor()}
+				vimMode={vimMode()}
+				branch={branch()}
+				diffBase={diffBase()}
+				upstream={upstream()}
+				busy={busy()}
+				promptTitle={controls.promptTitle()}
+				promptValue={controls.promptValue()}
+				confirmation={controls.confirmation()}
+				search={search()}
+				picker={picker()}
+				gitPanel={gitCommands.panel()}
+				palette={palette()}
+				settingsPage={settingsPage() !== null}
+				settingsScope={settingsPage() ?? 'user'}
+				diff={gitCommands.diff()}
+				diffTitle={gitCommands.diffTitle()}
+				commands={commands()}
+				settingRows={settingRows()}
+				commitFiles={gitCommands.commitFiles()}
+				branchChoices={gitCommands.branchChoices()}
+				branchChoiceTitle={gitCommands.branchChoiceTitle()}
+				branchChoiceMessage={gitCommands.branchChoiceMessage()}
+				conflict={conflict()}
+				update={update()}
+				peek={peek()}
+				help={help()}
+				selection={selectedSingleLineText(renderer)}
+				canNavigateBack={navigation.canBack()}
+				canNavigateForward={navigation.canForward()}
+				onSelectTab={openFile}
+				onCloseTab={closeTab}
+				onNavigateBack={navigation.back}
+				onNavigateForward={navigation.forward}
+				onOverflowTabs={() => setPicker('tabs')}
+				onResizeDrag={(event) => resizing() && resizeSidebar(event.x)}
+				onResizeEnd={() => setResizing(false)}
+				onActivateNode={activateNode}
+				onPinNode={(node) => pinTab(node.path)}
+				onTreeFocus={() => setFocus('tree')}
+				onGitDiff={gitCommands.openDiff}
+				onGitCommit={gitCommands.openCommitPicker}
+				onGitPush={gitCommands.push}
+				onGitBranchAction={gitCommands.openPanelBranchAction}
+				onResizeStart={(event) => {
+					setResizing(true);
+					resizeSidebar(event.x);
+				}}
+				onEditorChange={onEditorChange}
+				onCursor={setCursor}
+				onEditorFocus={() => setFocus('editor')}
+				onVimMode={setVimMode}
+				onToggleMarkdown={toggleMarkdown}
+				onComplete={completion.complete}
+				onResolveCompletion={completion.resolve}
+				onQuit={quit}
+				onSubmitPrompt={(value) => {
+					if (prompt()?.kind === 'gotoLine') navigation.mark();
+					submitPrompt(value);
+				}}
+				onCancelPrompt={() => setPrompt(null)}
+				onConfirmPrompt={confirmPrompt}
+				onPickSearch={jumpTo}
+				onReplaceOne={replaceOne}
+				onReplaceAll={replaceEvery}
+				onCloseSearch={() => setSearch(null)}
+				onPickFile={(path: string) => void (setPicker(null), openFile(path))}
+				onClosePicker={() => setPicker(null)}
+				onClosePalette={() => setPalette(false)}
+				onCloseSettings={() => setSettingsPage(null)}
+				onPickProblem={problemUi.pick}
+				onCloseProblems={() => setProblemsOpen(false)}
+				onCloseLspStatus={() => setLspStatusOpen(false)}
+				onCloseDiff={gitCommands.closeDiff}
+				onCommitFiles={gitCommands.startCommit}
+				onCancelCommit={gitCommands.cancelCommit}
+				onPickBranch={gitCommands.pickBranch}
+				onCloseBranchChoices={gitCommands.closeBranchChoices}
+				onResolveConflict={resolveConflict}
+				onCancelConflict={() => setConflict(null)}
+				onCloseUpdate={() => setUpdate(null)}
+				onSkipUpdate={() => {
+					const info = update();
+					if (info) patchConfig({ skipUpdate: info.latest });
+					setUpdate(null);
+				}}
+			/>
+			{appearancePluginUi.view()}
+		</>
 	);
 }

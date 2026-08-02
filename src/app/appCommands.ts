@@ -71,6 +71,7 @@ export function createAppCommands(deps: {
 	completion: { show: () => void; goToDefinition: () => void };
 	openSettings: () => void;
 	openProjectSettings: () => void;
+	openAppearancePlugins: () => void;
 	listAppearancePlugins: () => void;
 	reloadAppearancePlugins: () => void;
 	appearanceVersion: () => AppearancePluginLoad;
@@ -221,6 +222,7 @@ export function createAppCommands(deps: {
 				toggleGitignored: deps.toggleGitignored,
 				openSettings: deps.openSettings,
 				openProjectSettings: deps.openProjectSettings,
+				openAppearancePlugins: deps.openAppearancePlugins,
 				listAppearancePlugins: deps.listAppearancePlugins,
 				checkAppearanceMarket,
 				checkAppearanceUpdates,
