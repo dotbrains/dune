@@ -2,6 +2,7 @@ import type { KeyEvent, TextareaRenderable } from '@opentui/core';
 import { useKeyboard } from '@opentui/solid';
 
 import { copyToClipboard, readClipboard } from '../core/clipboard';
+import { latinKey } from '../core/keybindings';
 import { handleTyping } from '../editor/typing';
 import { handleVimKey } from '../editor/vim';
 import type { VimMode, VimState } from '../editor/vim';
@@ -30,9 +31,10 @@ export function useEditorKeymap(deps: {
 	useKeyboard((key: KeyEvent) => {
 		const editor = deps.editor();
 		if (key.defaultPrevented || deps.blocked() || !editor || !deps.focused()) return;
+		const k = latinKey(key);
 		deps.scheduleCursorSync();
 		deps.setCursorBeforeEdit(editor.cursorOffset);
-		if (key.ctrl && key.name === 'a') {
+		if (key.ctrl && k === 'a') {
 			key.preventDefault();
 			editor.selectAll();
 			deps.applyWindow(true);
@@ -52,32 +54,32 @@ export function useEditorKeymap(deps: {
 				return;
 			}
 		}
-		if (key.ctrl && key.name === 'z') {
+		if (key.ctrl && k === 'z') {
 			key.preventDefault();
 			deps.stepHistory(key.shift ? 'redo' : 'undo');
 			return;
 		}
-		if (key.ctrl && key.name === 'y') {
+		if (key.ctrl && k === 'y') {
 			key.preventDefault();
 			deps.stepHistory('redo');
 			return;
 		}
-		if (key.ctrl && (key.name === 'c' || key.name === 'x')) {
+		if (key.ctrl && (k === 'c' || k === 'x')) {
 			key.preventDefault();
 			const selected = editor.getSelectedText();
 			if (!selected) {
-				if (key.name === 'c') deps.onQuit();
+				if (k === 'c') deps.onQuit();
 				return;
 			}
 			copyToClipboard(selected);
 			deps.renderer.copyToClipboardOSC52(selected);
-			if (key.name === 'x') {
+			if (k === 'x') {
 				editor.deleteSelection();
 				deps.applyWindow(true);
 			}
 			return;
 		}
-		if (key.ctrl && key.name === 'v') {
+		if (key.ctrl && k === 'v') {
 			key.preventDefault();
 			const text = readClipboard();
 			if (text === null) return;
@@ -85,7 +87,7 @@ export function useEditorKeymap(deps: {
 			editor.insertText(text);
 			return;
 		}
-		if (key.ctrl && (key.name === '_' || key.name === '/' || key.name === 'l')) {
+		if (key.ctrl && (k === '_' || k === '/' || k === 'l')) {
 			key.preventDefault();
 			deps.toggleCommentLines();
 			return;
@@ -101,13 +103,9 @@ export function useEditorKeymap(deps: {
 			deps.scrollPage(key.name === 'pageup' ? -1 : 1);
 			return;
 		}
-		if (
-			(!deps.vim() || deps.vimState.mode === 'insert') &&
-			key.ctrl &&
-			(key.name === 'u' || key.name === 'd')
-		) {
+		if ((!deps.vim() || deps.vimState.mode === 'insert') && key.ctrl && (k === 'u' || k === 'd')) {
 			key.preventDefault();
-			deps.scrollPage(key.name === 'u' ? -1 : 1);
+			deps.scrollPage(k === 'u' ? -1 : 1);
 			return;
 		}
 		if (deps.vim() && deps.vimState.mode !== 'insert') return;

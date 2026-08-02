@@ -29,7 +29,12 @@ export async function launch(
 	/** Terminal size, for anything that has to degrade on a small screen. */
 	size: { width?: number; height?: number } = {},
 	/** `openFile` renders single-file mode, as `dune <file>` does. */
-	options: { openFile?: string; openLine?: number; checkUpdates?: boolean } = {},
+	options: {
+		openFile?: string;
+		openLine?: number;
+		checkUpdates?: boolean;
+		kittyKeyboard?: boolean;
+	} = {},
 ) {
 	const t = await testRender(
 		() =>
@@ -49,6 +54,7 @@ export async function launch(
 			// Mirror src/index.tsx. OpenTUI defaults this on and tears the renderer down
 			// itself, so without it a Ctrl+C test measures the harness, not the app.
 			exitOnCtrlC: false,
+			kittyKeyboard: options.kittyKeyboard,
 		},
 	);
 	await settle(t);

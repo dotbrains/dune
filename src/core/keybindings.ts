@@ -143,7 +143,55 @@ export function parseKeybindingEdit(input: string): KeybindingEdit {
 
 const secondary = (key: KeyEvent) => Boolean(key.option || key.meta || key.shift);
 
+const JCUKEN_TO_QWERTY: Record<string, string> = {
+	й: 'q',
+	ц: 'w',
+	у: 'e',
+	к: 'r',
+	е: 't',
+	н: 'y',
+	г: 'u',
+	ш: 'i',
+	щ: 'o',
+	з: 'p',
+	х: '[',
+	ї: ']',
+	ф: 'a',
+	і: 's',
+	ы: 's',
+	в: 'd',
+	а: 'f',
+	п: 'g',
+	р: 'h',
+	о: 'j',
+	л: 'k',
+	д: 'l',
+	ж: ';',
+	є: "'",
+	я: 'z',
+	ч: 'x',
+	с: 'c',
+	м: 'v',
+	и: 'b',
+	т: 'n',
+	ь: 'm',
+	б: ',',
+	ю: '.',
+};
+
+export function latinKey(key: KeyEvent): string {
+	if (key.baseCode !== undefined && key.baseCode >= 32 && key.baseCode !== 127) {
+		try {
+			const base = String.fromCodePoint(key.baseCode);
+			return base.length === 1 && base >= 'A' && base <= 'Z' ? base.toLowerCase() : base;
+		} catch {}
+	}
+	if (key.name.length === 1 && key.name >= 'A' && key.name <= 'Z') return key.name.toLowerCase();
+	return JCUKEN_TO_QWERTY[key.name.toLowerCase()] ?? key.name;
+}
+
 export function matchesChord(chord: Chord, key: KeyEvent): boolean {
-	const name = key.name === 'enter' ? 'return' : key.name;
+	const actual = latinKey(key);
+	const name = actual === 'enter' ? 'return' : actual;
 	return name === chord.key && Boolean(key.ctrl) === chord.ctrl && secondary(key) === chord.alt;
 }

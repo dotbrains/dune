@@ -5,7 +5,13 @@ import { useKeyboard } from '@opentui/solid';
 
 import type { Config } from '../core/config';
 import type { TreeNode } from '../core/fs';
-import { bindingProblem, isDisabledShortcut, matchesChord, parseChord } from '../core/keybindings';
+import {
+	bindingProblem,
+	isDisabledShortcut,
+	latinKey,
+	matchesChord,
+	parseChord,
+} from '../core/keybindings';
 import type { VimMode } from '../editor/vim';
 import type { Focus, Prompt } from './types';
 
@@ -96,7 +102,7 @@ export function useAppKeyboard(deps: {
 		return Boolean(parsed && !bindingProblem(parsed));
 	};
 	useKeyboard((key: KeyEvent) => {
-		const k = key.name;
+		const k = latinKey(key);
 		if (deps.help()) {
 			if (k === 'escape') deps.setHelp(false);
 			return;
