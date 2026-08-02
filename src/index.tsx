@@ -42,6 +42,7 @@ await render(
 			rootDir={rootDir}
 			openFile={openFile}
 			openLine={target.line}
+			openCol={target.col}
 			initialConfig={config}
 			projectConfig={projectConfig}
 		/>

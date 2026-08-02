@@ -17,7 +17,7 @@ import { createDocumentActions } from './documentActions';
 import { createFileActions } from './fileActions';
 import { createGitCommands } from './gitCommands';
 import { useAppKeyboard } from './keyboard';
-import { useAppLifecycle } from './lifecycle';
+import { startupOpen, useAppLifecycle } from './lifecycle';
 import { createAppLsp, problemFrom, wireAppLspEffects } from './lsp/index';
 import { createCompletionActions } from './lsp/completionActions';
 import { createProblemUi } from './lsp/view';
@@ -379,8 +379,7 @@ export function App(props: AppTypes.AppProps) {
 	});
 	useAppLifecycle({
 		rootDir,
-		single: props.openFile ?? null,
-		openLine: props.openLine,
+		...startupOpen(props),
 		initialConfig: props.initialConfig,
 		checkUpdates: props.checkUpdates,
 		appearanceVersion: () => appearancePlugins(),

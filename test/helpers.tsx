@@ -32,6 +32,7 @@ export async function launch(
 	options: {
 		openFile?: string;
 		openLine?: number;
+		openCol?: number;
 		checkUpdates?: boolean;
 		kittyKeyboard?: boolean;
 	} = {},
@@ -42,6 +43,7 @@ export async function launch(
 				rootDir: dir,
 				openFile: options.openFile ?? null,
 				openLine: options.openLine ?? null,
+				openCol: options.openCol ?? null,
 				initialConfig: { ...DEFAULTS, ...config },
 				projectConfig: loadProjectConfig(dir),
 				// Off by default: the real check is unconditional, and without this every

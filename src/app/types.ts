@@ -17,6 +17,7 @@ export interface AppProps {
 	rootDir: string;
 	openFile?: string | null;
 	openLine?: number | null;
+	openCol?: number | null;
 	initialConfig: Config;
 	projectConfig?: Partial<Config>;
 	checkUpdates?: boolean;

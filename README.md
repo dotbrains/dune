@@ -69,6 +69,7 @@ dune                  # current directory
 dune ./my-app         # directory
 dune src/main.ts      # single file
 dune src/main.ts:42   # open at line 42
+dune src/main.ts:42:7 # open at line 42, column 7
 dune update           # upgrade this installation
 ```
 

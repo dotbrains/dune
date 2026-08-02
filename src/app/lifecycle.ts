@@ -14,12 +14,21 @@ import { watchTree } from '../core/fs';
 import { watchAppearance } from '../core/appearance';
 import { clashWarning } from './clashes';
 import { CLASH_CHANGED, CLASH_DELETED, READY } from './constants';
-import type { BufferState, DiskSync } from './types';
+import type { AppProps, BufferState, DiskSync } from './types';
+
+export function startupOpen(props: Pick<AppProps, 'openFile' | 'openLine' | 'openCol'>): {
+	single: string | null;
+	openLine: number | null | undefined;
+	openCol: number | null | undefined;
+} {
+	return { single: props.openFile ?? null, openLine: props.openLine, openCol: props.openCol };
+}
 
 export function useAppLifecycle(deps: {
 	rootDir: string;
 	single: string | null;
 	openLine: number | null | undefined;
+	openCol: number | null | undefined;
 	initialConfig: Config;
 	checkUpdates: boolean | undefined;
 	appearanceVersion: () => { plugins: readonly { id: string; version: string }[] };
@@ -63,7 +72,11 @@ export function useAppLifecycle(deps: {
 		const buffer = deps.activeBuffer();
 		if (deps.openLine != null && buffer) {
 			const total = buffer.content.split('\n').length;
-			deps.setGoto({ line: Math.min(deps.openLine, total - 1), col: 0, key: 1 });
+			deps.setGoto({
+				line: Math.min(deps.openLine, total - 1),
+				col: deps.openCol ?? 0,
+				key: 1,
+			});
 		}
 	});
 	onMount(() => {
