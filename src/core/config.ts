@@ -104,6 +104,8 @@ export interface Config {
 	lspServers: Record<string, string[]>;
 	/** Custom global shortcuts by command id, e.g. `{ "open": "Ctrl+Alt+O" }`. */
 	keybindings: Record<string, string>;
+	/** Directory URL whose `index.json` lists appearance plugin manifests. */
+	pluginRegistry: string;
 }
 
 export const DEFAULTS: Config = {
@@ -133,6 +135,7 @@ export const DEFAULTS: Config = {
 	typescriptTsdk: '',
 	lspServers: {},
 	keybindings: {},
+	pluginRegistry: 'https://dune.dotbrains.dev/plugins/',
 };
 
 function parsePartial(raw: unknown): Partial<Config> {
@@ -199,6 +202,9 @@ function parsePartial(raw: unknown): Partial<Config> {
 			if (typeof value === 'string') keybindings[id] = value;
 		}
 		config.keybindings = keybindings;
+	}
+	if (typeof obj.pluginRegistry === 'string' && /^https?:\/\//.test(obj.pluginRegistry)) {
+		config.pluginRegistry = obj.pluginRegistry;
 	}
 	if (
 		typeof obj.sidebarWidth === 'number' &&

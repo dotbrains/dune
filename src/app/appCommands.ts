@@ -99,7 +99,7 @@ export function createAppCommands(deps: {
 	quit: () => void;
 }) {
 	const checkAppearanceMarket = async () => {
-		const catalog = await fetchCatalog();
+		const catalog = await fetchCatalog(deps.config.pluginRegistry);
 		if (!catalog) return deps.say('Could not reach appearance plugin market', 'warn');
 		writeCachedCatalog(catalog, Date.now());
 		deps.say(

@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { CONFIG_FILE } from '../src/core/config';
+import { CONFIG_FILE, loadProjectConfig } from '../src/core/config';
 import { fixture, launch, press, pressEscape, runCommand } from './helpers';
 import type { Harness } from './helpers';
 
@@ -55,6 +55,13 @@ test('invalid project settings are ignored', async () => {
 
 	const broken = await launch(project('{ nope'), { showDotfiles: false });
 	expect(broken.captureCharFrame()).not.toContain('.dune');
+});
+
+test('project settings can override the appearance plugin registry', async () => {
+	const dir = project({ pluginRegistry: 'https://example.test/plugins' });
+	expect(loadProjectConfig(dir)).toEqual({
+		pluginRegistry: 'https://example.test/plugins',
+	});
 });
 
 test('the project settings command writes only project overrides', async () => {

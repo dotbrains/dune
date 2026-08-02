@@ -19,11 +19,13 @@ test('the palette can check the appearance plugin market', async () => {
 		);
 	}) as typeof fetch;
 	try {
-		const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }));
+		const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }), {
+			pluginRegistry: 'https://example.test/market',
+		});
 		await runCommand(t, 'Check appearance plugin market');
 		await until(t, () => t.captureCharFrame().includes('Appearance plugin market: 2 plugins'));
 
-		expect(requested.some((url) => url.endsWith('/index.json'))).toBe(true);
+		expect(requested).toEqual(['https://example.test/market/index.json']);
 	} finally {
 		globalThis.fetch = realFetch;
 	}
