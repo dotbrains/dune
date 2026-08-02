@@ -5,7 +5,7 @@ import { useKeyboard } from '@opentui/solid';
 import { createMemo, createSignal, For, Show } from 'solid-js';
 
 import type { ChangeRow } from '../../core/changeTree';
-import { changeRows } from '../../core/changeTree';
+import { ancestorDirs, changeRows } from '../../core/changeTree';
 import type { FileStatus } from '../../core/git';
 import { fuzzyScore } from '../../core/search';
 import { ui } from '../../themes';
@@ -55,6 +55,12 @@ export function GitPanel(props: {
 			else next.add(rel);
 			return next;
 		});
+	const canCollapseAll = () =>
+		props.view === 'tree' && rows().some((row) => row.kind === 'dir' && !row.collapsed);
+	const collapseAll = () => {
+		setCollapsed(new Set(changes().flatMap((change) => ancestorDirs(change.rel))));
+		setIndex(0);
+	};
 	const setFilterValue = (value: string) => {
 		setFilter(value);
 		setIndex(0);
@@ -118,17 +124,22 @@ export function GitPanel(props: {
 		>
 			<box height={2} flexDirection="column" backgroundColor={ui.panelBg} paddingLeft={2}>
 				<text fg={props.focused ? ui.text : ui.dim} bg={ui.panelBg} content={headline()} />
-				<text
-					fg={props.base ? ui.dirty : ui.faint}
-					bg={ui.panelBg}
-					content={
-						filtering() || filter()
-							? `filter ${filter()}`
-							: props.base
-								? `vs ${props.base}`
-								: 'source control'
-					}
-				/>
+				<box height={1} flexDirection="row" backgroundColor={ui.panelBg}>
+					<text
+						fg={props.base ? ui.dirty : ui.faint}
+						bg={ui.panelBg}
+						content={
+							filtering() || filter()
+								? `filter ${filter()}`
+								: props.base
+									? `vs ${props.base}`
+									: 'source control'
+						}
+					/>
+					<Show when={canCollapseAll()}>
+						<text fg={ui.faint} bg={ui.panelBg} content=" · collapse" onMouseDown={collapseAll} />
+					</Show>
+				</box>
 			</box>
 			<Show
 				when={rows().length > 0}
