@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { writePlugin } from '../../src/core/market';
 import { USER_THEME_PLUGIN_DIR } from '../../src/core/localThemes';
-import { fixture, launch, press, runCommand, until } from '../helpers';
+import { fixture, launch, press, runCommand, settle, until } from '../helpers';
 
 test('the palette can check the appearance plugin market', async () => {
 	const realFetch = globalThis.fetch;
@@ -186,6 +186,28 @@ test('startup reports available appearance plugin updates', async () => {
 			{ checkUpdates: true },
 		);
 		await until(t, () => t.captureCharFrame().includes('Mono 1.1.0 is available'));
+	} finally {
+		globalThis.fetch = realFetch;
+	}
+});
+
+test('startup skips appearance plugin updates when disabled', async () => {
+	const realFetch = globalThis.fetch;
+	const requested: string[] = [];
+	globalThis.fetch = ((url: string) => {
+		requested.push(String(url));
+		return Promise.resolve(new Response(JSON.stringify({ version: '0.0.0' })));
+	}) as typeof fetch;
+	try {
+		const t = await launch(
+			fixture({ 'a.ts': 'const a = 1\n' }),
+			{ pluginRegistry: 'https://example.test/market', pluginUpdates: false },
+			{},
+			{ checkUpdates: true },
+		);
+		await settle(t, 20);
+
+		expect(requested).toEqual(['https://registry.npmjs.org/dune/latest']);
 	} finally {
 		globalThis.fetch = realFetch;
 	}

@@ -6,6 +6,8 @@ import { join } from 'node:path';
 
 import { buildCommands, flattenCommands } from '../src/app/commands';
 import type { CommandActions } from '../src/app/commands';
+import { settingsRows } from '../src/app/settingsRows';
+import { DEFAULTS } from '../src/core/config';
 import { unifiedDiff } from '../src/core/diff';
 import { readFile } from '../src/core/fs';
 import { defaultBranch, failureLine, PUSH_REJECTED } from '../src/core/git';
@@ -244,6 +246,31 @@ describe('registries', () => {
 		expect(leaves.map((leaf) => leaf.command.label)).toContain(
 			'Install Mono 1.0.0 - quiet monochrome icons for focused editing',
 		);
+	});
+
+	test('settings expose appearance plugin update checks', () => {
+		const rows = settingsRows(DEFAULTS, [], {
+			applyTheme: () => {},
+			applyThemeSlot: () => {},
+			applyTabSize: () => {},
+			applyVim: () => {},
+			editFormatter: () => {},
+			editLspServer: () => {},
+			editTypescriptTsdk: () => {},
+			editKeybinding: () => {},
+			editSidebarWidth: () => {},
+			toggleThemeSync: () => {},
+			toggleAutoSave: () => {},
+			toggleTransparent: () => {},
+			toggleDotfiles: () => {},
+			toggleGitignored: () => {},
+			toggleFormat: () => {},
+			toggleTrim: () => {},
+			patchConfig: () => {},
+			configScope: () => 'user',
+		});
+
+		expect(rows.find((row) => row.label === 'Appearance plugin update checks')?.value).toBe('on');
 	});
 
 	// Missing/extra ui keys are a tsc error, so only the values are worth asserting.

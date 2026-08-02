@@ -98,6 +98,13 @@ export function settingsRows(
 				),
 		},
 		{
+			section: 'Appearance',
+			label: 'Appearance plugin update checks',
+			value: onOff(config.pluginUpdates),
+			change: () =>
+				actions.patchConfig({ pluginUpdates: !config.pluginUpdates }, actions.configScope()),
+		},
+		{
 			section: 'Editor',
 			label: 'Vim mode',
 			value: onOff(config.vim),

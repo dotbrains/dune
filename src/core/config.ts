@@ -106,6 +106,8 @@ export interface Config {
 	keybindings: Record<string, string>;
 	/** Directory URL whose `index.json` lists appearance plugin manifests. */
 	pluginRegistry: string;
+	/** Check the appearance plugin catalog at startup for installed plugin updates. */
+	pluginUpdates: boolean;
 }
 
 export const DEFAULTS: Config = {
@@ -136,6 +138,7 @@ export const DEFAULTS: Config = {
 	lspServers: {},
 	keybindings: {},
 	pluginRegistry: 'https://dune.dotbrains.dev/plugins/',
+	pluginUpdates: true,
 };
 
 function parsePartial(raw: unknown): Partial<Config> {
@@ -206,6 +209,7 @@ function parsePartial(raw: unknown): Partial<Config> {
 	if (typeof obj.pluginRegistry === 'string' && /^https?:\/\//.test(obj.pluginRegistry)) {
 		config.pluginRegistry = obj.pluginRegistry;
 	}
+	if (typeof obj.pluginUpdates === 'boolean') config.pluginUpdates = obj.pluginUpdates;
 	if (
 		typeof obj.sidebarWidth === 'number' &&
 		obj.sidebarWidth >= SIDEBAR_MIN &&
