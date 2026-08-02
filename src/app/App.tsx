@@ -5,7 +5,6 @@ import { resolvedTheme, type Config } from '../core/config';
 import { flattenVisible } from '../core/fs';
 import { currentBranch, type FileStatus, type LineChange, type Upstream } from '../core/git';
 import { invalidateSyntaxStyle } from '../languages/highlight';
-import { checkForUpdate } from '../core/update';
 import { setTheme } from '../themes';
 import type { VimMode } from '../editor/vim';
 import { createAppControls } from './appControls';
@@ -69,7 +68,7 @@ export function App(props: AppTypes.AppProps) {
 	const [picker, setPicker] = createSignal<AppTypes.PickerState>(null);
 	const [clipboard, setClipboard] = createSignal({ paths: [] as string[], mode: 'cut' as const });
 	const cut = () => (clipboard().mode === 'cut' ? clipboard().paths : []);
-	const [update, setUpdate] = createSignal(null as Awaited<ReturnType<typeof checkForUpdate>>);
+	const [update, setUpdate] = createSignal<{ current: string; latest: string } | null>(null);
 	const [gitLines, setGitLines] = createSignal<Map<number, LineChange>>(new Map());
 	const [gitRevision, setGitRevision] = createSignal(0);
 	const [gitStatus, setGitStatus] = createSignal<Map<string, FileStatus>>(new Map());
@@ -384,6 +383,7 @@ export function App(props: AppTypes.AppProps) {
 		openLine: props.openLine,
 		initialConfig: props.initialConfig,
 		checkUpdates: props.checkUpdates,
+		appearanceVersion: () => appearancePlugins(),
 		restoredFailed: restored.failed,
 		activeBuffer,
 		activePath,

@@ -7,6 +7,7 @@ import type { Appearance } from '../core/appearance';
 import type { TreeNode } from '../core/fs';
 import type { FileStatus, LineChange, Upstream } from '../core/git';
 import { currentBranch, diffLines, ignoredAmong, statusMap, upstreamOf } from '../core/git';
+import { fetchCatalog, updatesFor } from '../core/market';
 import { saveSession } from '../core/session';
 import { checkForUpdate } from '../core/update';
 import { watchTree } from '../core/fs';
@@ -21,6 +22,7 @@ export function useAppLifecycle(deps: {
 	openLine: number | null | undefined;
 	initialConfig: Config;
 	checkUpdates: boolean | undefined;
+	appearanceVersion: () => { plugins: readonly { id: string; version: string }[] };
 	restoredFailed: string | null | undefined;
 	activeBuffer: () => BufferState | undefined;
 	activePath: () => string | null;
@@ -73,6 +75,17 @@ export function useAppLifecycle(deps: {
 		void (async () => {
 			const info = await checkForUpdate();
 			if (!cancelled && info && info.latest !== deps.initialConfig.skipUpdate) deps.setUpdate(info);
+		})();
+		void (async () => {
+			const catalog = await fetchCatalog(deps.config.pluginRegistry);
+			if (cancelled || !catalog) return;
+			const updates = updatesFor(deps.appearanceVersion().plugins, catalog);
+			if (updates.length === 1) {
+				const plugin = updates[0]!;
+				deps.say(`${plugin.name} ${plugin.version} is available`, 'info');
+			} else if (updates.length > 1) {
+				deps.say(`${updates.length} appearance plugin updates available`, 'info');
+			}
 		})();
 	});
 	onMount(() => {

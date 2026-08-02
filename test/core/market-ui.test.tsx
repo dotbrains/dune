@@ -152,6 +152,45 @@ test('the market list labels installed plugin updates', async () => {
 	}
 });
 
+test('startup reports available appearance plugin updates', async () => {
+	const realFetch = globalThis.fetch;
+	const manifest = {
+		id: 'mono',
+		name: 'Mono',
+		version: '1.0.0',
+		icons: [{ id: 'mono-icons', name: 'Mono Icons', file: 'f', folder: 'd', folderOpen: 'o' }],
+	};
+	expect(
+		writePlugin('mono', {
+			ok: true,
+			id: 'mono',
+			version: '1.0.0',
+			body: JSON.stringify(manifest),
+		}),
+	).toBeNull();
+	globalThis.fetch = ((url: string) =>
+		Promise.resolve(
+			String(url).includes('registry.npmjs.org')
+				? new Response(JSON.stringify({ version: '0.0.0' }))
+				: new Response(
+						JSON.stringify({
+							plugins: [{ id: 'mono', name: 'Mono', version: '1.1.0' }],
+						}),
+					),
+		)) as typeof fetch;
+	try {
+		const t = await launch(
+			fixture({ 'a.ts': 'const a = 1\n' }),
+			{ pluginRegistry: 'https://example.test/market' },
+			{},
+			{ checkUpdates: true },
+		);
+		await until(t, () => t.captureCharFrame().includes('Mono 1.1.0 is available'));
+	} finally {
+		globalThis.fetch = realFetch;
+	}
+});
+
 test('the palette can remove an appearance plugin by id', async () => {
 	const manifest = {
 		id: 'mono',
