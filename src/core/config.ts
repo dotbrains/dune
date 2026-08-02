@@ -206,7 +206,7 @@ function parsePartial(raw: unknown): Partial<Config> {
 		}
 		config.keybindings = keybindings;
 	}
-	if (typeof obj.pluginRegistry === 'string' && /^https?:\/\//.test(obj.pluginRegistry)) {
+	if (typeof obj.pluginRegistry === 'string' && obj.pluginRegistry.startsWith('https://')) {
 		config.pluginRegistry = obj.pluginRegistry;
 	}
 	if (typeof obj.pluginUpdates === 'boolean') config.pluginUpdates = obj.pluginUpdates;

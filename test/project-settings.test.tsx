@@ -64,6 +64,10 @@ test('project settings can override the appearance plugin registry', async () =>
 	});
 });
 
+test('plugin registries must be https', () => {
+	expect(loadProjectConfig(project({ pluginRegistry: 'http://example.test/plugins' }))).toEqual({});
+});
+
 test('the project settings command writes only project overrides', async () => {
 	const dir = project({});
 	const t = await launch(dir);
