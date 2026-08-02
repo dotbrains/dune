@@ -11,6 +11,7 @@ const PROMPT_TITLES: Partial<Record<NonNullable<Prompt>['kind'], string>> = {
 	sidebarWidth: 'Sidebar width: auto or columns',
 	appearancePluginId: 'Appearance plugin id',
 	appearancePluginRemoveId: 'Remove appearance plugin id',
+	appearancePluginRegistry: 'Appearance plugin registry URL',
 	gotoLine: 'Go to line',
 	commitMessage: 'Commit message',
 	newBranch: 'New branch name',

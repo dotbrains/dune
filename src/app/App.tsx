@@ -113,6 +113,8 @@ export function App(props: AppTypes.AppProps) {
 		config,
 		appearance: appearancePlugins,
 		patchConfig: (patch) => patchConfig(patch, settingsPage() ?? 'user'),
+		editRegistry: () =>
+			setPrompt({ kind: 'appearancePluginRegistry', current: config.pluginRegistry }),
 		reload: reloadUi,
 		say,
 	});

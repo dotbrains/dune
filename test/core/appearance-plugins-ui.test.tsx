@@ -4,7 +4,11 @@ import { join } from 'node:path';
 
 import { USER_THEME_PLUGIN_DIR } from '../../src/core/localThemes';
 import { writePlugin } from '../../src/core/market';
+import { MARKET_URL } from '../../src/core/market';
 import { fixture, launch, press, runCommand, until } from '../helpers';
+
+const testConfigFile = () => join(process.env.XDG_CONFIG_HOME!, 'dune', 'config.json');
+const OLD_REGISTRY = 'https://old.example.test/market';
 
 test('the appearance plugins page lists and toggles installed plugins', async () => {
 	const manifest = {
@@ -226,6 +230,59 @@ test('the appearance plugins page toggles startup update checks', async () => {
 	await press(t, (input) => void input.typeText('Plugin manager'));
 	await press(t, (input) => input.pressEnter());
 	await until(t, () => t.captureCharFrame().includes('Enable startup update checks'));
+});
+
+test('the appearance plugins page edits the market registry', async () => {
+	const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }), {
+		pluginRegistry: OLD_REGISTRY,
+	});
+	await runCommand(t, 'Plugin manager');
+	await press(t, (input) => void input.typeText('Edit market registry'));
+	await press(t, (input) => input.pressEnter());
+	await until(t, () => t.captureCharFrame().includes('Appearance plugin registry URL'));
+
+	await press(t, (input) => {
+		input.typeText('https://new.example.test/plugins');
+	});
+	await press(t, (input) => input.pressEnter());
+	await until(t, () =>
+		t.captureCharFrame().includes('Appearance plugin registry: https://new.example.test/plugins'),
+	);
+
+	expect(JSON.parse(readFileSync(testConfigFile(), 'utf8')).pluginRegistry).toBe(
+		'https://new.example.test/plugins',
+	);
+});
+
+test('the appearance plugins page resets an empty market registry to the default', async () => {
+	const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }), {
+		pluginRegistry: OLD_REGISTRY,
+	});
+	await runCommand(t, 'Plugin manager');
+	await press(t, (input) => void input.typeText('Edit market registry'));
+	await press(t, (input) => input.pressEnter());
+	await until(t, () => t.captureCharFrame().includes('Appearance plugin registry URL'));
+	await press(t, (input) => input.pressEnter());
+	await until(t, () => t.captureCharFrame().includes(`Appearance plugin registry: ${MARKET_URL}`));
+	expect(JSON.parse(readFileSync(testConfigFile(), 'utf8')).pluginRegistry).toBe(MARKET_URL);
+});
+
+test('the appearance plugins page rejects non-https market registries', async () => {
+	const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }), {
+		pluginRegistry: OLD_REGISTRY,
+	});
+	await runCommand(t, 'Plugin manager');
+	await press(t, (input) => void input.typeText('Edit market registry'));
+	await press(t, (input) => input.pressEnter());
+	await until(t, () => t.captureCharFrame().includes('Appearance plugin registry URL'));
+	await press(t, (input) => {
+		input.typeText('http://plain.example.test/plugins');
+	});
+	await press(t, (input) => input.pressEnter());
+	await until(t, () =>
+		t.captureCharFrame().includes('Appearance plugin registry must be an https URL'),
+	);
+	expect(existsSync(testConfigFile())).toBe(false);
 });
 
 test('the appearance plugins page hides current installed market plugins', async () => {

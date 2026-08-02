@@ -18,7 +18,7 @@ import { AppearancePluginsView } from '../../ui/overlays/AppearancePluginsView';
 
 export function appearancePluginChoices(
 	appearance: AppearancePluginLoad,
-	config?: Pick<Config, 'pluginUpdates'>,
+	config?: Pick<Config, 'pluginRegistry' | 'pluginUpdates'>,
 ): Choice[] {
 	const installed = appearance.plugins;
 	const installedById = new Map(installed.map((plugin) => [plugin.id, plugin]));
@@ -47,6 +47,7 @@ export function appearancePluginChoices(
 			: []),
 		{ id: 'market:check', label: 'Check appearance plugin market' },
 		{ id: 'market:update', label: 'Update all appearance plugins' },
+		{ id: 'market:registry', label: `Edit market registry: ${config?.pluginRegistry ?? ''}` },
 		...(config
 			? [
 					{
@@ -65,6 +66,7 @@ export function pickAppearancePlugin(
 		config: Config;
 		appearance: Accessor<AppearancePluginLoad>;
 		patchConfig: (patch: Partial<Config>) => void;
+		editRegistry: () => void;
 		reload: () => void;
 		refreshMarket: () => void;
 		close: () => void;
@@ -84,6 +86,11 @@ export function pickAppearancePlugin(
 		deps.patchConfig({ pluginUpdates: !deps.config.pluginUpdates });
 		deps.say(`Startup update checks ${deps.config.pluginUpdates ? 'disabled' : 'enabled'}`);
 		deps.refreshMarket();
+		return;
+	}
+	if (kind === 'market' && id === 'registry') {
+		deps.close();
+		deps.editRegistry();
 		return;
 	}
 	if (kind === 'market' && id === 'check') {
@@ -174,6 +181,7 @@ export function createAppearancePluginUi(deps: {
 	config: Config;
 	appearance: Accessor<AppearancePluginLoad>;
 	patchConfig: (patch: Partial<Config>) => void;
+	editRegistry: () => void;
 	reload: () => void;
 	say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
 }) {
@@ -193,6 +201,7 @@ export function createAppearancePluginUi(deps: {
 				config: deps.config,
 				appearance: deps.appearance,
 				patchConfig: deps.patchConfig,
+				editRegistry: deps.editRegistry,
 				reload: deps.reload,
 				refreshMarket,
 				close: () => setOpen(false),
@@ -218,6 +227,7 @@ export function createAppearancePluginUi(deps: {
 						config: deps.config,
 						appearance: deps.appearance,
 						patchConfig: deps.patchConfig,
+						editRegistry: deps.editRegistry,
 						reload: deps.reload,
 						refreshMarket,
 						close: () => setOpen(false),

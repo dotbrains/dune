@@ -60,6 +60,7 @@ export type Prompt =
 	| { kind: 'sidebarWidth' }
 	| { kind: 'appearancePluginId' }
 	| { kind: 'appearancePluginRemoveId' }
+	| { kind: 'appearancePluginRegistry'; current: string }
 	| { kind: 'delete'; targets: string[] }
 	| { kind: 'closeDirty'; paths: string[]; names: string[] }
 	| { kind: 'quitDirty'; names: string[] }
