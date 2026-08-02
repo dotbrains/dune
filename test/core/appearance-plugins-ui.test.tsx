@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { USER_THEME_PLUGIN_DIR } from '../../src/core/localThemes';
 import { writePlugin } from '../../src/core/market';
 import { MARKET_URL } from '../../src/core/market';
-import { fixture, launch, press, pressEscape, runCommand, until } from '../helpers';
+import { fixture, launch, openFile, press, pressEscape, runCommand, until } from '../helpers';
 
 const testConfigFile = () => join(process.env.XDG_CONFIG_HOME!, 'dune', 'config.json');
 const OLD_REGISTRY = 'https://old.example.test/market';
@@ -189,6 +189,49 @@ test('the appearance plugins page installs cached market plugins', async () => {
 
 		expect(
 			JSON.parse(readFileSync(join(USER_THEME_PLUGIN_DIR, 'contrast/plugin.json'), 'utf8')),
+		).toEqual(manifest);
+	} finally {
+		globalThis.fetch = realFetch;
+	}
+});
+
+test('a missing language server prompt installs the suggested plugin', async () => {
+	const realFetch = globalThis.fetch;
+	const manifest = {
+		id: 'kotlin-tools',
+		name: 'Kotlin Tools',
+		version: '1.0.0',
+		languageServers: [{ id: 'kotlin', command: ['kotlin-language-server'], filetypes: ['kotlin'] }],
+	};
+	globalThis.fetch = ((url: string) =>
+		Promise.resolve(
+			String(url).endsWith('/kotlin-tools/plugin.json')
+				? new Response(JSON.stringify(manifest))
+				: new Response(
+						JSON.stringify({
+							plugins: [
+								{
+									id: 'kotlin-tools',
+									name: 'Kotlin Tools',
+									version: '1.0.0',
+									description: 'Kotlin language server',
+									provides: { filetypes: ['kotlin'] },
+								},
+							],
+						}),
+					),
+		)) as typeof fetch;
+	try {
+		const t = await launch(fixture({ 'main.kt': 'fun main() {}\n' }), {
+			lsp: true,
+			pluginRegistry: 'https://example.test/market',
+		});
+		await openFile(t, 'main.kt');
+		await until(t, () => t.captureCharFrame().includes('No language server for kotlin'));
+		await press(t, (input) => input.pressEnter());
+		await until(t, () => t.captureCharFrame().includes('Installed appearance plugin kotlin-tools'));
+		expect(
+			JSON.parse(readFileSync(join(USER_THEME_PLUGIN_DIR, 'kotlin-tools/plugin.json'), 'utf8')),
 		).toEqual(manifest);
 	} finally {
 		globalThis.fetch = realFetch;

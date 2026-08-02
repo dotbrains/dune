@@ -7,6 +7,7 @@ import { createRoot, createSignal } from 'solid-js';
 import { createStore } from 'solid-js/store';
 
 import { createAppLsp, problemFrom, wireAppLspEffects } from '../src/app/lsp/index';
+import { createServerPluginSuggester } from '../src/app/lsp/pluginSuggestion';
 import type { BufferState, Prompt } from '../src/app/types';
 import { DEFAULTS } from '../src/core/config';
 
@@ -257,6 +258,44 @@ test('files with no server can ask for a plugin suggestion', () => {
 	expect(lsp.clientFor(path)).toBeNull();
 	expect(lsp.clientFor(path)).toBeNull();
 	expect(suggested).toEqual(['kotlin', 'kotlin']);
+});
+
+test('server plugin suggestions raise an install prompt', async () => {
+	const realFetch = globalThis.fetch;
+	let prompt: Prompt = null;
+	globalThis.fetch = (() =>
+		Promise.resolve(
+			new Response(
+				JSON.stringify({
+					plugins: [
+						{
+							id: 'kotlin-tools',
+							name: 'Kotlin Tools',
+							version: '1.0.0',
+							provides: { filetypes: ['kotlin'] },
+						},
+					],
+				}),
+			),
+		)) as unknown as typeof fetch;
+	try {
+		const suggest = createServerPluginSuggester({
+			config: { ...DEFAULTS, pluginRegistry: 'https://example.test/plugins' },
+			setPrompt: (next) => (prompt = next),
+		});
+
+		suggest('kotlin');
+
+		await waitFor(() => prompt?.kind === 'installPlugin');
+		expect(prompt).toMatchObject({
+			kind: 'installPlugin',
+			id: 'kotlin-tools',
+			name: 'Kotlin Tools',
+			reason: 'No language server for kotlin',
+		});
+	} finally {
+		globalThis.fetch = realFetch;
+	}
 });
 
 test('missing overridden servers do not show default install hints', async () => {

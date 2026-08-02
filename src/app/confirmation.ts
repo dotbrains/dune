@@ -72,6 +72,13 @@ export function confirmationForPrompt(prompt: Prompt): Confirmation | null {
 						? `${prompt.name} is not installed. Fetch it with npm into ${SERVER_ROOT}?`
 						: `${prompt.name} is not installed. Download it into ${SERVER_ROOT}?`,
 			};
+		case 'installPlugin':
+			return {
+				title: 'Plugin available',
+				verb: 'install it',
+				danger: false,
+				message: `${prompt.reason}. Install ${prompt.name} from the plugin market?`,
+			};
 		default:
 			return null;
 	}

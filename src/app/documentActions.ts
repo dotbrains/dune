@@ -20,6 +20,7 @@ import {
 import { trimTrailing } from '../editor/lines';
 import type { FetchableInstall } from '../lsp/servers';
 import { ALT } from '../ui/keys';
+import { installMarketPlugin } from './appearance/pluginsPage';
 import { KEYBINDABLE_COMMANDS } from './commands';
 import { CLASH_CHANGED } from './constants';
 import { isTextPrompt } from './prompts';
@@ -427,6 +428,12 @@ export function createDocumentActions(deps: {
 				return deps.gitCommands.pullPush(p.branch, p.hasUpstream);
 			case 'installServer':
 				return deps.installLspServer(p.id, p.name, p.install);
+			case 'installPlugin':
+				return void installMarketPlugin(p.id, {
+					config: deps.config,
+					reload: deps.reloadAppearancePlugins,
+					say: deps.say,
+				});
 		}
 	};
 	return {

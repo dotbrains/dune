@@ -71,6 +71,7 @@ export type Prompt =
 	| { kind: 'mergeBranch'; name: string }
 	| { kind: 'pullPush'; branch: string; hasUpstream: boolean }
 	| { kind: 'installServer'; id: string; name: string; install: FetchableInstall }
+	| { kind: 'installPlugin'; id: string; name: string; reason: string }
 	| null;
 
 export type PromptKind = NonNullable<Prompt>['kind'];

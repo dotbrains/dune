@@ -213,15 +213,30 @@ export function pickAppearancePlugin(
 		return;
 	}
 	if (kind !== 'market') return;
-	void (async () => {
-		const fetched = await fetchPlugin(id, { registry: deps.config.pluginRegistry });
-		if (!fetched.ok) return deps.say(`Plugin ${id}: ${fetched.error}`, 'error');
-		const error = writePlugin(id, fetched);
-		if (error) return deps.say(`Could not install ${id}: ${error}`, 'error');
-		deps.reload();
-		deps.close();
-		deps.say(`Installed appearance plugin ${id} ${fetched.version}`);
-	})();
+	void installMarketPlugin(id, {
+		config: deps.config,
+		reload: deps.reload,
+		say: deps.say,
+		afterInstall: deps.close,
+	});
+}
+
+export async function installMarketPlugin(
+	id: string,
+	deps: {
+		config: Pick<Config, 'pluginRegistry'>;
+		reload: () => void;
+		say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
+		afterInstall?: () => void;
+	},
+): Promise<void> {
+	const fetched = await fetchPlugin(id, { registry: deps.config.pluginRegistry });
+	if (!fetched.ok) return deps.say(`Plugin ${id}: ${fetched.error}`, 'error');
+	const error = writePlugin(id, fetched);
+	if (error) return deps.say(`Could not install ${id}: ${error}`, 'error');
+	deps.reload();
+	deps.afterInstall?.();
+	deps.say(`Installed appearance plugin ${id} ${fetched.version}`);
 }
 
 export function deleteAppearancePlugin(

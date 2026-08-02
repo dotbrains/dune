@@ -6,7 +6,7 @@ import type { ServerSpec } from '../../lsp/servers';
 
 export function createServerPluginSuggester(deps: {
 	config: Config;
-	say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
+	setPrompt: (prompt: Prompt) => void;
 }) {
 	const suggested = new Set<string>();
 	return (filetype: string) => {
@@ -15,7 +15,14 @@ export function createServerPluginSuggester(deps: {
 		void (async () => {
 			const catalog = await fetchCatalog(deps.config.pluginRegistry);
 			const plugin = catalog?.find((entry) => entry.provides.filetypes.includes(filetype));
-			if (plugin) deps.say(`Install ${plugin.name} for ${filetype} language server`, 'info');
+			if (plugin) {
+				deps.setPrompt({
+					kind: 'installPlugin',
+					id: plugin.id,
+					name: plugin.name,
+					reason: `No language server for ${filetype}`,
+				});
+			}
 		})();
 	};
 }
@@ -29,6 +36,9 @@ export function createDuneAppLsp(deps: {
 }) {
 	return createAppLsp({
 		...deps,
-		suggestServerPlugin: createServerPluginSuggester({ config: deps.config, say: deps.say }),
+		suggestServerPlugin: createServerPluginSuggester({
+			config: deps.config,
+			setPrompt: deps.setPrompt,
+		}),
 	});
 }
