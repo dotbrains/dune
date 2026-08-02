@@ -4,6 +4,7 @@ import { createMemo } from 'solid-js';
 
 import type { Config } from '../core/config';
 import { pathTokenAt, resolvePathToken } from '../core/pathTarget';
+import { fetchCatalog, writeCachedCatalog } from '../core/market';
 import type { TreeNode } from '../core/fs';
 import type { ThemeName } from '../themes';
 import { buildCommands } from './commands';
@@ -97,6 +98,15 @@ export function createAppCommands(deps: {
 	setHelp: (show: boolean) => void;
 	quit: () => void;
 }) {
+	const checkAppearanceMarket = async () => {
+		const catalog = await fetchCatalog();
+		if (!catalog) return deps.say('Could not reach appearance plugin market', 'warn');
+		writeCachedCatalog(catalog, Date.now());
+		deps.say(
+			`Appearance plugin market: ${catalog.length} plugin${catalog.length === 1 ? '' : 's'}`,
+		);
+	};
+
 	return createMemo(
 		() => (
 			void deps.appearanceVersion(),
@@ -157,6 +167,7 @@ export function createAppCommands(deps: {
 					openSettings: deps.openSettings,
 					openProjectSettings: deps.openProjectSettings,
 					listAppearancePlugins: deps.listAppearancePlugins,
+					checkAppearanceMarket,
 					setVim: deps.applyVim,
 					setTabSize: deps.applyTabSize,
 					setTheme: deps.applyTheme,
