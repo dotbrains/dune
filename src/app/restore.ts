@@ -1,4 +1,4 @@
-import { BinaryFileError, exists, mtimeOf, readFile } from '../core/fs';
+import { BinaryFileError, exists, mtimeOf, readTextFile } from '../core/fs';
 import { isImagePath } from '../core/image';
 import { loadSession } from '../core/session';
 import type { BufferState } from './types';
@@ -24,7 +24,13 @@ export function restoreAppState(rootDir: string, single: string | null): Restore
 				failed: null,
 			};
 		try {
-			const buffer = { content: readFile(single), dirty: false, mtime: mtimeOf(single) };
+			const file = readTextFile(single);
+			const buffer = {
+				content: file.content,
+				dirty: false,
+				mtime: mtimeOf(single),
+				encoding: file.encoding,
+			};
 			return {
 				buffers: { [single]: buffer },
 				tabs: [single],
@@ -53,7 +59,13 @@ export function restoreAppState(rootDir: string, single: string | null): Restore
 	for (const path of saved.tabs) {
 		if (isImagePath(path)) continue;
 		try {
-			buffers[path] = { content: readFile(path), dirty: false, mtime: mtimeOf(path) };
+			const file = readTextFile(path);
+			buffers[path] = {
+				content: file.content,
+				dirty: false,
+				mtime: mtimeOf(path),
+				encoding: file.encoding,
+			};
 		} catch {}
 	}
 	const tabs = saved.tabs.filter((path) => buffers[path] || (isImagePath(path) && exists(path)));

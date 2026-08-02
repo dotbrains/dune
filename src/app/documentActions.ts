@@ -7,7 +7,7 @@ import { formatterFor, parseFormatterEdit, runFormatter } from '../core/format';
 import { parseLspServerEdit } from '../core/lspSettings';
 import { SIDEBAR_MAX, SIDEBAR_MIN } from '../core/config';
 import type { Config } from '../core/config';
-import { createDir, createFile, exists, mtimeOf, readFile, writeFile } from '../core/fs';
+import { createDir, createFile, exists, mtimeOf, readTextFile, writeFile } from '../core/fs';
 import {
 	bindingProblem,
 	chordId,
@@ -74,8 +74,9 @@ export function createDocumentActions(deps: {
 	rootDir: string;
 }) {
 	const writeBuffer = async (path: string, content: string): Promise<boolean> => {
+		const encoding = deps.buffers[path]?.encoding;
 		const final = deps.config.trimOnSave ? trimTrailing(content) : content;
-		const err = writeFile(path, final);
+		const err = writeFile(path, final, encoding);
 		if (err) {
 			deps.say(`Save failed: ${err}`, 'error');
 			return false;
@@ -85,20 +86,31 @@ export function createDocumentActions(deps: {
 		if (formatter) {
 			const formatError = await runFormatter(formatter, path, deps.rootDir);
 			if (formatError) {
-				deps.setBuffers(path, { content: final, dirty: false, mtime: mtimeOf(path) });
+				deps.setBuffers(path, { content: final, dirty: false, mtime: mtimeOf(path), encoding });
 				if (final !== content && path === deps.activePath()) deps.pushEdit(final);
 				deps.setGitRevision((n) => n + 1);
 				deps.say(`Format failed: ${formatError}`, 'error');
 				return true;
 			}
 			try {
-				saved = readFile(path);
+				const file = readTextFile(path);
+				saved = file.content;
+				deps.setBuffers(path, {
+					content: saved,
+					dirty: false,
+					mtime: mtimeOf(path),
+					encoding: file.encoding,
+				});
+				if (saved !== content && path === deps.activePath()) deps.pushEdit(saved);
+				deps.setGitRevision((n) => n + 1);
+				deps.say(`Formatted ${basename(path)}`);
+				return true;
 			} catch (e) {
 				deps.say(`Format failed: ${(e as Error).message}`, 'error');
 				saved = final;
 			}
 		}
-		deps.setBuffers(path, { content: saved, dirty: false, mtime: mtimeOf(path) });
+		deps.setBuffers(path, { content: saved, dirty: false, mtime: mtimeOf(path), encoding });
 		if (saved !== content && path === deps.activePath()) deps.pushEdit(saved);
 		deps.setGitRevision((n) => n + 1);
 		deps.say(formatter ? `Formatted ${basename(path)}` : `Saved ${basename(path)}`);
@@ -111,10 +123,14 @@ export function createDocumentActions(deps: {
 		if (mtimeOf(path) !== buffer.mtime) {
 			if (!exists(path)) return deps.setConflict({ path, disk: '', deleted: true });
 			let disk = '';
+			let encoding = buffer.encoding;
 			try {
-				disk = readFile(path);
+				const file = readTextFile(path);
+				disk = file.content;
+				encoding = file.encoding;
 			} catch {}
-			if (disk !== buffer.content) return deps.setConflict({ path, disk, deleted: false });
+			if (disk !== buffer.content)
+				return deps.setConflict({ path, disk, encoding, deleted: false });
 		}
 		await writeBuffer(path, buffer.content);
 	};
@@ -144,16 +160,22 @@ export function createDocumentActions(deps: {
 		if (choice === 'overwrite' && deps.buffers[c.path])
 			void writeBuffer(c.path, deps.buffers[c.path]!.content);
 		else if (choice === 'reload') {
-			deps.setBuffers(c.path, { content: c.disk, dirty: false, mtime: mtimeOf(c.path) });
+			deps.setBuffers(c.path, {
+				content: c.disk,
+				dirty: false,
+				mtime: mtimeOf(c.path),
+				encoding: c.encoding,
+			});
 			deps.setReloadKey((k) => k + 1);
 			deps.say(`Reloaded ${basename(c.path)} from disk`);
 		}
 	};
 	const onEditorChange = (text: string) => {
 		const path = deps.activePath();
-		if (!path || deps.buffers[path]?.content === text) return;
+		const buffer = path ? deps.buffers[path] : undefined;
+		if (!path || !buffer || buffer.content === text) return;
 		deps.pinTab(path);
-		deps.setBuffers(path, { content: text, dirty: true });
+		deps.setBuffers(path, { ...buffer, content: text, dirty: true });
 	};
 	const syncFromDisk = (): DiskSync => {
 		const updates: [string, BufferState][] = [];
@@ -168,14 +190,17 @@ export function createDocumentActions(deps: {
 				continue;
 			}
 			let disk: string;
+			let encoding = buffer.encoding;
 			try {
-				disk = readFile(path);
+				const file = readTextFile(path);
+				disk = file.content;
+				encoding = file.encoding;
 			} catch {
 				continue;
 			}
 			if (disk === buffer.content) continue;
 			if (buffer.dirty) changed.push(basename(path));
-			else updates.push([path, { content: disk, dirty: false, mtime: mtimeOf(path) }]);
+			else updates.push([path, { content: disk, dirty: false, mtime: mtimeOf(path), encoding }]);
 		}
 		for (const path of vanished) deps.closeTab(path, true);
 		if (updates.length > 0) {

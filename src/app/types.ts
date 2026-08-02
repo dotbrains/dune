@@ -1,5 +1,6 @@
 import type { Tone } from '../ui/StatusBar';
 import type { Config } from '../core/config';
+import type { TextEncoding } from '../core/fs';
 
 export type Focus = 'tree' | 'editor';
 export type PickerState = 'files' | 'tabs' | null;
@@ -26,6 +27,7 @@ export interface BufferState {
 	dirty: boolean;
 	/** Disk mtime this buffer was last in sync with; used to detect outside edits. */
 	mtime: number;
+	encoding?: TextEncoding;
 }
 
 /** Dirty buffers a disk sync refused to touch, split by what happened to the file. */
@@ -38,6 +40,7 @@ export interface DiskSync {
 export interface Conflict {
 	path: string;
 	disk: string;
+	encoding?: TextEncoding;
 	/** The file is gone: there is no outside version to accept. */
 	deleted: boolean;
 }

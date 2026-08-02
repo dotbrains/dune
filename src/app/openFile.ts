@@ -2,7 +2,7 @@ import { basename } from 'node:path';
 import type { Accessor, Setter } from 'solid-js';
 import type { SetStoreFunction } from 'solid-js/store';
 import type { Config } from '../core/config';
-import { BinaryFileError, mtimeOf, readFile } from '../core/fs';
+import { BinaryFileError, mtimeOf, readTextFile } from '../core/fs';
 import { isImagePath } from '../core/image';
 import type { BufferState, Focus } from './types';
 
@@ -29,7 +29,13 @@ export function createFileOpener(deps: FileOpenDeps) {
 		deps.setNotice(null);
 		if (!deps.buffers[path] && !isImagePath(path)) {
 			try {
-				deps.setBuffers(path, { content: readFile(path), dirty: false, mtime: mtimeOf(path) });
+				const file = readTextFile(path);
+				deps.setBuffers(path, {
+					content: file.content,
+					dirty: false,
+					mtime: mtimeOf(path),
+					encoding: file.encoding,
+				});
 			} catch (e) {
 				deps.setNotice({
 					name: basename(path),

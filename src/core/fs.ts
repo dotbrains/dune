@@ -47,6 +47,8 @@ export interface Changed {
 	deps: boolean;
 }
 
+const emptyChange = (): Changed => ({ tree: false, git: false, deps: false });
+
 /**
  * Watch `root` and call `onChange` (debounced) on any file event. Returns a stop
  * function. Best-effort — an unwatchable path is simply left unwatched.
@@ -58,8 +60,7 @@ export interface Changed {
  */
 export function watchTree(root: string, onChange: (changed: Changed) => void): () => void {
 	let timer: ReturnType<typeof setTimeout> | null = null;
-	const empty = (): Changed => ({ tree: false, git: false, deps: false });
-	let pending: Changed = empty();
+	let pending: Changed = emptyChange();
 
 	const schedule = (...kinds: (keyof Changed)[]) => {
 		if (kinds.length === 0) return;
@@ -67,7 +68,7 @@ export function watchTree(root: string, onChange: (changed: Changed) => void): (
 		if (timer) clearTimeout(timer);
 		timer = setTimeout(() => {
 			const changed = pending;
-			pending = empty();
+			pending = emptyChange();
 			onChange(changed);
 		}, 80); // coalesce bursts of events
 	};
@@ -191,6 +192,34 @@ export class BinaryFileError extends Error {
 	}
 }
 
+export interface TextEncoding {
+	eol: '\n' | '\r\n';
+	bom: boolean;
+}
+
+export interface TextFile {
+	content: string;
+	encoding: TextEncoding;
+}
+
+export function decodeText(raw: string): TextFile {
+	const bom = raw.startsWith('\uFEFF');
+	const body = bom ? raw.slice(1) : raw;
+	const crlf = body.match(/\r\n/g)?.length ?? 0;
+	const lf = (body.match(/\n/g)?.length ?? 0) - crlf;
+	const eol = crlf > lf ? '\r\n' : '\n';
+	return { content: body.replaceAll('\r\n', '\n'), encoding: { eol, bom } };
+}
+
+export function encodeText(
+	content: string,
+	encoding: TextEncoding = { eol: '\n', bom: false },
+): string {
+	const normalized = content.replaceAll('\r\n', '\n');
+	const body = encoding.eol === '\r\n' ? normalized.replaceAll('\n', '\r\n') : normalized;
+	return `${encoding.bom ? '\uFEFF' : ''}${body}`;
+}
+
 /**
  * Read a text file, refusing binary content — a NUL byte in the first 8 KB, the
  * same heuristic git uses.
@@ -199,7 +228,7 @@ export class BinaryFileError extends Error {
  * happily offers a 2 GB video, and reading it before rejecting it would allocate
  * all of it and throw ERR_FS_FILE_TOO_LARGE instead of BinaryFileError.
  */
-export function readFile(path: string): string {
+export function readTextFile(path: string): TextFile {
 	const fd = fs.openSync(path, 'r');
 	try {
 		const head = Buffer.alloc(8192);
@@ -208,7 +237,11 @@ export function readFile(path: string): string {
 	} finally {
 		fs.closeSync(fd);
 	}
-	return fs.readFileSync(path, 'utf8');
+	return decodeText(fs.readFileSync(path, 'utf8'));
+}
+
+export function readFile(path: string): string {
+	return readTextFile(path).content;
 }
 
 /** Last-modified time in ms, or 0 when the file is missing/unreadable. */
@@ -247,10 +280,10 @@ const attempt = (run: () => void): FsResult => {
 const taken = (path: string): FsResult =>
 	fs.existsSync(path) ? `already exists: ${basename(path)}` : null;
 
-export const writeFile = (path: string, content: string): FsResult =>
+export const writeFile = (path: string, content: string, encoding?: TextEncoding): FsResult =>
 	attempt(() => {
 		fs.mkdirSync(dirname(path), { recursive: true });
-		fs.writeFileSync(path, content, 'utf8');
+		fs.writeFileSync(path, encodeText(content, encoding), 'utf8');
 	});
 
 export const createFile = (path: string): FsResult =>
