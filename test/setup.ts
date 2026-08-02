@@ -6,6 +6,8 @@ import { join } from 'node:path';
 import { invalidateSyntaxStyle } from '../src/languages/highlight';
 import { registerLocalThemes, setTheme, setTransparency } from '../src/themes';
 
+type TestGlobals = typeof globalThis & { duneTestFixtures?: Set<string> };
+
 /**
  * Give every test process its own config home, before anything reads it.
  *
@@ -46,8 +48,9 @@ beforeEach(() => {
 	invalidateSyntaxStyle();
 });
 
-afterAll(async () => {
-	const { fixtures } = await import('./cleanup');
+afterAll(() => {
+	const fixtures = (globalThis as TestGlobals).duneTestFixtures;
+	if (!fixtures) return;
 	for (const dir of fixtures) rmSync(dir, { recursive: true, force: true });
 	fixtures.clear();
 });

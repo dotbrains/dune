@@ -4,16 +4,21 @@ import { join } from 'node:path';
 const TEST_DIR = 'test';
 const BATCH_SIZE = Number.parseInt(process.env.DUNE_TEST_BATCH_SIZE ?? '1', 10);
 
-const names = readdirSync(TEST_DIR).filter((name) => /\.test\.tsx?$/.test(name));
+function findTests(dir: string): string[] {
+	return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+		const path = join(dir, entry.name);
+		if (entry.isDirectory()) return findTests(path);
+		return /\.test\.tsx?$/.test(entry.name) ? [path] : [];
+	});
+}
+
+const names = findTests(TEST_DIR);
 const coveredByTs = new Set(
 	names
 		.filter((name) => name.endsWith('.test.ts'))
 		.map((name) => name.replace(/\.test\.ts$/, '.test.tsx')),
 );
-const tests = names
-	.filter((name) => !coveredByTs.has(name))
-	.toSorted()
-	.map((name) => join(TEST_DIR, name));
+const tests = names.filter((name) => !coveredByTs.has(name)).toSorted();
 
 if (tests.length === 0) {
 	console.error('No test files found');

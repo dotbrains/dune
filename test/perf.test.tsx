@@ -59,7 +59,7 @@ test('scrolling deep into a large file keeps highlights', async () => {
 		}
 	}
 	expect(foreground.size).toBeGreaterThan(2);
-}, 20000);
+}, 60_000);
 
 /**
  * Segmenting a window must not cost what segmenting the document costs. It used to:

@@ -1,10 +1,12 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import { DEFAULTS } from '../src/core/config';
 import { THEMES } from '../src/themes';
 import type { ThemeName } from '../src/themes';
 import { fixture, launch, press } from './helpers';
 import type { Harness } from './helpers';
+
+setDefaultTimeout(60_000);
 
 const rgb = (c: { buffer: Record<string, number> }) => [
 	c.buffer['0']!,

@@ -3,7 +3,7 @@ import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { ui } from '../src/themes';
-import { fixture, launch, press, settle } from './helpers';
+import { fixture, launch, press, settle, until } from './helpers';
 import type { Harness } from './helpers';
 
 /** Open the only file, type into it, then have someone else rewrite it on disk. */
@@ -52,8 +52,7 @@ describe('saving a file that changed underneath', () => {
 
 		// Someone puts the file back to what the buffer holds.
 		writeFileSync(file, 'EDITmine\n');
-		await new Promise((resolve) => setTimeout(resolve, 300));
-		await settle(t);
+		await until(t, () => !t.captureCharFrame().includes('unsaved edits'), 100);
 
 		expect(t.captureCharFrame()).not.toContain('unsaved edits');
 	});
@@ -117,7 +116,9 @@ describe('how the warning is coloured', () => {
 		const spans = t.captureSpans() as unknown as {
 			lines: { spans: { text: string; fg?: { buffer: Uint8Array } }[] }[];
 		};
-		const message = spans.lines.at(-1)!.spans.find((span) => span.text.includes('unsaved edits'));
+		const message = spans.lines
+			.flatMap((line) => line.spans)
+			.find((span) => span.text.includes('unsaved edits'));
 
 		expect(message).toBeDefined();
 		expect(fgHex(message!.fg)).toBe(ui.dirty.toLowerCase());

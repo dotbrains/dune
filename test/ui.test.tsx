@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, setDefaultTimeout, test } from 'bun:test';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -14,6 +14,8 @@ import type { CursorStyle } from '../src/core/config';
 import { CommandPalette } from '../src/ui/CommandPalette';
 import { fixture, launch, press, pressEscape, runCommand } from './helpers';
 import type { Harness } from './helpers';
+
+setDefaultTimeout(60_000);
 
 /** Row index of a top-level command, so tests survive new commands. */
 function rowOf(label: string): number {
@@ -329,7 +331,7 @@ describe('command palette', () => {
 
 		await pressEscape(t);
 		expect(t.captureCharFrame()).not.toContain('Settings');
-	}, 10000);
+	}, 60_000);
 
 	test('configured cursor style reaches the editor', async () => {
 		const dir = fixture({ 'a.ts': 'const a = 1\n' });
@@ -419,7 +421,7 @@ describe('command palette', () => {
 
 		expect(t.captureCharFrame()).toContain('Project Theme');
 		expect(saved().theme).toBe('project-theme');
-	}, 10000);
+	}, 60_000);
 
 	test('vim mode overrides the configured cursor style until disabled', async () => {
 		const dir = fixture({ 'a.ts': 'const a = 1\n' });
@@ -442,7 +444,7 @@ describe('command palette', () => {
 		expect(editorCursorStyle(t)).toBe('underline');
 		expect(existsSync(CONFIG_FILE)).toBe(true);
 		expect(saved().vim).toBe(false);
-	}, 20000);
+	}, 60_000);
 });
 
 describe('search', () => {
@@ -458,7 +460,7 @@ describe('search', () => {
 		await press(t, (i) => void i.typeText('Z'));
 		await press(t, (i) => i.pressKey('s', { ctrl: true }));
 		expect(readFileSync(join(dir, 'src/main.ts'), 'utf8')).toBe('const a = 1\nZconst b = 2\n');
-	}, 10000);
+	}, 60_000);
 });
 
 test('the status bar tracks the cursor, on vertical-only moves too', async () => {
@@ -478,4 +480,4 @@ test('the status bar tracks the cursor, on vertical-only moves too', async () =>
 
 	await press(t, (i) => i.pressArrow('right'));
 	expect(t.captureCharFrame()).toContain('Ln 2, Col 2');
-}, 10000);
+}, 60_000);

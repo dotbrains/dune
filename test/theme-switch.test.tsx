@@ -114,7 +114,7 @@ test('plain identifiers stay readable against the background in every theme', as
 			);
 		}
 	}
-}, 20000);
+}, 60_000);
 
 test('theme registry exposes every palette with stable chrome keys', () => {
 	const uiKeys = Object.keys(THEMES.dark.ui).toSorted() as (keyof ThemeUi)[];

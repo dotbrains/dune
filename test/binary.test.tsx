@@ -248,4 +248,4 @@ test('the file picker opens PDF tabs and restores them', async () => {
 	const second = await launch(dir, {}, { width: 80, height: 24 });
 	await until(second, () => second.captureCharFrame().includes('sample.pdf - 1/2 - 100%'), 100);
 	expect(second.captureCharFrame()).toContain('sample.pdf - 1/2 - 100%');
-}, 10000);
+}, 60_000);

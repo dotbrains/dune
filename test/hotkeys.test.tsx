@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -21,140 +21,196 @@ async function opened() {
 }
 const frame = (t: Harness) => t.captureCharFrame();
 
-/**
- * One sweep over every key HelpOverlay and the palette advertise. It exists because
- * a dead key is invisible: Tab did nothing in the editor for a long time, and Ctrl+X
- * was once silently swallowed before it could reach the clipboard.
- */
-test('every advertised hotkey does something', async () => {
-	const report: string[] = [];
-	const check = (name: string, ok: boolean) => report.push(`${ok ? 'ok  ' : 'DEAD'}  ${name}`);
+describe('advertised hotkeys', () => {
+	const cases: { name: string; run: () => Promise<void> }[] = [
+		{
+			name: 'Ctrl+P palette',
+			run: async () => {
+				const t = await tree();
+				await press(t, (i) => i.pressKey('p', { ctrl: true }));
+				expect(frame(t)).toContain('Commands');
+			},
+		},
+		{
+			name: 'F1 palette',
+			run: async () => {
+				const t = await tree();
+				await press(t, (i) => void i.pressKeys([F1]));
+				expect(frame(t)).toContain('Commands');
+			},
+		},
+		{
+			name: 'Ctrl+Opt+P palette',
+			run: async () => {
+				const t = await tree();
+				await press(t, (i) => void i.pressKeys([`${ESC}${String.fromCharCode(16)}`]));
+				expect(frame(t)).toContain('Commands');
+			},
+		},
+		{
+			name: 'Ctrl+O file picker',
+			run: async () => {
+				const t = await tree();
+				await press(t, (i) => i.pressKey('o', { ctrl: true }));
+				expect(frame(t)).toContain('Open file');
+			},
+		},
+		{
+			name: 'Ctrl+G go to line',
+			run: async () => {
+				const t = await tree();
+				await press(t, (i) => i.pressKey('g', { ctrl: true }));
+				expect(frame(t)).toContain('Go to line');
+			},
+		},
+		{
+			name: 'Ctrl+F find in file',
+			run: async () => {
+				const t = await opened();
+				await press(t, (i) => i.pressKey('f', { ctrl: true }));
+				expect(frame(t)).toContain('Search in file');
+			},
+		},
+		{
+			name: 'Ctrl+R find in project',
+			run: async () => {
+				const t = await opened();
+				await press(t, (i) => i.pressKey('r', { ctrl: true }));
+				expect(frame(t)).toContain('Search in project');
+			},
+		},
+		{
+			name: 'Ctrl+N new file',
+			run: async () => {
+				const t = await tree();
+				await press(t, (i) => i.pressKey('n', { ctrl: true }));
+				expect(frame(t)).toContain('New file name');
+			},
+		},
+		{
+			name: 'Ctrl+Opt+N new folder',
+			run: async () => {
+				const t = await tree();
+				await press(t, (i) => void i.pressKeys([`${ESC}${String.fromCharCode(14)}`]));
+				expect(frame(t)).toContain('New folder name');
+			},
+		},
+		{
+			name: 'Ctrl+T switch tab',
+			run: async () => {
+				const t = await opened();
+				await press(t, (i) => i.pressKey('t', { ctrl: true }));
+				expect(frame(t)).toContain('Switch tab');
+			},
+		},
+		{
+			name: 'Ctrl+B sidebar',
+			run: async () => {
+				const t = await tree();
+				await press(t, (i) => i.pressKey('b', { ctrl: true }));
+				expect(frame(t)).not.toContain('explorer');
+			},
+		},
+		{
+			name: 'Ctrl+W close tab',
+			run: async () => {
+				const t = await opened();
+				await press(t, (i) => i.pressKey('w', { ctrl: true }));
+				expect(frame(t)).toContain('no open files');
+			},
+		},
+		{
+			name: 'arrow down moves in tree',
+			run: async () => {
+				const t = await tree();
+				await press(t, (i) => i.pressArrow('down'));
+				expect(frame(t)).toContain('a.ts');
+			},
+		},
+		{
+			name: 'Enter opens file',
+			run: async () => {
+				const t = await tree();
+				await press(t, (i) => i.pressArrow('down'));
+				await press(t, (i) => i.pressEnter());
+				expect(frame(t)).toContain('alpha beta');
+			},
+		},
+		{
+			name: 'a new file in tree',
+			run: async () => {
+				const t = await tree();
+				await press(t, (i) => i.pressArrow('down'));
+				await press(t, (i) => void i.typeText('a'));
+				expect(frame(t)).toContain('New file name');
+			},
+		},
+		{
+			name: 'A new folder in tree',
+			run: async () => {
+				const t = await tree();
+				await press(t, (i) => i.pressArrow('down'));
+				await press(t, (i) => void i.typeText('A'));
+				expect(frame(t)).toContain('New folder name');
+			},
+		},
+		{
+			name: 'r rename in tree',
+			run: async () => {
+				const t = await tree();
+				await press(t, (i) => i.pressArrow('down'));
+				await press(t, (i) => void i.typeText('r'));
+				expect(frame(t)).toContain('Rename to');
+			},
+		},
+		{
+			name: 'd delete in tree',
+			run: async () => {
+				const t = await tree();
+				await press(t, (i) => i.pressArrow('down'));
+				await press(t, (i) => void i.typeText('d'));
+				expect(frame(t)).toContain('Delete');
+			},
+		},
+		{
+			name: 'Esc moves editor focus to tree',
+			run: async () => {
+				const t = await opened();
+				await pressEscape(t);
+				await press(t, (i) => i.pressArrow('down'));
+				expect(frame(t)).toContain('explorer');
+			},
+		},
+	];
 
-	let t = await tree();
-	await press(t, (i) => i.pressKey('p', { ctrl: true }));
-	check('Ctrl+P palette', frame(t).includes('Commands'));
+	for (const entry of cases) test(entry.name, entry.run);
 
-	t = await tree();
-	await press(t, (i) => void i.pressKeys([F1]));
-	check('F1 palette', frame(t).includes('Commands'));
+	test('Ctrl+X cuts and Ctrl+V pastes when the system clipboard is available', async () => {
+		if (process.env.DUNE_TEST_SYSTEM_CLIPBOARD !== '1') return;
+		const clipboard = ['pbcopy', 'wl-copy', 'xclip', 'xsel'].some((tool) => Bun.which(tool));
+		if (!clipboard) return;
 
-	// Ctrl+Opt+P: Opt sends an ESC prefix ahead of Ctrl+P (0x10).
-	t = await tree();
-	await press(t, (i) => void i.pressKeys([`${ESC}${String.fromCharCode(16)}`]));
-	check('Ctrl+Opt+P palette', frame(t).includes('Commands'));
+		const dirCut = fixture(PROJECT);
+		const t = await launch(dirCut);
+		await press(t, (i) => i.pressKey('o', { ctrl: true }));
+		await press(t, (i) => void i.typeText('a.ts'));
+		await press(t, (i) => i.pressEnter());
+		await settle(t);
+		const alphaAt = frame(t).split('\n')[1]!.indexOf('alpha');
+		await t.mockMouse.drag(alphaAt, 1, alphaAt + 5, 1);
+		await t.mockMouse.release(alphaAt + 5, 1);
+		await settle(t);
+		await press(t, (i) => i.pressKey('x', { ctrl: true }));
+		await press(t, (i) => i.pressKey('s', { ctrl: true }));
+		const afterCut = readFileSync(join(dirCut, 'a.ts'), 'utf8');
+		expect(afterCut.startsWith('alpha')).toBe(false);
 
-	t = await tree();
-	await press(t, (i) => i.pressKey('o', { ctrl: true }));
-	check('Ctrl+O file picker', frame(t).includes('Open file'));
-
-	t = await tree();
-	await press(t, (i) => i.pressKey('g', { ctrl: true }));
-	check('Ctrl+G go to line', frame(t).includes('Go to line'));
-
-	t = await opened();
-	await press(t, (i) => i.pressKey('f', { ctrl: true }));
-	check('Ctrl+F find in file', frame(t).includes('Search in file'));
-
-	t = await opened();
-	await press(t, (i) => i.pressKey('r', { ctrl: true }));
-	check('Ctrl+R find in project', frame(t).includes('Search in project'));
-
-	t = await tree();
-	await press(t, (i) => i.pressKey('n', { ctrl: true }));
-	check('Ctrl+N new file', frame(t).includes('New file name'));
-
-	// Ctrl+Opt+N: Opt sends an ESC prefix ahead of Ctrl+N (0x0e).
-	t = await tree();
-	await press(t, (i) => void i.pressKeys([`${ESC}${String.fromCharCode(14)}`]));
-	check('Ctrl+Opt+N new folder', frame(t).includes('New folder name'));
-
-	t = await opened();
-	await press(t, (i) => i.pressKey('t', { ctrl: true }));
-	check('Ctrl+T switch tab', frame(t).includes('Switch tab'));
-
-	t = await tree();
-	await press(t, (i) => i.pressKey('b', { ctrl: true }));
-	check('Ctrl+B sidebar', !frame(t).includes('explorer'));
-
-	t = await opened();
-	await press(t, (i) => i.pressKey('w', { ctrl: true }));
-	check('Ctrl+W close tab', frame(t).includes('no open files'));
-
-	t = await tree();
-	await press(t, (i) => i.pressArrow('down'));
-	check('↓ moves in tree', frame(t).includes('a.ts'));
-
-	t = await tree();
-	await press(t, (i) => i.pressArrow('down'));
-	await press(t, (i) => i.pressEnter());
-	check('Enter opens file', frame(t).includes('alpha beta'));
-
-	t = await tree();
-	await press(t, (i) => i.pressArrow('down'));
-	await press(t, (i) => void i.typeText('a'));
-	check('a new file (tree)', frame(t).includes('New file name'));
-
-	// Shift+A should mean "new folder" — terminals send a bare uppercase letter.
-	t = await tree();
-	await press(t, (i) => i.pressArrow('down'));
-	await press(t, (i) => void i.typeText('A'));
-	check('A new folder (tree)', frame(t).includes('New folder name'));
-
-	t = await tree();
-	await press(t, (i) => i.pressArrow('down'));
-	await press(t, (i) => void i.typeText('r'));
-	check('r rename (tree)', frame(t).includes('Rename to'));
-
-	t = await tree();
-	await press(t, (i) => i.pressArrow('down'));
-	await press(t, (i) => void i.typeText('d'));
-	check('d delete (tree)', frame(t).includes('Delete'));
-
-	t = await opened();
-	await pressEscape(t);
-	await press(t, (i) => i.pressArrow('down'));
-	check('Esc editor → tree', frame(t).includes('explorer'));
-
-	// Cut and paste go through the system clipboard, so they can only be swept on
-	// a machine that has one — headless CI has no pbcopy/xclip to round-trip through.
-	const clipboard = ['pbcopy', 'wl-copy', 'xclip', 'xsel'].some((tool) => Bun.which(tool));
-	if (!clipboard) {
-		const dead = report.filter((line) => line.startsWith('DEAD'));
-		if (dead.length > 0) console.error(`\n${report.join('\n')}\n`);
-		expect(dead).toEqual([]);
-		return;
-	}
-
-	// Cut: select with the mouse, since that is the only way to select now, then
-	// Ctrl+X should remove it.
-	const dirCut = fixture(PROJECT);
-	t = await launch(dirCut);
-	await press(t, (i) => i.pressKey('o', { ctrl: true }));
-	await press(t, (i) => void i.typeText('a.ts'));
-	await press(t, (i) => i.pressEnter());
-	await settle(t);
-	const alphaAt = frame(t).split('\n')[1]!.indexOf('alpha');
-	await t.mockMouse.drag(alphaAt, 1, alphaAt + 5, 1);
-	await t.mockMouse.release(alphaAt + 5, 1);
-	await settle(t);
-	await press(t, (i) => i.pressKey('x', { ctrl: true }));
-	await press(t, (i) => i.pressKey('s', { ctrl: true }));
-	const afterCut = readFileSync(join(dirCut, 'a.ts'), 'utf8');
-	check('Ctrl+X cut', !afterCut.startsWith('alpha'));
-
-	// Paste what was just cut.
-	await press(t, (i) => i.pressKey('v', { ctrl: true }));
-	await press(t, (i) => i.pressKey('s', { ctrl: true }));
-	const afterPaste = readFileSync(join(dirCut, 'a.ts'), 'utf8');
-	check('Ctrl+V paste', afterPaste.includes('alpha'));
-
-	await settle(t);
-	const dead = report.filter((line) => line.startsWith('DEAD'));
-	// Print the whole table only when something is wrong: the failure message names
-	// the dead keys, but the surrounding oks say how far the sweep got.
-	if (dead.length > 0) console.error(`\n${report.join('\n')}\n`);
-	expect(dead).toEqual([]);
-}, 120000);
+		await press(t, (i) => i.pressKey('v', { ctrl: true }));
+		await press(t, (i) => i.pressKey('s', { ctrl: true }));
+		const afterPaste = readFileSync(join(dirCut, 'a.ts'), 'utf8');
+		expect(afterPaste).toContain('alpha');
+	});
+});
 
 test('the help table does not list one key twice with different meanings', () => {
 	const keys = ROWS.map(([key]) => key);

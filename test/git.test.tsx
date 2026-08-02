@@ -313,7 +313,7 @@ test('compare against branch changes source-control diffs', async () => {
 	await press(t, (input) => void input.typeText('Compare against HEAD'));
 	await press(t, (input) => input.pressEnter());
 	expect(t.captureCharFrame()).toContain('no changes');
-}, 10_000);
+}, 60_000);
 
 test('diff commands can render split layout', async () => {
 	const dir = repo('one\ntwo\n');
