@@ -2,8 +2,9 @@ import type { StyleDefinitionInput } from '@opentui/core';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import { type Theme, THEMES, type ThemeUi } from '../themes';
+import { registerLocalThemes, type Theme, THEMES, type ThemeUi } from '../themes';
 import { CONFIG_FILE, PROJECT_CONFIG_DIR } from './config';
+import { loadIconThemes, type IconTheme } from './iconThemes';
 
 export interface LocalThemeProblem {
 	source: string;
@@ -99,4 +100,9 @@ export function loadLocalThemes(rootDir: string, userDir = USER_THEME_PLUGIN_DIR
 	}
 
 	return { themes: [...themes].map(([id, theme]) => ({ id, theme })), problems };
+}
+
+export function loadAppearancePlugins(rootDir: string): readonly IconTheme[] {
+	registerLocalThemes(loadLocalThemes(rootDir).themes);
+	return loadIconThemes(rootDir).themes;
 }
