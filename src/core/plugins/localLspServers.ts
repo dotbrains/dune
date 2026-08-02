@@ -1,9 +1,9 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import type { ServerInstall, ServerSpec } from '../lsp/servers';
-import { PROJECT_CONFIG_DIR } from './config';
-import { USER_THEME_PLUGIN_DIR } from './localThemes';
+import type { ServerInstall, ServerSpec } from '../../lsp/servers';
+import { PROJECT_CONFIG_DIR } from '../config';
+import { USER_THEME_PLUGIN_DIR } from '../localThemes';
 
 export interface LocalLspServerProblem {
 	source: string;

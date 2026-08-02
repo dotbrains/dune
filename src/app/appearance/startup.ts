@@ -1,7 +1,7 @@
 import { detectAppearance } from '../../core/appearance';
 import { resolveConfig, resolvedTheme } from '../../core/config';
-import { loadLocalLspServers } from '../../core/localLspServers';
 import { appearancePluginStatus, loadAppearancePlugins } from '../../core/localThemes';
+import { loadLocalLspServers } from '../../core/plugins/localLspServers';
 import { setTheme, setTransparency } from '../../themes';
 import { restoreAppState } from '../restore';
 import type { AppProps } from '../types';

@@ -17,7 +17,7 @@ file watching with conflict prompts, language server diagnostics/completion/stat
 per-project session restore, and a startup update check.
 
 Appearance plugin catalog/cache/install primitives live in `src/core/market/`; local
-language server plugin manifests are parsed by `src/core/localLspServers.ts`. The
+language server plugin manifests are parsed by `src/core/plugins/localLspServers.ts`. The
 loaders only execute data manifests from the user/project plugin directories.
 `disabledAppearancePlugins` keeps local appearance plugins installed but inactive.
 `pluginRegistry` in user or project settings overrides the HTTPS appearance plugin

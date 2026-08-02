@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { loadLocalLspServers } from '../src/core/localLspServers';
+import { loadLocalLspServers } from '../src/core/plugins/localLspServers';
 
 test('local plugin manifests can contribute language servers', () => {
 	const dir = project({
