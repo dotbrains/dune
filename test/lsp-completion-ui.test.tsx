@@ -45,7 +45,7 @@ describe('LSP completions in the editor', () => {
 		await until(t, () => frame(t).includes('duneLazy'));
 
 		await press(t, (input) => input.pressEnter());
-		expect(frame(t)).toContain('import { duneLazy } from "dune"');
+		await until(t, () => frame(t).includes('import { duneLazy } from "dune"'));
 		expect(frame(t)).toContain('duneLazy');
 	});
 
