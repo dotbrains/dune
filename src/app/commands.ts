@@ -86,6 +86,7 @@ export interface CommandActions {
 	openProjectSettings: () => void;
 	listAppearancePlugins: () => void;
 	checkAppearanceMarket: () => void;
+	checkAppearanceUpdates: () => void;
 	installAppearancePlugin: () => void;
 	removeAppearancePlugin: () => void;
 	reloadAppearancePlugins: () => void;
@@ -270,6 +271,11 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 					id: 'themes.checkAppearanceMarket',
 					label: 'Check appearance plugin market',
 					run: actions.checkAppearanceMarket,
+				},
+				{
+					id: 'themes.checkAppearanceUpdates',
+					label: 'Check appearance plugin updates',
+					run: actions.checkAppearanceUpdates,
 				},
 				{
 					id: 'themes.installAppearancePlugin',

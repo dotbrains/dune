@@ -188,8 +188,8 @@ export function removeFromDisk(id: string, root = USER_THEME_PLUGIN_DIR): string
 }
 
 export function updatesFor(
-	installed: { id: string; version: string }[],
-	catalog: MarketEntry[],
+	installed: readonly { id: string; version: string }[],
+	catalog: readonly MarketEntry[],
 	newer: (latest: string, current: string) => boolean = isNewer,
 ): MarketEntry[] {
 	const versions = new Map(installed.map((plugin) => [plugin.id, plugin.version]));

@@ -3,8 +3,9 @@ import { dirname } from 'node:path';
 import { createMemo } from 'solid-js';
 
 import type { Config } from '../core/config';
+import type { AppearancePluginLoad } from '../core/localThemes';
 import { pathTokenAt, resolvePathToken } from '../core/pathTarget';
-import { fetchCatalog, writeCachedCatalog } from '../core/market';
+import { fetchCatalog, updatesFor, writeCachedCatalog } from '../core/market';
 import type { TreeNode } from '../core/fs';
 import type { ThemeName } from '../themes';
 import { buildCommands } from './commands';
@@ -65,7 +66,7 @@ export function createAppCommands(deps: {
 	openProjectSettings: () => void;
 	listAppearancePlugins: () => void;
 	reloadAppearancePlugins: () => void;
-	appearanceVersion: () => unknown;
+	appearanceVersion: () => AppearancePluginLoad;
 	setLineOp: (
 		update: (prev: { op: 'comment' | 'up' | 'down' | 'duplicate'; key: number } | null) => {
 			op: 'comment' | 'up' | 'down' | 'duplicate';
@@ -105,6 +106,16 @@ export function createAppCommands(deps: {
 		deps.say(
 			`Appearance plugin market: ${catalog.length} plugin${catalog.length === 1 ? '' : 's'}`,
 		);
+	};
+	const checkAppearanceUpdates = async () => {
+		const installed = deps.appearanceVersion().plugins;
+		if (installed.length === 0) return deps.say('No local appearance plugins');
+		const catalog = await fetchCatalog(deps.config.pluginRegistry);
+		if (!catalog) return deps.say('Could not reach appearance plugin market', 'warn');
+		writeCachedCatalog(catalog, Date.now());
+		const updates = updatesFor(installed, catalog);
+		if (updates.length === 0) return deps.say('Appearance plugins are up to date');
+		deps.say(`Appearance plugin updates: ${updates.map((entry) => entry.id).join(', ')}`);
 	};
 
 	return createMemo(
@@ -168,6 +179,7 @@ export function createAppCommands(deps: {
 					openProjectSettings: deps.openProjectSettings,
 					listAppearancePlugins: deps.listAppearancePlugins,
 					checkAppearanceMarket,
+					checkAppearanceUpdates,
 					installAppearancePlugin: () => deps.setPrompt({ kind: 'appearancePluginId' }),
 					removeAppearancePlugin: () => deps.setPrompt({ kind: 'appearancePluginRemoveId' }),
 					setVim: deps.applyVim,

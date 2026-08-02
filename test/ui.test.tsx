@@ -59,13 +59,14 @@ function settingsRowOf(label: string): number {
 const saved = () => JSON.parse(readFileSync(CONFIG_FILE, 'utf8')) as Record<string, unknown>;
 
 test('summarizes loaded local appearance plugins', () => {
-	expect(summarizeAppearancePlugins({ themes: [], iconThemes: [], problems: [] })).toBe(
-		'No local appearance plugins',
-	);
+	expect(
+		summarizeAppearancePlugins({ themes: [], iconThemes: [], plugins: [], problems: [] }),
+	).toBe('No local appearance plugins');
 	expect(
 		summarizeAppearancePlugins({
 			themes: [{ id: 'project-theme', theme: {} as never }],
 			iconThemes: [{ id: 'project-icons', name: 'Project Icons' } as never],
+			plugins: [],
 			problems: [{ source: 'plugin.json', reason: 'invalid theme' }],
 		}),
 	).toBe('Local appearance plugins: 1 theme, 1 icon theme, 1 problem');

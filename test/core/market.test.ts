@@ -17,7 +17,7 @@ import {
 } from '../../src/core/market';
 import type { Fetcher, MarketEntry } from '../../src/core/market';
 import { loadIconThemes } from '../../src/core/iconThemes';
-import { loadLocalThemes } from '../../src/core/localThemes';
+import { loadAppearancePlugins, loadLocalThemes } from '../../src/core/localThemes';
 
 const REGISTRY = 'https://example.test/plugins/';
 const MANIFEST = {
@@ -163,10 +163,12 @@ test('a fetched manifest is written where appearance plugin loading finds it', a
 
 	const themes = loadLocalThemes(project, root);
 	const icons = loadIconThemes(project, root);
+	const appearance = loadAppearancePlugins(project, root);
 	expect(themes.problems).toEqual([]);
 	expect(icons.problems).toEqual([]);
 	expect(themes.themes.map((entry) => entry.id)).toEqual(['mono-dark']);
 	expect(icons.themes.map((entry) => entry.id)).toEqual(['mono-icons']);
+	expect(appearance.plugins.map((entry) => `${entry.id}@${entry.version}`)).toEqual(['mono@1.2.0']);
 
 	expect(writePlugin('other', fetched, root)).toBe('other manifest id mismatch');
 	expect(removeFromDisk('../outside', root)).toContain('not a plugin id');

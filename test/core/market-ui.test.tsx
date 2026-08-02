@@ -89,3 +89,38 @@ test('the palette can remove an appearance plugin by id', async () => {
 
 	expect(existsSync(join(USER_THEME_PLUGIN_DIR, 'mono'))).toBe(false);
 });
+
+test('the palette can check appearance plugin updates', async () => {
+	const realFetch = globalThis.fetch;
+	const manifest = {
+		id: 'mono',
+		name: 'Mono',
+		version: '1.0.0',
+		icons: [{ id: 'mono-icons', name: 'Mono Icons', file: 'f', folder: 'd', folderOpen: 'o' }],
+	};
+	expect(
+		writePlugin('mono', {
+			ok: true,
+			id: 'mono',
+			version: '1.0.0',
+			body: JSON.stringify(manifest),
+		}),
+	).toBeNull();
+	globalThis.fetch = (() =>
+		Promise.resolve(
+			new Response(
+				JSON.stringify({
+					plugins: [{ id: 'mono', version: '1.1.0' }],
+				}),
+			),
+		)) as unknown as typeof fetch;
+	try {
+		const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }), {
+			pluginRegistry: 'https://example.test/market',
+		});
+		await runCommand(t, 'Check appearance plugin updates');
+		await until(t, () => t.captureCharFrame().includes('Appearance plugin updates: mono'));
+	} finally {
+		globalThis.fetch = realFetch;
+	}
+});

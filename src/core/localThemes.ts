@@ -19,7 +19,14 @@ export interface LocalThemeLoad {
 export interface AppearancePluginLoad {
 	themes: readonly { id: string; theme: Theme }[];
 	iconThemes: readonly IconTheme[];
+	plugins: readonly InstalledAppearancePlugin[];
 	problems: LocalThemeProblem[];
+}
+
+export interface InstalledAppearancePlugin {
+	id: string;
+	version: string;
+	source: string;
 }
 
 export function appearancePluginStatus(
@@ -82,6 +89,32 @@ function parseTheme(raw: unknown): { id: string; theme: Theme } | null {
 	return { id: raw.id, theme: { name: raw.name, ui, syntax } };
 }
 
+function loadInstalledPlugins(
+	rootDir: string,
+	userDir = USER_THEME_PLUGIN_DIR,
+): InstalledAppearancePlugin[] {
+	const sources = [
+		...manifestsIn(userDir),
+		...manifestsIn(join(rootDir, PROJECT_CONFIG_DIR, 'plugins')),
+	];
+	const plugins = new Map<string, InstalledAppearancePlugin>();
+	for (const source of sources) {
+		if (!existsSync(source)) continue;
+		let raw: unknown;
+		try {
+			raw = JSON.parse(readFileSync(source, 'utf8'));
+		} catch {
+			continue;
+		}
+		if (!isRecord(raw) || typeof raw.id !== 'string' || typeof raw.version !== 'string') continue;
+		const hasAppearance =
+			(Array.isArray(raw.themes) && raw.themes.length > 0) ||
+			(Array.isArray(raw.icons) && raw.icons.length > 0);
+		if (hasAppearance) plugins.set(raw.id, { id: raw.id, version: raw.version, source });
+	}
+	return [...plugins.values()];
+}
+
 export function loadLocalThemes(rootDir: string, userDir = USER_THEME_PLUGIN_DIR): LocalThemeLoad {
 	const problems: LocalThemeProblem[] = [];
 	const themes = new Map<string, Theme>();
@@ -115,13 +148,17 @@ export function loadLocalThemes(rootDir: string, userDir = USER_THEME_PLUGIN_DIR
 	return { themes: [...themes].map(([id, theme]) => ({ id, theme })), problems };
 }
 
-export function loadAppearancePlugins(rootDir: string): AppearancePluginLoad {
-	const colorThemes = loadLocalThemes(rootDir);
-	const iconThemes = loadIconThemes(rootDir);
+export function loadAppearancePlugins(
+	rootDir: string,
+	userDir = USER_THEME_PLUGIN_DIR,
+): AppearancePluginLoad {
+	const colorThemes = loadLocalThemes(rootDir, userDir);
+	const iconThemes = loadIconThemes(rootDir, userDir);
 	registerLocalThemes(colorThemes.themes);
 	return {
 		themes: colorThemes.themes,
 		iconThemes: iconThemes.themes,
+		plugins: loadInstalledPlugins(rootDir, userDir),
 		problems: [...colorThemes.problems, ...iconThemes.problems],
 	};
 }
