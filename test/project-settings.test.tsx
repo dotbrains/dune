@@ -46,9 +46,10 @@ test('invalid project settings are ignored', async () => {
 	const t = await launch(project({ tabSize: 'huge', vim: true }), { tabSize: 8 });
 	await runCommand(t, 'Settings: this project');
 
+	expect(t.captureCharFrame()).toContain('Vim mode');
+	await press(t, (input) => void input.typeText('/'));
+	await press(t, (input) => void input.typeText('tab'));
 	const frame = t.captureCharFrame();
-	expect(frame).toContain('Vim mode');
-	expect(frame).toContain('Vim mode');
 	const row = frame.split('\n').find((line) => line.includes('Tab size'))!;
 	expect(row).toContain('8');
 
