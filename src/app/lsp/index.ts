@@ -15,7 +15,7 @@ import { hasNodeRuntime, installedCommand, installServer, SERVER_ROOT } from '..
 import { projectCommand } from '../../lsp/project';
 import { isUnnecessary, severityOf } from '../../lsp/protocol';
 import type { CompletionItem, Diagnostic, ProblemSeverity } from '../../lsp/protocol';
-import { DEFAULT_SERVERS, installHint, resolveServer } from '../../lsp/servers';
+import { installHint, resolveServer, serverSpecs, type ServerSpec } from '../../lsp/servers';
 import type { BufferState, Prompt, StatusMessage } from '../types';
 
 export interface Problem {
@@ -46,6 +46,7 @@ export function createAppLsp(deps: {
 	config: Config;
 	say: (msg: string, tone?: StatusMessage['tone']) => void;
 	setPrompt?: (prompt: Prompt) => void;
+	servers?: () => readonly ServerSpec[];
 }) {
 	const [problems, setProblems] = createStore<Record<string, Problem[]>>({});
 	const [generation, setGeneration] = createSignal(0);
@@ -114,9 +115,15 @@ export function createAppLsp(deps: {
 		return true;
 	};
 
+	const availableServers = (): ServerSpec[] => serverSpecs(deps.servers?.() ?? []);
+
 	const clientFor = (path: string): LspClient | null => {
 		if (!deps.config.lsp) return null;
-		const resolved = resolveServer(filetypeForPath(path), deps.config.lspServers);
+		const resolved = resolveServer(
+			filetypeForPath(path),
+			deps.config.lspServers,
+			availableServers(),
+		);
 		if (!resolved) return null;
 		const known = clients.get(resolved.id);
 		if (known !== undefined) return known;
@@ -175,7 +182,7 @@ export function createAppLsp(deps: {
 	};
 
 	const statusRows = (): LspStatusRow[] =>
-		DEFAULT_SERVERS.map((server) => {
+		availableServers().map((server) => {
 			const override = deps.config.lspServers[server.id];
 			const command = override ?? server.command;
 			const client = clients.get(server.id);

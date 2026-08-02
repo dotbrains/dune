@@ -125,7 +125,7 @@ export function App(props: AppTypes.AppProps) {
 		setFocus,
 		say,
 	});
-	const lsp = createAppLsp({ rootDir, config, say, setPrompt });
+	const lsp = createAppLsp({ rootDir, config, say, setPrompt, servers: () => startup.lspServers });
 	wireAppLspEffects({ lsp, config, tabs, buffers });
 	const expand = (path: string) => setExpanded((prev) => new Set(prev).add(path));
 	const discardBuffer = (path: string) => setBuffers(produce((draft) => void delete draft[path]));

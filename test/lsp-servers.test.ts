@@ -8,7 +8,7 @@ import { parseLspServerEdit } from '../src/core/lspSettings';
 import { settingsRows } from '../src/app/settingsRows';
 import { installedCommand } from '../src/lsp/install';
 import { projectCommand, typescriptMajor } from '../src/lsp/project';
-import { installHint, resolveServer } from '../src/lsp/servers';
+import { installHint, resolveServer, serverSpecs } from '../src/lsp/servers';
 import { fixture } from './helpers';
 
 test('language server resolution applies overrides and disables empty commands', () => {
@@ -26,6 +26,28 @@ test('language server resolution applies overrides and disables empty commands',
 	expect(resolveServer('typescript', { typescript: [] })).toBeNull();
 	expect(resolveServer('brainfuck', {})).toBeNull();
 	expect(resolveServer(undefined, {})).toBeNull();
+	expect(
+		resolveServer('kotlin', {}, [
+			{
+				id: 'kotlin',
+				command: ['kotlin-language-server'],
+				filetypes: ['kotlin'],
+				install: { kind: 'manual', command: 'install kotlin-language-server' },
+			},
+		]),
+	).toEqual({
+		id: 'kotlin',
+		command: ['kotlin-language-server'],
+		install: { kind: 'manual', command: 'install kotlin-language-server' },
+	});
+	expect(
+		resolveServer('typescript', {}, [
+			{ id: 'custom-typescript', command: ['custom-ts'], filetypes: ['typescript'] },
+		])?.id,
+	).toBe('typescript');
+	expect(
+		serverSpecs([{ id: 'typescript', command: ['custom-ts'], filetypes: ['typescript'] }]),
+	).toHaveLength(serverSpecs().length);
 	expect(installHint({ kind: 'manual', command: 'rustup component add rust-analyzer' })).toBe(
 		'rustup component add rust-analyzer',
 	);

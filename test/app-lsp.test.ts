@@ -24,9 +24,9 @@ const waitFor = async (done: () => boolean, attempts = 40): Promise<void> => {
 	return waitFor(done, attempts - 1);
 };
 
-function project() {
+function project(name = 'a.ts') {
 	const dir = mkdtempSync(join(tmpdir(), 'dune-app-lsp-'));
-	const path = join(dir, 'a.ts');
+	const path = join(dir, name);
 	writeFileSync(path, 'const oops = 1\n');
 	return { dir, path };
 }
@@ -77,6 +77,32 @@ test('language server status rows report state and diagnostics', async () => {
 		command: `bun ${FAKE}`,
 		state: 'ready',
 		problems: 1,
+	});
+});
+
+test('plugin language servers handle additional filetypes', async () => {
+	const { dir, path } = project('a.kt');
+	await createRoot((dispose) => {
+		disposers.push(dispose);
+		const warnings: string[] = [];
+		const config = { ...DEFAULTS, lsp: true };
+		const lsp = createAppLsp({
+			rootDir: dir,
+			config,
+			say: (msg) => warnings.push(msg),
+			servers: () => [{ id: 'kotlin', command: ['bun', FAKE], filetypes: ['kotlin'] }],
+		});
+
+		lsp.clientFor(path);
+
+		return waitFor(() => lsp.clientFor(path)?.ready() === true).then(() => {
+			const row = lsp.statusRows().find((entry) => entry.id === 'kotlin');
+			expect(warnings).toEqual([]);
+			expect(row).toMatchObject({
+				command: `bun ${FAKE}`,
+				state: 'ready',
+			});
+		});
 	});
 });
 

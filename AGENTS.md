@@ -16,8 +16,9 @@ project-wide), command palette, built-in and local-plugin themes with transparen
 file watching with conflict prompts, language server diagnostics/completion/status,
 per-project session restore, and a startup update check.
 
-Appearance plugin catalog/cache/install primitives live in `src/core/market/`; the
-loader still only executes data manifests from the user/project plugin directories.
+Appearance plugin catalog/cache/install primitives live in `src/core/market/`; local
+language server plugin manifests are parsed by `src/core/localLspServers.ts`. The
+loaders only execute data manifests from the user/project plugin directories.
 `disabledAppearancePlugins` keeps local appearance plugins installed but inactive.
 `pluginRegistry` in user or project settings overrides the HTTPS appearance plugin
 catalog directory URL, and `pluginUpdates` controls the startup appearance-plugin

@@ -80,6 +80,17 @@ export const DEFAULT_SERVERS: ServerSpec[] = [
 	},
 ];
 
+export function serverSpecs(extraServers: readonly ServerSpec[] = []): ServerSpec[] {
+	const specs = [...DEFAULT_SERVERS];
+	const seen = new Set(specs.map((server) => server.id));
+	for (const server of extraServers) {
+		if (seen.has(server.id)) continue;
+		seen.add(server.id);
+		specs.push(server);
+	}
+	return specs;
+}
+
 export function installHint(install: ServerInstall): string {
 	return install.kind === 'npm' ? `npm i -g ${install.packages.join(' ')}` : install.command;
 }
@@ -87,9 +98,10 @@ export function installHint(install: ServerInstall): string {
 export function resolveServer(
 	filetype: string | undefined,
 	overrides: Record<string, string[]>,
+	extraServers: readonly ServerSpec[] = [],
 ): { id: string; command: string[]; install?: ServerInstall } | null {
 	if (!filetype) return null;
-	const spec = DEFAULT_SERVERS.find((server) => server.filetypes.includes(filetype));
+	const spec = serverSpecs(extraServers).find((server) => server.filetypes.includes(filetype));
 	if (!spec) return null;
 	const override = overrides[spec.id];
 	const command = override ?? spec.command;
