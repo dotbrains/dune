@@ -27,11 +27,6 @@ execute data manifests from the user/project plugin directories.
 catalog directory URL, and `pluginUpdates` controls the startup appearance-plugin
 update check.
 
-`.github/workflows/druk-watch.yml` checks Druk every six hours and opens or updates one
-`upstream-druk` issue when `letstri/druk` moves past `.github/druk-watch.json`. After a
-feature-gap pass catches Dune up, update that baseline to the reviewed Druk `main` SHA
-and latest release tag.
-
 ## Runtime and tooling
 
 - **Bun is required to develop** — OpenTUI's native core loads through Bun's FFI. Node
