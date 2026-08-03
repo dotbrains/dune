@@ -1,6 +1,6 @@
 import type { StyleDefinitionInput } from '@opentui/core';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, normalize } from 'node:path';
 
 import { clearLocalLanguages, registerLocalLanguages, type Language } from '../languages';
 import { registerLocalThemes, type Theme, THEMES, type ThemeUi } from '../themes';
@@ -100,14 +100,34 @@ function parseTheme(raw: unknown): { id: string; theme: Theme } | null {
 	return { id: raw.id, theme: { name: raw.name, ui, syntax } };
 }
 
-function parseLanguage(raw: unknown): Language | null {
+function pluginAsset(source: string, value: unknown): string | null {
+	if (typeof value !== 'string' || value.length === 0) return null;
+	if (value.startsWith('/') || value.includes('\0') || /^[a-z]+:/i.test(value)) return null;
+	const normalized = normalize(value);
+	if (normalized === '..' || normalized.startsWith('../') || normalized.startsWith('..\\')) {
+		return null;
+	}
+	return join(dirname(source), normalized);
+}
+
+function parseLanguageIn(raw: unknown, source: string | undefined): Language | null {
 	if (!isRecord(raw) || typeof raw.id !== 'string' || !ID.test(raw.id)) return null;
 	const language: Language = { id: raw.id };
 	if (typeof raw.label === 'string' && raw.label.length > 0) language.label = raw.label;
 	if (typeof raw.lineComment === 'string' && raw.lineComment.length > 0) {
 		language.lineComment = raw.lineComment;
 	}
-	if (isRecord(raw.grammar) && raw.grammar.bundled === true) language.bundled = true;
+	if (isRecord(raw.grammar)) {
+		if (raw.grammar.bundled === true) language.bundled = true;
+		else if (source) {
+			const wasm = pluginAsset(source, raw.grammar.wasm);
+			const query = pluginAsset(source, raw.grammar.query);
+			if (wasm && query) {
+				language.wasm = wasm;
+				language.query = query;
+			}
+		}
+	}
 	if (Array.isArray(raw.patterns)) {
 		const patterns: NonNullable<Language['patterns']> = [];
 		for (const entry of raw.patterns) {
@@ -137,7 +157,9 @@ function parseLanguage(raw: unknown): Language | null {
 			return null;
 		}
 	}
-	return language.bundled || language.patterns ? language : null;
+	return language.bundled || (language.wasm && language.query) || language.patterns
+		? language
+		: null;
 }
 
 function loadInstalledPlugins(
@@ -220,7 +242,7 @@ function loadLocalLanguages(
 		if (!isRecord(raw) || (typeof raw.id === 'string' && disabled.includes(raw.id))) continue;
 		const entries = Array.isArray(raw.languages) ? raw.languages : [];
 		for (const entry of entries) {
-			const language = parseLanguage(entry);
+			const language = parseLanguageIn(entry, source);
 			if (!language) {
 				problems.push({ source, reason: 'invalid language' });
 				continue;

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -12,6 +12,7 @@ import {
 	languageLabel,
 } from '../src/languages';
 import { loadAppearancePlugins } from '../src/core/localThemes';
+import { GRAMMARS } from '../src/languages/grammars';
 import {
 	computeHighlights,
 	filetypeForPath,
@@ -146,6 +147,40 @@ describe('languages', () => {
 			expect(languageLabel('makefile')).toBe('mk');
 			expect(commentPrefix('makefile')).toBe('#');
 			const segs = await allSegments('build: # compile\n', 'makefile');
+			expect(segs.length).toBeGreaterThan(0);
+		} finally {
+			clearLocalLanguages();
+		}
+	});
+
+	test('local plugins can contribute grammar-backed languages', async () => {
+		const root = mkdtempSync(join(tmpdir(), 'dune-grammar-plugin-'));
+		const pluginDir = join(root, 'plugins', 'local-toml');
+		mkdirSync(pluginDir, { recursive: true });
+		copyFileSync(GRAMMARS.toml.wasm, join(pluginDir, 'toml.wasm'));
+		copyFileSync(GRAMMARS.toml.query, join(pluginDir, 'highlights.scm'));
+		writeFileSync(
+			join(pluginDir, 'plugin.json'),
+			JSON.stringify({
+				id: 'local-toml-tools',
+				name: 'Local TOML Tools',
+				version: '1.0.0',
+				languages: [
+					{
+						id: 'localtoml',
+						extensions: ['.ltoml'],
+						grammar: { wasm: 'toml.wasm', query: 'highlights.scm' },
+					},
+				],
+			}),
+		);
+
+		try {
+			const loaded = loadAppearancePlugins(root, join(root, 'plugins'));
+
+			expect(loaded.problems).toEqual([]);
+			expect(filetypeForPath(join(root, 'config.ltoml'))).toBe('localtoml');
+			const segs = await allSegments('name = "dune"\n', 'localtoml');
 			expect(segs.length).toBeGreaterThan(0);
 		} finally {
 			clearLocalLanguages();

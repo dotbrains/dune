@@ -235,6 +235,7 @@ export function commentPrefix(filetype: string | undefined): string | undefined 
 
 const BY_ID = new Map(LANGUAGES.map((lang) => [lang.id, lang]));
 const LOCAL = new Map<string, Language>();
+let generation = 0;
 
 export function languageFor(filetype: string | undefined): Language | undefined {
 	return filetype ? (LOCAL.get(filetype) ?? BY_ID.get(filetype)) : undefined;
@@ -248,12 +249,24 @@ export function languageLabel(filetype: string): string {
 /** Languages we ship a grammar for and must register with tree-sitter at runtime. */
 export const VENDORED_LANGUAGES = LANGUAGES.filter((lang) => lang.wasm && lang.query);
 
+export function vendoredLanguages(): Language[] {
+	return [...VENDORED_LANGUAGES, ...[...LOCAL.values()].filter((lang) => lang.wasm && lang.query)];
+}
+
+export function languageGeneration(): number {
+	return generation;
+}
+
 export function clearLocalLanguages(): void {
 	LOCAL.clear();
+	generation++;
 }
 
 export function registerLocalLanguages(languages: readonly Language[]): void {
-	for (const language of languages) LOCAL.set(language.id, language);
+	for (const language of languages) {
+		LOCAL.set(language.id, language);
+		generation++;
+	}
 }
 
 export function localFiletypeForName(name: string): string | undefined {

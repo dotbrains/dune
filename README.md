@@ -105,8 +105,8 @@ away. By default the tree lists dotfiles and gitignored files; use the View comm
 `iconTheme` to `unicode` for one-cell file-type glyphs, leave it at `none` for the
 plain tree arrows, or point it at an icon theme from a local JSON plugin in
 `~/.config/dune/plugins/` or `<project>/.dune/plugins/`. The same plugin folders
-can also contribute local color themes with a `themes` array, pattern or bundled
-languages with a `languages` array, and language-server commands with a
+can also contribute local color themes with a `themes` array, pattern, bundled, or
+grammar-backed languages with a `languages` array, and language-server commands with a
 `languageServers` array. Market catalog entries can advertise those language-server
 plugins with `provides.languageServers` and filetype coverage with `provides.filetypes`. Set
 `disabledAppearancePlugins` to a list of plugin ids to keep installed but inactive, or

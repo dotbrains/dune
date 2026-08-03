@@ -3,7 +3,7 @@ import { getTreeSitterClient, pathToFiletype, SyntaxStyle } from '@opentui/core'
 import type { TreeSitterClient } from '@opentui/core';
 
 import { syntaxTheme, ui } from '../themes';
-import { languageFor, localFiletypeForName, VENDORED_LANGUAGES } from './index';
+import { languageFor, languageGeneration, localFiletypeForName, vendoredLanguages } from './index';
 import type { Language } from './index';
 
 /** Two dots so it outranks any syntax capture on the same whitespace. */
@@ -12,9 +12,11 @@ const INDENT_GUIDE = 'indent.guide';
 let clientDead = false;
 let initPromise: Promise<TreeSitterClient | null> | null = null;
 let syntaxStyle: SyntaxStyle | null = null;
+let registeredGeneration = -1;
 
 function registerVendoredParsers(client: TreeSitterClient): void {
-	for (const lang of VENDORED_LANGUAGES) {
+	registeredGeneration = languageGeneration();
+	for (const lang of vendoredLanguages()) {
 		try {
 			client.addFiletypeParser({
 				filetype: lang.id,
@@ -227,6 +229,7 @@ export async function computeHighlights(
 
 	const client = filetype ? await ensureClient() : null;
 	if (!client) return prepare(content, [...overlay, ...guides]);
+	if (registeredGeneration !== languageGeneration()) registerVendoredParsers(client);
 	try {
 		const res = await client.highlightOnce(content, filetype!);
 		if (isStale?.()) return STALE;
