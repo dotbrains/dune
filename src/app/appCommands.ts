@@ -42,6 +42,8 @@ export function createAppCommands(deps: {
 	actionTargets: () => string[];
 	say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
 	takeForPaste: (mode: 'cut' | 'copy') => void;
+	copyPath: (path: string, kind: 'absolute' | 'relative') => void;
+	selectedPath: () => string | null;
 	paste: () => void;
 	closeTab: (path: string) => void;
 	reopenTab: () => void;
@@ -165,6 +167,14 @@ export function createAppCommands(deps: {
 		deps.reloadAppearancePlugins();
 		deps.say(`Plugin ${id} ${off ? 'enabled' : 'disabled'}`);
 	};
+	const withCopyTarget = (run: (path: string) => void) => {
+		const path =
+			deps.focus() === 'tree'
+				? (deps.selectedPath() ?? deps.activePath())
+				: (deps.activePath() ?? deps.selectedPath());
+		if (path) run(path);
+		else deps.say('No file to copy the path of', 'warn');
+	};
 
 	return createMemo(() => {
 		void deps.appearanceVersion();
@@ -213,6 +223,8 @@ export function createAppCommands(deps: {
 				},
 				cutForMove: () => deps.takeForPaste('cut'),
 				copyForPaste: () => deps.takeForPaste('copy'),
+				copyPath: () => withCopyTarget((path) => deps.copyPath(path, 'absolute')),
+				copyRelativePath: () => withCopyTarget((path) => deps.copyPath(path, 'relative')),
 				paste: deps.paste,
 				closeTab: () => void (deps.activePath() && deps.closeTab(deps.activePath()!)),
 				reopenTab: deps.reopenTab,

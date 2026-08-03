@@ -1,8 +1,9 @@
-import { basename, dirname, join, relative } from 'node:path';
+import { basename, dirname, join, relative, sep } from 'node:path';
 
 import { unwrap } from 'solid-js/store';
 
 import { copyAll, moveAll } from '../core/bulk';
+import { copyToClipboard } from '../core/clipboard';
 import type { TreeNode } from '../core/fs';
 import { exists, freePath, rename } from '../core/fs';
 import type { Tone } from '../ui/StatusBar';
@@ -41,6 +42,7 @@ export function createFileActions(deps: {
 	setBusy: (busy: { label: string; done: number; total: number } | null) => void;
 	say: (msg: string, tone?: Tone) => void;
 	whileFree: (run: () => void) => void;
+	renderer: { copyToClipboardOSC52: (text: string) => void };
 	refreshTree: () => void;
 	expand: (path: string) => void;
 	discardBuffer: (path: string) => void;
@@ -166,6 +168,16 @@ export function createFileActions(deps: {
 		const verb = mode === 'cut' ? 'Cut' : 'Copied';
 		deps.say(`${verb} ${what} — press p on the folder to ${mode === 'cut' ? 'move' : 'copy'} into`);
 	};
+	const copyPath = (path: string, kind: 'absolute' | 'relative') => {
+		const rel = relative(deps.rootDir, path);
+		const outside = rel === '..' || rel.startsWith(`..${sep}`);
+		const text = kind === 'relative' && !outside ? rel : path;
+		copyToClipboard(text);
+		deps.renderer.copyToClipboardOSC52(text);
+		if (kind === 'relative' && outside)
+			return deps.say(`Copied ${text} — outside the project`, 'warn');
+		deps.say(`Copied ${text}`);
+	};
 	const paste = () => {
 		const { paths, mode } = deps.clipboard();
 		if (paths.length === 0)
@@ -232,6 +244,7 @@ export function createFileActions(deps: {
 		activateNode,
 		closeTab,
 		closeTabs,
+		copyPath,
 		movePath,
 		paste,
 		reopenTab,

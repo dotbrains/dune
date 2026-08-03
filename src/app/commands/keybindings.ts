@@ -13,6 +13,8 @@ export const KEYBINDABLE_COMMANDS: ReadonlyArray<{ id: string; label: string }> 
 	{ id: 'file.new', label: 'New file' },
 	{ id: 'open.cursor', label: 'Open file under cursor' },
 	{ id: 'file.newDir', label: 'New folder' },
+	{ id: 'file.copyPath', label: 'Copy path' },
+	{ id: 'file.copyRelativePath', label: 'Copy relative path' },
 	{ id: 'tabs.close', label: 'Close tab' },
 	{ id: 'view.sidebar', label: 'Toggle sidebar' },
 	{ id: 'view.markdown', label: 'Markdown: rendered / source' },

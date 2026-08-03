@@ -119,6 +119,7 @@ export const KEYS: KeyInfo[] = [
 		hint: { pane: 'tree', label: 'new file', rank: 3 },
 	},
 	{ key: `Ctrl+${ALT}+N`, label: 'New folder', section: 'Files & tabs', where: 'all' },
+	{ key: `Ctrl+${ALT}+C`, label: 'Copy path of this file', section: 'Files & tabs', where: 'all' },
 	{ key: 'Ctrl+W', label: 'Close tab', section: 'Files & tabs', where: 'all' },
 	{ key: `Ctrl+${ALT}+T`, label: 'Reopen closed tab', section: 'Files & tabs', where: 'all' },
 	{ key: 'Ctrl+T', label: 'Switch to open tab', section: 'Files & tabs', where: 'all' },

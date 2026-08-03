@@ -141,7 +141,7 @@ export function parseKeybindingEdit(input: string): KeybindingEdit {
 	return { ok: true, command, shortcut: shortcut || null };
 }
 
-const secondary = (key: KeyEvent) => Boolean(key.option || key.meta || key.shift);
+export const secondary = (key: KeyEvent) => Boolean(key.option || key.meta || key.shift);
 
 const JCUKEN_TO_QWERTY: Record<string, string> = {
 	й: 'q',

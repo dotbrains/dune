@@ -36,6 +36,8 @@ export function createAppCommandTree(deps: {
 	closeTabs: (paths: string[], done: string) => void;
 	actionTargets: () => string[];
 	takeForPaste: (mode: 'cut' | 'copy') => void;
+	copyPath: (path: string, kind: 'absolute' | 'relative') => void;
+	selectedPath: Accessor<string | null>;
 	paste: () => void;
 	closeTab: (path: string) => void;
 	reopenTab: () => void;
@@ -100,6 +102,8 @@ export function createAppCommandTree(deps: {
 		actionTargets: deps.actionTargets,
 		say: deps.say,
 		takeForPaste: deps.takeForPaste,
+		copyPath: deps.copyPath,
+		selectedPath: deps.selectedPath,
 		paste: deps.paste,
 		closeTab: deps.closeTab,
 		reopenTab: deps.reopenTab,

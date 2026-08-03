@@ -11,6 +11,7 @@ import {
 	latinKey,
 	matchesChord,
 	parseChord,
+	secondary,
 } from '../core/keybindings';
 import type { VimMode } from '../editor/vim';
 import type { Focus, Prompt } from './types';
@@ -42,6 +43,7 @@ export function useAppKeyboard(deps: {
 	navigateBack: () => void;
 	navigateForward: () => void;
 	openPathUnderCursor: () => void;
+	copyPath: (path: string, kind: 'absolute' | 'relative') => void;
 	reopenTab: () => void;
 	saveActive: () => void;
 	say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
@@ -87,6 +89,14 @@ export function useAppKeyboard(deps: {
 		'file.new': () => deps.setPrompt({ kind: 'newFile', dir: deps.targetDir() }),
 		'open.cursor': deps.openPathUnderCursor,
 		'file.newDir': () => deps.setPrompt({ kind: 'newFolder', dir: deps.targetDir() }),
+		'file.copyPath': () => {
+			const path =
+				deps.focus() === 'tree'
+					? (deps.selectedNode()?.path ?? deps.activePath())
+					: (deps.activePath() ?? deps.selectedNode()?.path);
+			if (path) deps.copyPath(path, 'absolute');
+			else deps.say('No file to copy the path of', 'warn');
+		},
 		'tabs.close': () => void (deps.activePath() && deps.closeTab(deps.activePath()!)),
 		'view.sidebar': deps.toggleSidebar,
 		'view.markdown': deps.toggleMarkdown,
@@ -128,7 +138,8 @@ export function useAppKeyboard(deps: {
 		if (key.ctrl && k === 'k') return claim(() => deps.setPeek((p) => !p));
 		if (deps.peek()) deps.setPeek(() => false);
 		if (key.ctrl && k === 'q' && !customizes('quit')) return claim(deps.quit);
-		if (key.ctrl && k === 'c' && deps.focus() !== 'editor') return claim(deps.quit);
+		if (key.ctrl && k === 'c' && !secondary(key) && deps.focus() !== 'editor')
+			return claim(deps.quit);
 		// Also accepts Ctrl+Opt+P / Ctrl+Shift+P when the terminal reports the modifier.
 		if (key.ctrl && k === 'p') return claim(() => deps.setPalette(true));
 		if (k === 'f1') return claim(() => deps.setPalette(true));
@@ -161,6 +172,16 @@ export function useAppKeyboard(deps: {
 		}
 		if (key.ctrl && chord(key) && k === 'n' && !customizes('file.newDir')) {
 			return claim(() => deps.setPrompt({ kind: 'newFolder', dir: deps.targetDir() }));
+		}
+		if (key.ctrl && chord(key) && k === 'c' && !customizes('file.copyPath')) {
+			return claim(() => {
+				const path =
+					deps.focus() === 'tree'
+						? (deps.selectedNode()?.path ?? deps.activePath())
+						: (deps.activePath() ?? deps.selectedNode()?.path);
+				if (path) deps.copyPath(path, 'absolute');
+				else deps.say('No file to copy the path of', 'warn');
+			});
 		}
 		if (key.ctrl && k === 'n' && !customizes('file.new'))
 			return claim(() => deps.setPrompt({ kind: 'newFile', dir: deps.targetDir() }));
