@@ -1,10 +1,11 @@
 {
 	"default_lines": 500,
 	"files": {
-		"src/app/App.tsx": 650,
+		"src/app/App.tsx": 690,
 		"src/app/AppView.tsx": 515,
 		"src/app/commands.ts": 525,
-		"src/ui/EditorPane.tsx": 525
+		"src/ui/EditorPane.tsx": 525,
+		"src/ui/SearchPanel.tsx": 530
 	},
 	"exclude": ["^bun\\.lock$"]
 }

@@ -21,7 +21,7 @@ import { trimTrailing } from '../editor/lines';
 import type { FetchableInstall } from '../lsp/servers';
 import { ALT } from '../ui/keys';
 import { installMarketPlugin } from './appearance/pluginsPage';
-import { KEYBINDABLE_COMMANDS } from './commands';
+import { KEYBINDABLE_COMMANDS } from './commandKeybindings';
 import { CLASH_CHANGED } from './constants';
 import { isTextPrompt } from './prompts';
 import type { BufferState, Conflict, DiskSync, Prompt } from './types';
