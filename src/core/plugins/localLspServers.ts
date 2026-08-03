@@ -86,7 +86,10 @@ function parseServer(raw: unknown): ServerSpec | null {
 	const filetypes = strings(raw.filetypes);
 	const install = parseInstall(raw.install);
 	if (!command || !filetypes || install === null) return null;
-	return install ? { id: raw.id, command, filetypes, install } : { id: raw.id, command, filetypes };
+	const server: ServerSpec = { id: raw.id, command, filetypes };
+	if (install) server.install = install;
+	if (raw.settings !== undefined) server.settings = raw.settings;
+	return server;
 }
 
 export function loadLocalLspServers(

@@ -4,6 +4,7 @@ export interface ServerSpec {
 	/** OpenTUI filetype ids handled by this server. */
 	filetypes: string[];
 	install?: ServerInstall;
+	settings?: unknown;
 }
 
 export type ServerInstall =
@@ -12,6 +13,12 @@ export type ServerInstall =
 	| { kind: 'download'; url: string };
 
 export type FetchableInstall = Exclude<ServerInstall, { kind: 'manual' }>;
+export interface ResolvedServer {
+	id: string;
+	command: string[];
+	install?: ServerInstall;
+	settings?: unknown;
+}
 
 const npm = (...packages: string[]): ServerInstall => ({ kind: 'npm', packages });
 const manual = (command: string): ServerInstall => ({ kind: 'manual', command });
@@ -100,17 +107,33 @@ export function installHint(install: ServerInstall): string {
 	return install.command;
 }
 
+export function resolveServers(
+	filetype: string | undefined,
+	overrides: Record<string, string[]>,
+	extraServers: readonly ServerSpec[] = [],
+): ResolvedServer[] {
+	if (!filetype) return [];
+	return serverSpecs(extraServers).flatMap((spec) => {
+		if (!spec.filetypes.includes(filetype)) return [];
+		const override = overrides[spec.id];
+		const command = override ?? spec.command;
+		return command.length > 0
+			? [
+					{
+						id: spec.id,
+						command,
+						install: override ? undefined : spec.install,
+						settings: spec.settings,
+					},
+				]
+			: [];
+	});
+}
+
 export function resolveServer(
 	filetype: string | undefined,
 	overrides: Record<string, string[]>,
 	extraServers: readonly ServerSpec[] = [],
-): { id: string; command: string[]; install?: ServerInstall } | null {
-	if (!filetype) return null;
-	const spec = serverSpecs(extraServers).find((server) => server.filetypes.includes(filetype));
-	if (!spec) return null;
-	const override = overrides[spec.id];
-	const command = override ?? spec.command;
-	return command.length > 0
-		? { id: spec.id, command, install: override ? undefined : spec.install }
-		: null;
+): ResolvedServer | null {
+	return resolveServers(filetype, overrides, extraServers)[0] ?? null;
 }

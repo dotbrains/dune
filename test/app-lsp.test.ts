@@ -108,6 +108,33 @@ test('plugin language servers handle additional filetypes', async () => {
 	});
 });
 
+test('files can sync with every matching language server', async () => {
+	const { dir, path } = project();
+	await createRoot((dispose) => {
+		disposers.push(dispose);
+		const warnings: string[] = [];
+		const config = { ...DEFAULTS, lsp: true, lspServers: { typescript: ['bun', FAKE] } };
+		const lsp = createAppLsp({
+			rootDir: dir,
+			config,
+			say: (msg) => warnings.push(msg),
+			servers: () => [{ id: 'eslint', command: ['bun', FAKE], filetypes: ['typescript'] }],
+		});
+		const [tabs] = createSignal([path]);
+		const [buffers] = createStore<Record<string, BufferState>>({
+			[path]: { content: 'const oops = 1\n', dirty: false, mtime: 0 },
+		});
+		wireAppLspEffects({ lsp, config, tabs, buffers });
+
+		return waitFor(() => lsp.problems[path]?.length === 2).then(() => {
+			expect(warnings).toEqual([]);
+			expect(lsp.clientsFor(path)).toHaveLength(2);
+			expect(lsp.statusRows().find((row) => row.id === 'typescript')?.problems).toBe(1);
+			expect(lsp.statusRows().find((row) => row.id === 'eslint')?.problems).toBe(1);
+		});
+	});
+});
+
 test('closing a tab clears diagnostics for that path', async () => {
 	const { path, lsp, setTabs } = runLsp();
 	await waitFor(() => lsp.problems[path]?.length === 1);

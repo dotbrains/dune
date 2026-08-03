@@ -30,7 +30,9 @@ export interface LspClientOptions {
 	rootDir: string;
 	onDiagnostics: (uri: string, diagnostics: Diagnostic[]) => void;
 	onFail: (reason: string, missing: boolean) => void;
+	onRefreshDiagnostics?: () => void;
 	initializationOptions?: unknown;
+	settings?: unknown;
 }
 
 interface PendingRequest {
@@ -101,7 +103,7 @@ export function spawnLspClient(options: LspClientOptions) {
 	const answerClientRequest = (message: RpcMessage) => {
 		if (message.method === 'workspace/configuration') {
 			const items = (message.params as { items?: unknown[] } | undefined)?.items ?? [];
-			send({ jsonrpc: '2.0', id: message.id, result: items.map(() => null) });
+			send({ jsonrpc: '2.0', id: message.id, result: items.map(() => options.settings ?? null) });
 			return;
 		}
 		if (
@@ -127,6 +129,10 @@ export function spawnLspClient(options: LspClientOptions) {
 		if (message.method === 'textDocument/publishDiagnostics') {
 			const params = message.params as { uri: string; diagnostics?: Diagnostic[] };
 			options.onDiagnostics(params.uri, params.diagnostics ?? []);
+			return;
+		}
+		if (message.method === 'workspace/diagnostic/refresh') {
+			options.onRefreshDiagnostics?.();
 			return;
 		}
 		if (message.id == null) return;
@@ -162,6 +168,7 @@ export function spawnLspClient(options: LspClientOptions) {
 		processId: process.pid,
 		rootUri,
 		capabilities: {
+			workspace: { configuration: true },
 			textDocument: {
 				synchronization: { didSave: true },
 				publishDiagnostics: {},
@@ -193,6 +200,13 @@ export function spawnLspClient(options: LspClientOptions) {
 			pullProvider = capabilities?.diagnosticProvider != null;
 			send({ jsonrpc: '2.0', method: 'initialized', params: {} });
 			state = 'ready';
+			if (options.settings !== undefined) {
+				send({
+					jsonrpc: '2.0',
+					method: 'workspace/didChangeConfiguration',
+					params: { settings: options.settings },
+				});
+			}
 			for (const message of queued) send(message);
 			queued.length = 0;
 			for (const path of pendingPulls) pullDiagnostics(path);

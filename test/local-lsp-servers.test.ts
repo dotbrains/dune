@@ -45,6 +45,28 @@ test('local plugin manifests can contribute language servers', () => {
 	});
 });
 
+test('local language server plugins preserve server settings', () => {
+	const dir = project({
+		'eslint.json': JSON.stringify({
+			id: 'eslint-tools',
+			version: '1.0.0',
+			languageServers: [
+				{
+					id: 'eslint',
+					command: ['vscode-eslint-language-server', '--stdio'],
+					filetypes: ['typescript'],
+					settings: { validate: 'on', workingDirectory: { mode: 'location' } },
+				},
+			],
+		}),
+	});
+
+	expect(loadLocalLspServers(join(dir, 'empty'), dir).servers[0]?.settings).toEqual({
+		validate: 'on',
+		workingDirectory: { mode: 'location' },
+	});
+});
+
 test('local language server plugins can declare platform downloads', () => {
 	const key = `${process.platform}-${process.arch}`;
 	const dir = project({

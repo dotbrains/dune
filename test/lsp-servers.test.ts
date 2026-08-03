@@ -8,7 +8,7 @@ import { parseLspServerEdit } from '../src/core/lspSettings';
 import { settingsRows } from '../src/app/settingsRows';
 import { downloadServer, installedCommand } from '../src/lsp/install';
 import { projectCommand, typescriptMajor } from '../src/lsp/project';
-import { installHint, resolveServer, serverSpecs } from '../src/lsp/servers';
+import { installHint, resolveServer, resolveServers, serverSpecs } from '../src/lsp/servers';
 import { fixture } from './helpers';
 
 test('language server resolution applies overrides and disables empty commands', () => {
@@ -45,6 +45,15 @@ test('language server resolution applies overrides and disables empty commands',
 			{ id: 'custom-typescript', command: ['custom-ts'], filetypes: ['typescript'] },
 		])?.id,
 	).toBe('typescript');
+	expect(
+		resolveServers('typescript', {}, [
+			{
+				id: 'eslint',
+				command: ['vscode-eslint-language-server', '--stdio'],
+				filetypes: ['typescript'],
+			},
+		]).map((server) => server.id),
+	).toEqual(['typescript', 'eslint']);
 	expect(
 		serverSpecs([{ id: 'typescript', command: ['custom-ts'], filetypes: ['typescript'] }]),
 	).toHaveLength(serverSpecs().length);

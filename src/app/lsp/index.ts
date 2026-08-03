@@ -21,7 +21,13 @@ import {
 import { projectCommand } from '../../lsp/project';
 import { isUnnecessary, severityOf } from '../../lsp/protocol';
 import type { CompletionItem, Diagnostic, ProblemSeverity } from '../../lsp/protocol';
-import { installHint, resolveServer, serverSpecs, type ServerSpec } from '../../lsp/servers';
+import {
+	installHint,
+	resolveServers,
+	serverSpecs,
+	type ResolvedServer,
+	type ServerSpec,
+} from '../../lsp/servers';
 import type { BufferState, Prompt, StatusMessage } from '../types';
 
 export interface Problem {
@@ -57,35 +63,49 @@ export function createAppLsp(deps: {
 }) {
 	const [problems, setProblems] = createStore<Record<string, Problem[]>>({});
 	const [generation, setGeneration] = createSignal(0);
+	const bySource = new Map<string, Map<string, Problem[]>>();
 	const clients = new Map<string, LspClient | null>();
+	const clientIds = new WeakMap<LspClient, string>();
 	const offered = new Set<string>();
+	let refreshPulls: ((serverId: string) => void) | null = null;
 
-	const onDiagnostics = (uri: string, diagnostics: Diagnostic[]) => {
+	const mergeProblems = (path: string) => {
+		const sources = bySource.get(path);
+		const merged = sources ? [...sources.values()].flat() : [];
+		setProblems(
+			path,
+			merged.toSorted((a, b) => a.line - b.line || a.col - b.col),
+		);
+	};
+
+	const onDiagnosticsFrom = (serverId: string) => (uri: string, diagnostics: Diagnostic[]) => {
 		let path: string;
 		try {
 			path = fileURLToPath(uri);
 		} catch {
 			return;
 		}
-		setProblems(
-			path,
-			diagnostics
-				.map((diagnostic) => ({
-					path,
-					line: diagnostic.range.start.line,
-					col: diagnostic.range.start.character,
-					endLine: diagnostic.range.end.line,
-					endCol: diagnostic.range.end.character,
-					severity: severityOf(diagnostic),
-					unnecessary: isUnnecessary(diagnostic),
-					message: diagnostic.message,
-					source: diagnostic.source,
-				}))
-				.toSorted((a, b) => a.line - b.line || a.col - b.col),
+		const sources = bySource.get(path) ?? new Map<string, Problem[]>();
+		sources.set(
+			serverId,
+			diagnostics.map((diagnostic) => ({
+				path,
+				line: diagnostic.range.start.line,
+				col: diagnostic.range.start.character,
+				endLine: diagnostic.range.end.line,
+				endCol: diagnostic.range.end.character,
+				severity: severityOf(diagnostic),
+				unnecessary: isUnnecessary(diagnostic),
+				message: diagnostic.message,
+				source: diagnostic.source,
+			})),
 		);
+		bySource.set(path, sources);
+		mergeProblems(path);
 	};
 
 	const clearProblems = (path: string) => {
+		bySource.delete(path);
 		if (problems[path]?.length) setProblems(path, []);
 	};
 
@@ -95,14 +115,14 @@ export function createAppLsp(deps: {
 		return tsdk ? { tsserver: { path: tsdk } } : undefined;
 	};
 
-	const missingMessage = (resolved: NonNullable<ReturnType<typeof resolveServer>>): string => {
+	const missingMessage = (resolved: ResolvedServer): string => {
 		const name = resolved.command[0]!;
 		return resolved.install
 			? `LSP: ${name} not installed — ${installHint(resolved.install)}`
 			: `LSP: ${name} is not installed, or not on PATH`;
 	};
 
-	const offerInstall = (resolved: NonNullable<ReturnType<typeof resolveServer>>): boolean => {
+	const offerInstall = (resolved: ResolvedServer): boolean => {
 		if (
 			(resolved.install?.kind !== 'npm' && resolved.install?.kind !== 'download') ||
 			!deps.config.lspAutoInstall ||
@@ -124,18 +144,7 @@ export function createAppLsp(deps: {
 
 	const availableServers = (): ServerSpec[] => serverSpecs(deps.servers?.() ?? []);
 
-	const clientFor = (path: string): LspClient | null => {
-		if (!deps.config.lsp) return null;
-		const resolved = resolveServer(
-			filetypeForPath(path),
-			deps.config.lspServers,
-			availableServers(),
-		);
-		if (!resolved) {
-			const filetype = filetypeForPath(path);
-			if (filetype) deps.suggestServerPlugin?.(filetype);
-			return null;
-		}
+	const spawnFor = (resolved: ResolvedServer): LspClient | null => {
 		const known = clients.get(resolved.id);
 		if (known !== undefined) return known;
 		const project = projectCommand(resolved.id, resolved.command, deps.rootDir);
@@ -145,7 +154,9 @@ export function createAppLsp(deps: {
 			command,
 			rootDir: deps.rootDir,
 			initializationOptions: initializationOptionsFor(resolved.id),
-			onDiagnostics,
+			settings: resolved.settings,
+			onDiagnostics: onDiagnosticsFrom(resolved.id),
+			onRefreshDiagnostics: () => refreshPulls?.(resolved.id),
 			onFail: (reason, missing) => {
 				clients.set(resolved.id, null);
 				if (missing && offerInstall(resolved)) return;
@@ -153,12 +164,30 @@ export function createAppLsp(deps: {
 			},
 		});
 		clients.set(resolved.id, client);
+		clientIds.set(client, resolved.id);
 		return client;
 	};
+
+	const clientsFor = (path: string): LspClient[] => {
+		if (!deps.config.lsp) return [];
+		const filetype = filetypeForPath(path);
+		const resolved = resolveServers(filetype, deps.config.lspServers, availableServers());
+		if (resolved.length === 0) {
+			if (filetype) deps.suggestServerPlugin?.(filetype);
+			return [];
+		}
+		return resolved.flatMap((server) => {
+			const client = spawnFor(server);
+			return client ? [client] : [];
+		});
+	};
+
+	const clientFor = (path: string): LspClient | null => clientsFor(path)[0] ?? null;
 
 	const dispose = () => {
 		for (const client of clients.values()) client?.dispose();
 		clients.clear();
+		bySource.clear();
 		for (const path of Object.keys(problems)) clearProblems(path);
 	};
 
@@ -180,11 +209,7 @@ export function createAppLsp(deps: {
 		}, DEPENDENCY_QUIET_MS);
 	};
 
-	const install = async (
-		id: string,
-		name: string,
-		spec: NonNullable<ReturnType<typeof resolveServer>>['install'],
-	) => {
+	const install = async (id: string, name: string, spec: ResolvedServer['install']) => {
 		if (!spec || spec.kind === 'manual') return;
 		deps.say(`Installing ${name}...`);
 		const error =
@@ -216,10 +241,8 @@ export function createAppLsp(deps: {
 								? 'starting'
 								: 'stopped';
 			let count = 0;
-			for (const path of Object.keys(problems)) {
-				if (server.filetypes.includes(filetypeForPath(path) ?? '')) {
-					count += problems[path]?.length ?? 0;
-				}
+			for (const sources of bySource.values()) {
+				count += sources.get(server.id)?.length ?? 0;
 			}
 			return {
 				id: server.id,
@@ -238,20 +261,26 @@ export function createAppLsp(deps: {
 		col: number,
 	): Promise<CompletionReply | null> => {
 		if (!deps.config.lsp || !deps.config.lspCompletion) return null;
-		const client = clientFor(path);
-		if (!client?.ready()) return null;
 		flushEdit?.(path);
-		return normalizeCompletion(await client.complete(path, { line, character: col }));
+		for (const client of clientsFor(path)) {
+			if (!client.ready()) continue;
+			const reply = normalizeCompletion(await client.complete(path, { line, character: col }));
+			if (reply && reply.items.length > 0) return reply;
+		}
+		return null;
 	};
 
-	const resolveCompletion = (
+	const resolveCompletion = async (
 		path: string,
 		item: CompletionItem,
 	): Promise<CompletionItem | null> => {
-		if (!deps.config.lsp || !deps.config.lspCompletion) return Promise.resolve(null);
-		const client = clientFor(path);
-		if (!client?.ready()) return Promise.resolve(null);
-		return client.resolveCompletion(item);
+		if (!deps.config.lsp || !deps.config.lspCompletion) return null;
+		for (const client of clientsFor(path)) {
+			if (!client.ready()) continue;
+			const resolved = await client.resolveCompletion(item);
+			if (resolved) return resolved;
+		}
+		return null;
 	};
 
 	const definition = async (
@@ -260,10 +289,13 @@ export function createAppLsp(deps: {
 		col: number,
 	): Promise<DefinitionTarget | null> => {
 		if (!deps.config.lsp) return null;
-		const client = clientFor(path);
-		if (!client?.ready()) return null;
 		flushEdit?.(path);
-		return normalizeDefinition(await client.definition(path, { line, character: col }));
+		for (const client of clientsFor(path)) {
+			if (!client.ready()) continue;
+			const target = normalizeDefinition(await client.definition(path, { line, character: col }));
+			if (target) return target;
+		}
+		return null;
 	};
 
 	onCleanup(() => {
@@ -275,6 +307,7 @@ export function createAppLsp(deps: {
 		problems,
 		clearProblems,
 		clientFor,
+		clientsFor,
 		complete,
 		resolveCompletion,
 		definition,
@@ -286,7 +319,11 @@ export function createAppLsp(deps: {
 		setFlushEdit: (flush: (path: string) => void) => {
 			flushEdit = flush;
 		},
+		setRefreshPulls: (refresh: (serverId: string) => void) => {
+			refreshPulls = refresh;
+		},
 		dispose,
+		serverIdFor: (client: LspClient) => clientIds.get(client) ?? null,
 	};
 }
 
@@ -299,25 +336,38 @@ export function wireAppLspEffects(deps: {
 	buffers: Record<string, BufferState>;
 }) {
 	interface Synced {
-		client: LspClient;
-		text: string;
-		dirty: boolean;
+		clients: Map<LspClient, { text: string; dirty: boolean }>;
 	}
 
 	const synced = new Map<string, Synced>();
-	const pendingEdits = new Map<string, { entry: Synced; text: string }>();
+	const pendingEdits = new Map<
+		string,
+		Map<LspClient, { state: { text: string; dirty: boolean }; text: string }>
+	>();
 	let flushTimer: ReturnType<typeof setTimeout> | null = null;
 
 	const flushEdit = (path: string) => {
 		const edit = pendingEdits.get(path);
 		if (!edit) return;
 		pendingEdits.delete(path);
-		edit.entry.client.changeDocument(path, edit.text);
-		edit.entry.text = edit.text;
-		edit.entry.client.pullDiagnostics(path);
+		for (const [client, pending] of edit) {
+			client.changeDocument(path, pending.text);
+			pending.state.text = pending.text;
+			client.pullDiagnostics(path);
+		}
 	};
 
 	deps.lsp.setFlushEdit(flushEdit);
+	deps.lsp.setRefreshPulls((serverId) => {
+		for (const [path, entry] of synced) {
+			for (const [client, state] of entry.clients) {
+				if (deps.lsp.serverIdFor(client) !== serverId) continue;
+				flushEdit(path);
+				client.pullDiagnostics(path);
+				state.dirty = deps.buffers[path]?.dirty ?? state.dirty;
+			}
+		}
+	});
 
 	const flushAll = () => {
 		flushTimer = null;
@@ -339,7 +389,7 @@ export function wireAppLspEffects(deps: {
 		for (const [path, entry] of synced) {
 			if (openSet.has(path)) continue;
 			pendingEdits.delete(path);
-			entry.client.closeDocument(path);
+			for (const client of entry.clients.keys()) client.closeDocument(path);
 			synced.delete(path);
 			deps.lsp.clearProblems(path);
 		}
@@ -347,35 +397,36 @@ export function wireAppLspEffects(deps: {
 		for (const path of open) {
 			const buffer = deps.buffers[path];
 			if (!buffer) continue;
-			const known = synced.get(path);
-			if (!known) {
-				const client = deps.lsp.clientFor(path);
-				if (!client) continue;
-				client.openDocument(path, filetypeForPath(path) ?? 'plaintext', buffer.content);
-				client.pullDiagnostics(path);
-				synced.set(path, { client, text: buffer.content, dirty: buffer.dirty });
-				continue;
+			const entry = synced.get(path) ?? { clients: new Map() };
+			const current = new Set(deps.lsp.clientsFor(path));
+			for (const client of entry.clients.keys()) {
+				if (current.has(client)) continue;
+				client.closeDocument(path);
+				entry.clients.delete(client);
 			}
-
-			const current = deps.lsp.clientFor(path);
-			if (!current) continue;
-			if (current !== known.client) {
-				current.openDocument(path, filetypeForPath(path) ?? 'plaintext', buffer.content);
-				current.pullDiagnostics(path);
-				synced.set(path, { client: current, text: buffer.content, dirty: buffer.dirty });
-				continue;
+			for (const client of current) {
+				let state = entry.clients.get(client);
+				if (!state) {
+					state = { text: buffer.content, dirty: buffer.dirty };
+					entry.clients.set(client, state);
+					client.openDocument(path, filetypeForPath(path) ?? 'plaintext', buffer.content);
+					client.pullDiagnostics(path);
+					continue;
+				}
+				if (buffer.content !== state.text) {
+					const edits = pendingEdits.get(path) ?? new Map();
+					edits.set(client, { state, text: buffer.content });
+					pendingEdits.set(path, edits);
+					if (!flushTimer) flushTimer = setTimeout(flushAll, CHANGE_DEBOUNCE_MS);
+				}
+				if (state.dirty && !buffer.dirty) {
+					flushEdit(path);
+					client.saveDocument(path);
+					client.pullDiagnostics(path);
+				}
+				state.dirty = buffer.dirty;
 			}
-
-			if (buffer.content !== known.text) {
-				pendingEdits.set(path, { entry: known, text: buffer.content });
-				if (!flushTimer) flushTimer = setTimeout(flushAll, CHANGE_DEBOUNCE_MS);
-			}
-			if (known.dirty && !buffer.dirty) {
-				flushEdit(path);
-				known.client.saveDocument(path);
-				known.client.pullDiagnostics(path);
-			}
-			known.dirty = buffer.dirty;
+			if (entry.clients.size > 0) synced.set(path, entry);
 		}
 	});
 
