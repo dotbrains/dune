@@ -111,6 +111,29 @@ describe('languages', () => {
 		expect(languageLabel('terraform')).toBe('tf');
 	});
 
+	test('jsonc files keep comments without loosening plain json', () => {
+		expect(filetypeForPath('wrangler.jsonc')).toBe('jsonc');
+		expect(filetypeForPath('app/tsconfig.jsonc')).toBe('jsonc');
+		expect(filetypeForPath('package.json')).toBe('json');
+		expect(commentPrefix('jsonc')).toBe('//');
+		expect(commentPrefix('json')).toBeUndefined();
+	});
+
+	test('jsonc comments are highlighted as comments', async () => {
+		const sample = '{\n  // line comment\n  /* block comment */\n  "port": 8080\n}\n';
+		const segments = await allSegments(sample, 'jsonc');
+		const comment = getSyntaxStyle().getStyleId('comment');
+		const error = getSyntaxStyle().getStyleId('error');
+		const text = (line: number) =>
+			segments
+				.filter((segment) => segment.line === line && segment.styleId === comment)
+				.map((segment) => sample.split('\n')[line]?.slice(segment.start, segment.end));
+
+		expect(text(1)).toEqual(['// line comment']);
+		expect(text(2)).toEqual(['/* block comment */']);
+		expect(segments.some((segment) => segment.styleId === error)).toBe(false);
+	});
+
 	test('local plugins can contribute pattern languages', async () => {
 		const root = mkdtempSync(join(tmpdir(), 'dune-language-plugin-'));
 		const userPlugins = join(root, 'plugins');

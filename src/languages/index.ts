@@ -75,6 +75,7 @@ export const LANGUAGES: Language[] = [
 	{ id: 'markdown', label: 'md', bundled: true },
 	{ id: 'zig', bundled: true },
 	{ id: 'json', ...GRAMMARS.json },
+	{ id: 'jsonc', ...GRAMMARS.json, extensions: ['.jsonc'], lineComment: '//' },
 	{ id: 'html', ...GRAMMARS.html },
 	{ id: 'typescriptreact', label: 'tsx', ...GRAMMARS.tsx },
 	{ id: 'javascriptreact', label: 'jsx', ...GRAMMARS.tsx },

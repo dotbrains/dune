@@ -23,6 +23,7 @@ export function createAppSettingRows(deps: {
 		| 'toggleTransparent'
 		| 'toggleDotfiles'
 		| 'toggleGitignored'
+		| 'toggleWrap'
 		| 'toggleTrim'
 	>;
 	patchConfig: (patch: Partial<Config>) => void;
@@ -46,6 +47,7 @@ export function createAppSettingRows(deps: {
 		toggleTransparent: deps.controls.toggleTransparent,
 		toggleDotfiles: deps.controls.toggleDotfiles,
 		toggleGitignored: deps.controls.toggleGitignored,
+		toggleWrap: deps.controls.toggleWrap,
 		toggleTrim: deps.controls.toggleTrim,
 		patchConfig: deps.patchConfig,
 		configScope: deps.configScope,

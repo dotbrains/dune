@@ -13,6 +13,7 @@ export function EditorPaneContent(props: {
 	content: string;
 	focused: boolean;
 	tabSize: number;
+	wrap: boolean;
 	notice: { name: string; reason: string } | null;
 	editorEl: TextareaRenderable | null;
 	cursorLine: number;
@@ -47,6 +48,7 @@ export function EditorPaneContent(props: {
 					content={props.content}
 					focused={props.focused}
 					tabSize={props.tabSize}
+					wrap={props.wrap}
 					editorEl={props.editorEl}
 					cursorLine={props.cursorLine}
 					gutterWidth={props.gutterWidth}

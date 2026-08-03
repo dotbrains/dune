@@ -85,7 +85,7 @@ export const DEFAULT_SERVERS: ServerSpec[] = [
 	{
 		id: 'json',
 		command: ['vscode-json-language-server', '--stdio'],
-		filetypes: ['json'],
+		filetypes: ['json', 'jsonc'],
 		install: npm('vscode-langservers-extracted'),
 	},
 ];

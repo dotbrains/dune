@@ -285,6 +285,7 @@ export function AppView(props: AppViewProps) {
 									completion={props.completion}
 									vim={props.config.vim}
 									cursorStyle={props.config.cursorStyle}
+									wrap={props.config.wrap}
 									tabSize={props.config.tabSize}
 									gitLines={props.gitLines}
 									problems={props.problems}

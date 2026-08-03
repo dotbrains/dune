@@ -37,6 +37,7 @@ export function settingsRows(
 		toggleTransparent: () => void;
 		toggleDotfiles: () => void;
 		toggleGitignored: () => void;
+		toggleWrap: () => void;
 		toggleFormat: () => void;
 		toggleTrim: () => void;
 		patchConfig: (patch: Partial<Config>, scope?: 'user' | 'project') => void;
@@ -119,6 +120,12 @@ export function settingsRows(
 					{ cursorStyle: cycle(CURSOR_STYLES, config.cursorStyle, dir) },
 					actions.configScope(),
 				),
+		},
+		{
+			section: 'Editor',
+			label: 'Word wrap',
+			value: onOff(config.wrap),
+			change: actions.toggleWrap,
 		},
 		{
 			section: 'Editor',

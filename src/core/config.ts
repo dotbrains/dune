@@ -63,6 +63,8 @@ export interface Config {
 	vim: boolean;
 	/** Editor caret shape when vim mode is not overriding it. */
 	cursorStyle: CursorStyle;
+	/** Soft-wrap long lines at the editor edge. */
+	wrap: boolean;
 	/** Columns per indent level: indent guides and literal tabs both use it. */
 	tabSize: number;
 	/**
@@ -120,6 +122,7 @@ export const DEFAULTS: Config = {
 	iconTheme: 'none',
 	vim: false,
 	cursorStyle: 'block',
+	wrap: true,
 	tabSize: 2,
 	sidebarWidth: 'auto',
 	skipUpdate: '',
@@ -159,6 +162,7 @@ function parsePartial(raw: unknown): Partial<Config> {
 	if (CURSOR_STYLES.includes(obj.cursorStyle as CursorStyle)) {
 		config.cursorStyle = obj.cursorStyle as CursorStyle;
 	}
+	if (typeof obj.wrap === 'boolean') config.wrap = obj.wrap;
 	if (typeof obj.tabSize === 'number' && obj.tabSize >= 1 && obj.tabSize <= 16) {
 		config.tabSize = Math.floor(obj.tabSize);
 	}

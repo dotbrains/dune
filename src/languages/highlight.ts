@@ -68,6 +68,7 @@ export function filetypeForPath(path: string): string | undefined {
 	const local = localFiletypeForName(name);
 	if (local) return local;
 	if (DOTENV.test(name)) return 'dotenv';
+	if (name.endsWith('.jsonc')) return 'jsonc';
 	if (name.endsWith('.tsrx')) return 'tsrx';
 	if (name.endsWith('.tf') || name.endsWith('.tfvars')) return 'terraform';
 	if (name.endsWith('.hcl')) return 'hcl';

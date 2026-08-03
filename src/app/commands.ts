@@ -42,6 +42,7 @@ export const KEYBINDABLE_COMMANDS: ReadonlyArray<{ id: string; label: string }> 
 	{ id: 'tabs.close', label: 'Close tab' },
 	{ id: 'view.sidebar', label: 'Toggle sidebar' },
 	{ id: 'view.markdown', label: 'Markdown: rendered / source' },
+	{ id: 'view.wrap', label: 'Toggle word wrap' },
 	{ id: 'git.sourceControl', label: 'Source control panel' },
 	{ id: 'problems.list', label: 'List problems' },
 	{ id: 'problems.next', label: 'Next problem' },
@@ -85,6 +86,7 @@ export interface CommandActions {
 	toggleDotfiles: () => void;
 	toggleGitignored: () => void;
 	toggleMarkdown: () => void;
+	toggleWrap: () => void;
 	openSettings: () => void;
 	openProjectSettings: () => void;
 	openAppearancePlugins: () => void;
@@ -142,6 +144,7 @@ export interface CommandContext {
 	vimEnabled: boolean;
 	activeTheme: ThemeName;
 	tabSize: number;
+	wrap: boolean;
 	trimOnSave: boolean;
 	formatOnSave: boolean;
 	autoSaveOnBlur: boolean;
@@ -260,6 +263,11 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 					label: 'Markdown: rendered / source',
 					hint: `Ctrl+${ALT}+M`,
 					run: actions.toggleMarkdown,
+				},
+				{
+					id: 'view.wrap',
+					label: `${check(ctx.wrap)}Word wrap`,
+					run: actions.toggleWrap,
 				},
 				{
 					id: 'view.dotfiles',
@@ -405,6 +413,11 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 						label: `${check(ctx.tabSize === size)}${size} spaces`,
 						run: () => actions.setTabSize(size),
 					})),
+				},
+				{
+					id: 'editor.wrap',
+					label: `${check(ctx.wrap)}Word wrap`,
+					run: actions.toggleWrap,
 				},
 				{
 					id: 'editor.trim',

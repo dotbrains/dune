@@ -57,6 +57,7 @@ export function createAppCommands(deps: {
 	previewTheme: (name: ThemeName) => void;
 	cancelThemePreview: () => void;
 	toggleMarkdown: () => void;
+	toggleWrap: () => void;
 	toggleDotfiles: () => void;
 	toggleGitignored: () => void;
 	toggleTrim: () => void;
@@ -220,6 +221,7 @@ export function createAppCommands(deps: {
 				toggleSidebar: deps.toggleSidebar,
 				collapseSidebar: deps.collapseSidebar,
 				toggleMarkdown: deps.toggleMarkdown,
+				toggleWrap: deps.toggleWrap,
 				toggleDotfiles: deps.toggleDotfiles,
 				toggleGitignored: deps.toggleGitignored,
 				openSettings: deps.openSettings,
@@ -279,6 +281,7 @@ export function createAppCommands(deps: {
 				vimEnabled: deps.config.vim,
 				activeTheme: deps.config.theme,
 				tabSize: deps.config.tabSize,
+				wrap: deps.config.wrap,
 				trimOnSave: deps.config.trimOnSave,
 				formatOnSave: deps.config.formatOnSave,
 				autoSaveOnBlur: deps.config.autoSaveOnBlur,

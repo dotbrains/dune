@@ -3,7 +3,8 @@ import { expect, test } from 'bun:test';
 import { DEFAULTS } from '../src/core/config';
 import { getSyntaxStyle } from '../src/languages/highlight';
 import { THEMES } from '../src/themes';
-import { fixture, launch, press } from './helpers';
+import { fixture, launch, openFile, press, until } from './helpers';
+import type { Harness } from './helpers';
 import { allSegments } from './syntax';
 
 const NESTED = 'function f() {\n  if (x) {\n    return 1\n  }\n}\n';
@@ -41,6 +42,37 @@ test('tab size is configurable and shown in the palette', async () => {
 	const frame = t.captureCharFrame();
 	expect(frame).toContain('2 spaces');
 	expect(frame).toContain('* 4 spaces'); // marked as active
+});
+
+function coloursOf(t: Harness, needle: string): string[][] {
+	const frame = t.captureSpans() as unknown as {
+		lines: { spans: { text: string; fg?: { buffer: Uint8Array } }[] }[];
+	};
+	const rows: string[][] = [];
+	for (const line of frame.lines) {
+		const cells: { ch: string; fg: string }[] = [];
+		for (const span of line.spans) {
+			const fg = span.fg ? Array.from(span.fg.buffer.slice(0, 3)).join(',') : '-';
+			for (const ch of span.text) cells.push({ ch, fg });
+		}
+		const at = cells
+			.map((cell) => cell.ch)
+			.join('')
+			.indexOf(needle);
+		if (at >= 0) rows.push(cells.slice(at, at + needle.length).map((cell) => cell.fg));
+	}
+	return rows;
+}
+
+test('a tab-indented line is coloured where its text is drawn', async () => {
+	const body = 'KV: KVNamespace';
+	const source = `interface A {\n\t${body}\n}\ninterface B {\n  ${body}\n}\n`;
+	const t = await launch(fixture({ 'a.ts': source }), {}, { width: 70, height: 16 });
+	await openFile(t, 'a.ts');
+	await until(t, () => new Set(coloursOf(t, body).flat()).size > 1);
+
+	const [tabbed, spaced] = coloursOf(t, body);
+	expect(tabbed).toEqual(spaced!);
 });
 
 test('indent guides are visible in every theme', () => {

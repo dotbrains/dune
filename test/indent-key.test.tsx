@@ -85,7 +85,7 @@ describe('Shift+Tab in the editor', () => {
 });
 
 describe('word wrap', () => {
-	test('always on, so a long line stays readable without scrolling sideways', async () => {
+	test('defaults on, so a long line stays readable without scrolling sideways', async () => {
 		const long = `${'word '.repeat(60)}TAIL_MARKER\n`;
 		const t = await launch(fixture({ 'a.ts': long }));
 		await press(t, (input) => input.pressArrow('down'));

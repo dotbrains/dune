@@ -4,6 +4,7 @@ import { createEffect, createMemo, createSignal, on, onCleanup } from 'solid-js'
 import type { CursorStyle } from '../core/config';
 import type { LineChange } from '../core/git';
 import { changeRows } from '../editor/changes';
+import { inCells } from '../editor/columns';
 import { History } from '../editor/history';
 import { problemRows } from '../editor/problems';
 import { initialVimState } from '../editor/vim';
@@ -39,6 +40,7 @@ export interface EditorPaneProps extends EditorCompletionProps {
 	lineOp: { op: 'comment' | 'up' | 'down' | 'duplicate'; key: number } | null;
 	vim: boolean;
 	cursorStyle: CursorStyle;
+	wrap: boolean;
 	tabSize: number;
 	gitLines: Map<number, LineChange>;
 	problems: Map<number, { severity: ProblemSeverity; message: string }>;
@@ -132,6 +134,12 @@ export function EditorPane(props: EditorPaneProps) {
 			line = last;
 		}
 	};
+	const parsedLine = (line: number): string => {
+		const at = parsed?.starts[line];
+		if (!parsed || at === undefined) return '';
+		const next = parsed.starts[line + 1];
+		return next === undefined ? parsed.content.slice(at) : parsed.content.slice(at, next - 1);
+	};
 	const applyWindow = (force = false) => {
 		if (!editor) return;
 		syncViewport();
@@ -150,7 +158,9 @@ export function EditorPane(props: EditorPaneProps) {
 		for (let line = from; line <= to; line++) {
 			if (appliedLines.has(line)) continue;
 			appliedLines.add(line);
-			for (const segment of byLine.get(line) ?? []) editor.addHighlight(line, segment);
+			const text = parsedLine(line);
+			for (const segment of byLine.get(line) ?? [])
+				editor.addHighlight(line, inCells(segment, text));
 		}
 	};
 	const scrollTo = (wanted: number) => {
@@ -397,6 +407,18 @@ export function EditorPane(props: EditorPaneProps) {
 	);
 	createEffect(
 		on(
+			() => props.wrap,
+			() => {
+				if (!editor) return;
+				layout.forget();
+				applyWindow(true);
+				syncViewport();
+			},
+			{ defer: true },
+		),
+	);
+	createEffect(
+		on(
 			() => props.reloadKey,
 			() => {
 				if (editor && props.content !== editor.plainText) {
@@ -441,6 +463,7 @@ export function EditorPane(props: EditorPaneProps) {
 			content={props.content}
 			focused={props.focused}
 			tabSize={props.tabSize}
+			wrap={props.wrap}
 			notice={props.notice}
 			editorEl={editorEl()}
 			cursorLine={cursorLine()}

@@ -18,6 +18,7 @@ test('language server resolution applies overrides and disables empty commands',
 		packages: ['typescript-language-server', 'typescript@5'],
 	});
 	expect(resolveServer('typescriptreact', {})?.id).toBe('typescript');
+	expect(resolveServer('jsonc', {})?.id).toBe('json');
 	expect(resolveServer('typescript', { typescript: ['deno', 'lsp'] })?.command).toEqual([
 		'deno',
 		'lsp',
@@ -96,6 +97,7 @@ test('LSP settings parse and appear in settings rows', () => {
 			toggleTransparent: () => {},
 			toggleDotfiles: () => {},
 			toggleGitignored: () => {},
+			toggleWrap: () => {},
 			toggleFormat: () => {},
 			toggleTrim: () => {},
 			patchConfig: () => {},

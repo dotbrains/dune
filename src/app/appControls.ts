@@ -71,6 +71,10 @@ export function createAppControls(deps: {
 		patch({ vim: enabled });
 		deps.say(`Vim mode ${enabled ? 'on' : 'off'}`);
 	};
+	const toggleWrap = () => {
+		patch({ wrap: !deps.config.wrap });
+		deps.say(`Word wrap ${deps.config.wrap ? 'off' : 'on'}`);
+	};
 	const toggleDotfiles = () => {
 		patch({ showDotfiles: !deps.config.showDotfiles });
 		deps.say(`Dotfiles ${deps.config.showDotfiles ? 'shown' : 'hidden'}`);
@@ -132,6 +136,7 @@ export function createAppControls(deps: {
 		promptValue,
 		toggleDotfiles,
 		toggleGitignored,
+		toggleWrap,
 		toggleFormat,
 		toggleTrim,
 		toggleAutoSave,

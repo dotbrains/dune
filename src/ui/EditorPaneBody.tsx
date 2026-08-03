@@ -23,6 +23,7 @@ export function EditorPaneBody(props: {
 	content: string;
 	focused: boolean;
 	tabSize: number;
+	wrap: boolean;
 	editorEl: TextareaRenderable | null;
 	cursorLine: number;
 	gutterWidth: number;
@@ -77,7 +78,7 @@ export function EditorPaneBody(props: {
 					focusedBackgroundColor={ui.bg}
 					focusedTextColor={ui.text}
 					cursorColor={ui.cursor}
-					wrapMode="word"
+					wrapMode={props.wrap ? 'word' : 'none'}
 					tabIndicator={props.tabSize}
 					tabIndicatorColor={ui.indentGuide}
 					flexGrow={1}
