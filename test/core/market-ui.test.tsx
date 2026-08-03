@@ -6,7 +6,7 @@ import { writePlugin } from '../../src/core/market';
 import { USER_THEME_PLUGIN_DIR } from '../../src/core/localThemes';
 import { fixture, launch, press, runCommand, settle, until } from '../helpers';
 
-test('the palette can check the appearance plugin market', async () => {
+test('the palette can check the plugin market', async () => {
 	const realFetch = globalThis.fetch;
 	const requested: string[] = [];
 	globalThis.fetch = ((url: string) => {
@@ -26,8 +26,8 @@ test('the palette can check the appearance plugin market', async () => {
 		const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }), {
 			pluginRegistry: 'https://example.test/market',
 		});
-		await runCommand(t, 'Check appearance plugin market');
-		await until(t, () => t.captureCharFrame().includes('Appearance plugin market: 2 plugins'));
+		await runCommand(t, 'Check plugin market');
+		await until(t, () => t.captureCharFrame().includes('Plugin market: 2 plugins'));
 
 		expect(requested).toEqual(['https://example.test/market/index.json']);
 	} finally {
@@ -35,7 +35,7 @@ test('the palette can check the appearance plugin market', async () => {
 	}
 });
 
-test('the palette can install an appearance plugin by id', async () => {
+test('the palette can install a plugin by id', async () => {
 	const realFetch = globalThis.fetch;
 	const manifest = {
 		id: 'mono',
@@ -53,10 +53,10 @@ test('the palette can install an appearance plugin by id', async () => {
 		const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }), {
 			pluginRegistry: 'https://example.test/market',
 		});
-		await runCommand(t, 'Install appearance plugin');
+		await runCommand(t, 'Install plugin');
 		await press(t, (input) => void input.typeText('mono'));
 		await press(t, (input) => input.pressEnter());
-		await until(t, () => t.captureCharFrame().includes('Installed appearance plugin mono 1.0.0'));
+		await until(t, () => t.captureCharFrame().includes('Installed plugin mono 1.0.0'));
 		await runCommand(t, 'Plugin manager');
 		await until(t, () => t.captureCharFrame().includes('Disable mono 1.0.0'));
 
@@ -68,7 +68,7 @@ test('the palette can install an appearance plugin by id', async () => {
 	}
 });
 
-test('the palette can install an appearance plugin from the market list', async () => {
+test('the palette can install a plugin from the market list', async () => {
 	const realFetch = globalThis.fetch;
 	const manifest = {
 		id: 'mono',
@@ -97,10 +97,10 @@ test('the palette can install an appearance plugin from the market list', async 
 		const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }), {
 			pluginRegistry: 'https://example.test/market',
 		});
-		await runCommand(t, 'Check appearance plugin market');
-		await until(t, () => t.captureCharFrame().includes('Appearance plugin market: 1 plugin'));
+		await runCommand(t, 'Check plugin market');
+		await until(t, () => t.captureCharFrame().includes('Plugin market: 1 plugin'));
 		await runCommand(t, 'Install Mono 1.0.0 - quiet monochrome icons');
-		await until(t, () => t.captureCharFrame().includes('Installed appearance plugin mono 1.0.0'));
+		await until(t, () => t.captureCharFrame().includes('Installed plugin mono 1.0.0'));
 
 		expect(
 			JSON.parse(readFileSync(join(USER_THEME_PLUGIN_DIR, 'mono/plugin.json'), 'utf8')),
@@ -141,10 +141,10 @@ test('the market list labels installed plugin updates', async () => {
 		const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }), {
 			pluginRegistry: 'https://example.test/market',
 		});
-		await runCommand(t, 'Check appearance plugin market');
-		await until(t, () => t.captureCharFrame().includes('Appearance plugin market: 1 plugin'));
+		await runCommand(t, 'Check plugin market');
+		await until(t, () => t.captureCharFrame().includes('Plugin market: 1 plugin'));
 		await runCommand(t, 'Update Mono 1.1.0');
-		await until(t, () => t.captureCharFrame().includes('Installed appearance plugin mono 1.1.0'));
+		await until(t, () => t.captureCharFrame().includes('Installed plugin mono 1.1.0'));
 
 		expect(
 			JSON.parse(readFileSync(join(USER_THEME_PLUGIN_DIR, 'mono/plugin.json'), 'utf8')),
@@ -154,7 +154,7 @@ test('the market list labels installed plugin updates', async () => {
 	}
 });
 
-test('startup reports available appearance plugin updates', async () => {
+test('startup reports available plugin updates', async () => {
 	const realFetch = globalThis.fetch;
 	const manifest = {
 		id: 'mono',
@@ -276,7 +276,7 @@ test('startup offers a plugin for a missing configured theme', async () => {
 	}
 });
 
-test('startup skips appearance plugin updates when disabled', async () => {
+test('startup skips plugin updates when disabled', async () => {
 	const realFetch = globalThis.fetch;
 	const requested: string[] = [];
 	globalThis.fetch = ((url: string) => {
@@ -298,7 +298,7 @@ test('startup skips appearance plugin updates when disabled', async () => {
 	}
 });
 
-test('the palette can remove an appearance plugin by id', async () => {
+test('the palette can remove a plugin by id', async () => {
 	const manifest = {
 		id: 'mono',
 		name: 'Mono',
@@ -314,17 +314,17 @@ test('the palette can remove an appearance plugin by id', async () => {
 	expect(error).toBeNull();
 
 	const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }));
-	await runCommand(t, 'Remove appearance plugin');
+	await runCommand(t, 'Remove plugin');
 	await press(t, (input) => void input.typeText('mono'));
 	await press(t, (input) => input.pressEnter());
-	await until(t, () => t.captureCharFrame().includes('Removed appearance plugin mono'));
+	await until(t, () => t.captureCharFrame().includes('Removed plugin mono'));
 	await runCommand(t, 'Plugin manager');
 	await until(t, () => t.captureCharFrame().includes('No plugins listed'));
 
 	expect(existsSync(join(USER_THEME_PLUGIN_DIR, 'mono'))).toBe(false);
 });
 
-test('the palette can check appearance plugin updates', async () => {
+test('the palette can check plugin updates', async () => {
 	const realFetch = globalThis.fetch;
 	const manifest = {
 		id: 'mono',
@@ -352,14 +352,14 @@ test('the palette can check appearance plugin updates', async () => {
 		const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }), {
 			pluginRegistry: 'https://example.test/market',
 		});
-		await runCommand(t, 'Check appearance plugin updates');
-		await until(t, () => t.captureCharFrame().includes('Appearance plugin updates: mono'));
+		await runCommand(t, 'Check plugin updates');
+		await until(t, () => t.captureCharFrame().includes('Plugin updates: mono'));
 	} finally {
 		globalThis.fetch = realFetch;
 	}
 });
 
-test('the palette can update appearance plugins', async () => {
+test('the palette can update plugins', async () => {
 	const realFetch = globalThis.fetch;
 	const oldManifest = {
 		id: 'mono',
@@ -386,8 +386,8 @@ test('the palette can update appearance plugins', async () => {
 		const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }), {
 			pluginRegistry: 'https://example.test/market',
 		});
-		await runCommand(t, 'Update appearance plugins');
-		await until(t, () => t.captureCharFrame().includes('Updated 1 appearance plugin'));
+		await runCommand(t, 'Update plugins');
+		await until(t, () => t.captureCharFrame().includes('Updated 1 plugin'));
 		await runCommand(t, 'Plugin manager');
 		await until(t, () => t.captureCharFrame().includes('Disable mono 1.1.0'));
 

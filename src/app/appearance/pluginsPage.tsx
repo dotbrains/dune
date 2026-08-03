@@ -85,12 +85,12 @@ export function appearancePluginChoices(
 			: []),
 		...marketChoices,
 		...(installedChoices.length + lspChoices.length === 0 && marketChoices.length === 0
-			? [{ id: 'noop:empty', label: 'No plugins listed; run Check appearance plugin market' }]
+			? [{ id: 'noop:empty', label: 'No plugins listed; run Check plugin market' }]
 			: []),
 		{
 			id: 'market:check',
 			label: [
-				'Check appearance plugin market',
+				'Check plugin market',
 				cached.length > 0
 					? updates.length === 0
 						? 'up to date'
@@ -104,10 +104,7 @@ export function appearancePluginChoices(
 			? [
 					{
 						id: 'market:update',
-						label: [
-							'Update all appearance plugins',
-							updates.map((plugin) => plugin.name).join(', '),
-						]
+						label: ['Update all plugins', updates.map((plugin) => plugin.name).join(', ')]
 							.filter(Boolean)
 							.join(' - '),
 					},
@@ -146,7 +143,7 @@ export function pickAppearancePlugin(
 		return;
 	}
 	if (!id || kind === 'noop') {
-		deps.say('Run Check appearance plugin market to refresh available plugins');
+		deps.say('Run Check plugin market to refresh available plugins');
 		return;
 	}
 	if (kind === 'market' && id === 'toggle-updates') {
@@ -163,23 +160,21 @@ export function pickAppearancePlugin(
 	if (kind === 'market' && id === 'check') {
 		void (async () => {
 			const catalog = await fetchCatalog(deps.config.pluginRegistry);
-			if (!catalog) return deps.say('Could not reach appearance plugin market', 'warn');
+			if (!catalog) return deps.say('Could not reach plugin market', 'warn');
 			writeCachedCatalog(catalog, Date.now());
 			deps.refreshMarket();
-			deps.say(
-				`Appearance plugin market: ${catalog.length} plugin${catalog.length === 1 ? '' : 's'}`,
-			);
+			deps.say(`Plugin market: ${catalog.length} plugin${catalog.length === 1 ? '' : 's'}`);
 		})();
 		return;
 	}
 	if (kind === 'market' && id === 'update') {
 		void (async () => {
 			const catalog = await fetchCatalog(deps.config.pluginRegistry);
-			if (!catalog) return deps.say('Could not reach appearance plugin market', 'warn');
+			if (!catalog) return deps.say('Could not reach plugin market', 'warn');
 			writeCachedCatalog(catalog, Date.now());
 			deps.refreshMarket();
 			const updates = updatesFor(deps.installedPlugins(), catalog);
-			if (updates.length === 0) return deps.say('Appearance plugins are up to date');
+			if (updates.length === 0) return deps.say('Plugins are up to date');
 			const results = await Promise.all(
 				updates.map(async (entry) => {
 					const fetched = await fetchPlugin(entry.id, { registry: deps.config.pluginRegistry });
@@ -192,7 +187,7 @@ export function pickAppearancePlugin(
 			if (failed.length > 0) deps.say(`Could not update ${failed.join(', ')}`, 'error');
 			if (updated > 0) {
 				deps.reload();
-				deps.say(`Updated ${updated} appearance plugin${updated === 1 ? '' : 's'}`);
+				deps.say(`Updated ${updated} plugin${updated === 1 ? '' : 's'}`);
 			}
 		})();
 		return;
@@ -205,7 +200,7 @@ export function pickAppearancePlugin(
 		});
 		deps.reload();
 		deps.close();
-		deps.say(`Appearance plugin ${id} ${off ? 'enabled' : 'disabled'}`);
+		deps.say(`Plugin ${id} ${off ? 'enabled' : 'disabled'}`);
 		return;
 	}
 	if (kind === 'installed-lsp') {
@@ -236,7 +231,7 @@ export async function installMarketPlugin(
 	if (error) return deps.say(`Could not install ${id}: ${error}`, 'error');
 	deps.reload();
 	deps.afterInstall?.();
-	deps.say(`Installed appearance plugin ${id} ${fetched.version}`);
+	deps.say(`Installed plugin ${id} ${fetched.version}`);
 }
 
 export function deleteAppearancePlugin(

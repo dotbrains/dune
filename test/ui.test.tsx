@@ -62,10 +62,10 @@ function settingsRowOf(label: string): number {
 
 const saved = () => JSON.parse(readFileSync(CONFIG_FILE, 'utf8')) as Record<string, unknown>;
 
-test('summarizes loaded local appearance plugins', () => {
+test('summarizes loaded local plugins', () => {
 	expect(
 		summarizeAppearancePlugins({ themes: [], iconThemes: [], plugins: [], problems: [] }),
-	).toBe('No local appearance plugins');
+	).toBe('No local plugins');
 	expect(
 		summarizeAppearancePlugins({
 			themes: [{ id: 'project-theme', theme: {} as never }],
@@ -82,7 +82,7 @@ test('summarizes loaded local appearance plugins', () => {
 			],
 			problems: [{ source: 'plugin.json', reason: 'invalid theme' }],
 		}),
-	).toBe('Local appearance plugins: 1 theme, 1 icon theme, pack 1.0.0, 1 problem');
+	).toBe('Local plugins: 1 theme, 1 icon theme, pack 1.0.0, 1 problem');
 });
 
 function findTextarea(node: BaseRenderable): TextareaRenderable | null {
@@ -386,14 +386,14 @@ describe('command palette', () => {
 		expect(saved().iconTheme).toBe('project-icons');
 	});
 
-	test('reloading appearance plugins refreshes settings choices', async () => {
+	test('reloading plugins refreshes settings choices', async () => {
 		const dir = fixture({ 'a.ts': 'const a = 1\n' });
 		const pluginDir = join(dir, '.dune/plugins/project');
 		mkdirSync(pluginDir, { recursive: true });
 		const t = await launch(dir, { iconTheme: 'unicode' });
 
 		writeFileSync(join(pluginDir, 'plugin.json'), ICON_PLUGIN);
-		await runCommand(t, 'Reload local appearance plugins');
+		await runCommand(t, 'Reload local plugins');
 		await runCommand(t, 'Settings');
 		await gotoSettingsRow(t, 'File icons');
 		await press(t, (input) => input.pressArrow('right'));
@@ -402,7 +402,7 @@ describe('command palette', () => {
 		expect(saved().iconTheme).toBe('project-icons');
 	});
 
-	test('can list local appearance plugins from the palette', async () => {
+	test('can list local plugins from the palette', async () => {
 		const t = await launch(
 			fixture({
 				'a.ts': 'const a = 1\n',
@@ -411,9 +411,9 @@ describe('command palette', () => {
 			}),
 		);
 
-		await runCommand(t, 'List local appearance plugins');
+		await runCommand(t, 'List local plugins');
 
-		expect(t.captureCharFrame()).toContain('Local appearance plugins: 1 theme, 1 icon theme');
+		expect(t.captureCharFrame()).toContain('Local plugins: 1 theme, 1 icon theme');
 	});
 
 	test('settings can cycle to a project theme plugin theme', async () => {

@@ -38,7 +38,7 @@ export function appearancePluginStatus(
 	problems: readonly LocalThemeProblem[],
 ): { msg: string; tone: 'warn' } | null {
 	const problem = problems[0];
-	return problem ? { msg: `Appearance plugin skipped: ${problem.reason}`, tone: 'warn' } : null;
+	return problem ? { msg: `Plugin skipped: ${problem.reason}`, tone: 'warn' } : null;
 }
 
 export const USER_THEME_PLUGIN_DIR = join(dirname(CONFIG_FILE), 'plugins');

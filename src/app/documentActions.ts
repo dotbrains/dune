@@ -321,7 +321,7 @@ export function createDocumentActions(deps: {
 				const error = writePlugin(name, fetched);
 				if (error) return deps.say(`Could not install ${name}: ${error}`, 'error');
 				deps.reloadAppearancePlugins();
-				deps.say(`Installed appearance plugin ${name} ${fetched.version}`);
+				deps.say(`Installed plugin ${name} ${fetched.version}`);
 			})();
 			return;
 		}
@@ -330,15 +330,15 @@ export function createDocumentActions(deps: {
 			const error = removeFromDisk(name);
 			if (error) return deps.say(`Could not remove ${name}: ${error}`, 'error');
 			deps.reloadAppearancePlugins();
-			return deps.say(`Removed appearance plugin ${name}`);
+			return deps.say(`Removed plugin ${name}`);
 		}
 		if (p.kind === 'appearancePluginRegistry') {
 			const registry = name || MARKET_URL;
 			if (!registry.startsWith('https://')) {
-				return deps.say('Appearance plugin registry must be an https URL', 'error');
+				return deps.say('Plugin registry must be an https URL', 'error');
 			}
 			deps.patchConfig({ pluginRegistry: registry });
-			return deps.say(`Appearance plugin registry: ${registry}`);
+			return deps.say(`Plugin registry: ${registry}`);
 		}
 		if (p.kind === 'gotoLine') {
 			if (!name) return deps.say('Nothing entered', 'warn');

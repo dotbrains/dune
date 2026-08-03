@@ -22,8 +22,8 @@ plugin manifests are parsed by `src/core/plugins/localLspServers.ts`; local
 pattern/bundled/grammar-backed language contributions are parsed by
 `src/core/localThemes.ts` and registered in `src/languages/index.ts`. The loaders only
 execute data manifests from the user/project plugin directories.
-`disabledAppearancePlugins` keeps local appearance plugins installed but inactive.
-`pluginRegistry` in user or project settings overrides the HTTPS appearance plugin
+`disabledAppearancePlugins` keeps local plugins installed but inactive.
+`pluginRegistry` in user or project settings overrides the HTTPS plugin
 catalog directory URL, and `pluginUpdates` controls the startup appearance-plugin
 update check.
 

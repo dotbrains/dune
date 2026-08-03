@@ -99,7 +99,7 @@ export function settingsRows(
 		},
 		{
 			section: 'Appearance',
-			label: 'Appearance plugin update checks',
+			label: 'Plugin update checks',
 			value: onOff(config.pluginUpdates),
 			change: () =>
 				actions.patchConfig({ pluginUpdates: !config.pluginUpdates }, actions.configScope()),

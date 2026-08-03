@@ -205,7 +205,7 @@ test('a manifest Dune would reject is refused before install', async () => {
 	expect(results.every((result) => !result.ok)).toBe(true);
 });
 
-test('a fetched manifest is written where appearance plugin loading finds it', async () => {
+test('a fetched manifest is written where plugin loading finds it', async () => {
 	const root = temp('plugins');
 	const project = temp('project');
 	const fetched = await fetchPlugin('mono', {

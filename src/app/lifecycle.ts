@@ -110,7 +110,7 @@ export function useAppLifecycle(deps: {
 					return;
 				}
 				if (missing.length > 1) {
-					deps.say(`${missing.length} appearance plugins match your config`, 'info');
+					deps.say(`${missing.length} plugins match your config`, 'info');
 					return;
 				}
 				const updates = updatesFor(
@@ -121,7 +121,7 @@ export function useAppLifecycle(deps: {
 					const plugin = updates[0]!;
 					deps.say(`${plugin.name} ${plugin.version} is available`, 'info');
 				} else if (updates.length > 1) {
-					deps.say(`${updates.length} appearance plugin updates available`, 'info');
+					deps.say(`${updates.length} plugin updates available`, 'info');
 				}
 			})();
 		}

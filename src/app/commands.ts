@@ -284,27 +284,27 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 				},
 				{
 					id: 'themes.listAppearancePlugins',
-					label: 'List local appearance plugins',
+					label: 'List local plugins',
 					run: actions.listAppearancePlugins,
 				},
 				{
 					id: 'themes.checkAppearanceMarket',
-					label: 'Check appearance plugin market',
+					label: 'Check plugin market',
 					run: actions.checkAppearanceMarket,
 				},
 				{
 					id: 'themes.checkAppearanceUpdates',
-					label: 'Check appearance plugin updates',
+					label: 'Check plugin updates',
 					run: actions.checkAppearanceUpdates,
 				},
 				{
 					id: 'themes.updateAppearancePlugins',
-					label: 'Update appearance plugins',
+					label: 'Update plugins',
 					run: actions.updateAppearancePlugins,
 				},
 				{
 					id: 'themes.installAppearancePlugin',
-					label: 'Install appearance plugin…',
+					label: 'Install plugin…',
 					run: actions.installAppearancePlugin,
 				},
 				...ctx.marketPlugins.map((plugin) => {
@@ -322,7 +322,7 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 				}),
 				{
 					id: 'themes.removeAppearancePlugin',
-					label: 'Remove appearance plugin…',
+					label: 'Remove plugin…',
 					run: actions.removeAppearancePlugin,
 				},
 				...ctx.installedPlugins
@@ -334,7 +334,7 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 					})),
 				{
 					id: 'themes.reloadAppearancePlugins',
-					label: 'Reload local appearance plugins',
+					label: 'Reload local plugins',
 					run: actions.reloadAppearancePlugins,
 				},
 				...THEME_ENTRIES.map(([name]) => ({

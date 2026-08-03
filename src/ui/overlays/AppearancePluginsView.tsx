@@ -9,7 +9,7 @@ export function AppearancePluginsView(props: {
 }) {
 	return (
 		<ChoiceModal
-			title="Appearance plugins"
+			title="Plugins"
 			message="Enter toggles installed plugins or installs cached market entries. Backspace removes an installed plugin."
 			choices={props.choices}
 			onPick={props.onPick}

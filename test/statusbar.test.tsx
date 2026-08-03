@@ -87,7 +87,7 @@ describe('the status bar', () => {
 		expect(row.trimStart().startsWith('F1')).toBe(true);
 	});
 
-	test('local appearance plugin problems reach the status bar', async () => {
+	test('local plugin problems reach the status bar', async () => {
 		const dir = fixture({ 'a.ts': 'const a = 1\n' });
 		mkdirSync(join(dir, '.dune/plugins'), { recursive: true });
 		writeFileSync(
@@ -96,7 +96,7 @@ describe('the status bar', () => {
 		);
 
 		const t = await launch(dir);
-		expect(bar(t)).toContain('Appearance plugin skipped: invalid icon theme');
+		expect(bar(t)).toContain('Plugin skipped: invalid icon theme');
 	});
 });
 

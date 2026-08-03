@@ -110,12 +110,10 @@ export function createAppCommands(deps: {
 	const [marketVersion, setMarketVersion] = createSignal(0);
 	const checkAppearanceMarket = async () => {
 		const catalog = await fetchCatalog(deps.config.pluginRegistry);
-		if (!catalog) return deps.say('Could not reach appearance plugin market', 'warn');
+		if (!catalog) return deps.say('Could not reach plugin market', 'warn');
 		writeCachedCatalog(catalog, Date.now());
 		setMarketVersion((version) => version + 1);
-		deps.say(
-			`Appearance plugin market: ${catalog.length} plugin${catalog.length === 1 ? '' : 's'}`,
-		);
+		deps.say(`Plugin market: ${catalog.length} plugin${catalog.length === 1 ? '' : 's'}`);
 	};
 	const installAppearancePluginById = async (id: string) => {
 		const fetched = await fetchPlugin(id, { registry: deps.config.pluginRegistry });
@@ -123,26 +121,26 @@ export function createAppCommands(deps: {
 		const error = writePlugin(id, fetched);
 		if (error) return deps.say(`Could not install ${id}: ${error}`, 'error');
 		deps.reloadAppearancePlugins();
-		deps.say(`Installed appearance plugin ${id} ${fetched.version}`);
+		deps.say(`Installed plugin ${id} ${fetched.version}`);
 	};
 	const checkAppearanceUpdates = async () => {
 		const installed = deps.appearanceVersion().plugins;
-		if (installed.length === 0) return deps.say('No local appearance plugins');
+		if (installed.length === 0) return deps.say('No local plugins');
 		const catalog = await fetchCatalog(deps.config.pluginRegistry);
-		if (!catalog) return deps.say('Could not reach appearance plugin market', 'warn');
+		if (!catalog) return deps.say('Could not reach plugin market', 'warn');
 		writeCachedCatalog(catalog, Date.now());
 		const updates = updatesFor(installed, catalog);
-		if (updates.length === 0) return deps.say('Appearance plugins are up to date');
-		deps.say(`Appearance plugin updates: ${updates.map((entry) => entry.id).join(', ')}`);
+		if (updates.length === 0) return deps.say('Plugins are up to date');
+		deps.say(`Plugin updates: ${updates.map((entry) => entry.id).join(', ')}`);
 	};
 	const updateAppearancePlugins = async () => {
 		const installed = deps.appearanceVersion().plugins;
-		if (installed.length === 0) return deps.say('No local appearance plugins');
+		if (installed.length === 0) return deps.say('No local plugins');
 		const catalog = await fetchCatalog(deps.config.pluginRegistry);
-		if (!catalog) return deps.say('Could not reach appearance plugin market', 'warn');
+		if (!catalog) return deps.say('Could not reach plugin market', 'warn');
 		writeCachedCatalog(catalog, Date.now());
 		const updates = updatesFor(installed, catalog);
-		if (updates.length === 0) return deps.say('Appearance plugins are up to date');
+		if (updates.length === 0) return deps.say('Plugins are up to date');
 		const results = await Promise.all(
 			updates.map(async (entry) => {
 				const fetched = await fetchPlugin(entry.id, { registry: deps.config.pluginRegistry });
@@ -155,7 +153,7 @@ export function createAppCommands(deps: {
 		if (failed.length > 0) deps.say(`Could not update ${failed.join(', ')}`, 'error');
 		if (updated > 0) {
 			deps.reloadAppearancePlugins();
-			deps.say(`Updated ${updated} appearance plugin${updated === 1 ? '' : 's'}`);
+			deps.say(`Updated ${updated} plugin${updated === 1 ? '' : 's'}`);
 		}
 	};
 	const toggleAppearancePlugin = (id: string) => {
@@ -164,7 +162,7 @@ export function createAppCommands(deps: {
 		const next = off ? disabled.filter((entry) => entry !== id) : [...disabled, id];
 		deps.patchConfig({ disabledAppearancePlugins: next });
 		deps.reloadAppearancePlugins();
-		deps.say(`Appearance plugin ${id} ${off ? 'enabled' : 'disabled'}`);
+		deps.say(`Plugin ${id} ${off ? 'enabled' : 'disabled'}`);
 	};
 
 	return createMemo(() => {

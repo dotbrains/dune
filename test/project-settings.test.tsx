@@ -57,7 +57,7 @@ test('invalid project settings are ignored', async () => {
 	expect(broken.captureCharFrame()).not.toContain('.dune');
 });
 
-test('project settings can override the appearance plugin registry', async () => {
+test('project settings can override the plugin registry', async () => {
 	const dir = project({ pluginRegistry: 'https://example.test/plugins' });
 	expect(loadProjectConfig(dir)).toEqual({
 		pluginRegistry: 'https://example.test/plugins',

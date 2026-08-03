@@ -248,7 +248,7 @@ describe('registries', () => {
 		);
 	});
 
-	test('appearance plugin commands can disable and enable installed plugins', () => {
+	test('plugin commands can disable and enable installed plugins', () => {
 		const actions = new Proxy({} as CommandActions, {
 			get: () => () => {},
 		});
@@ -273,7 +273,7 @@ describe('registries', () => {
 		expect(labels).toContain('Enable paper 2.0.0');
 	});
 
-	test('settings expose appearance plugin update checks', () => {
+	test('settings expose plugin update checks', () => {
 		const rows = settingsRows(DEFAULTS, [], {
 			applyTheme: () => {},
 			applyThemeSlot: () => {},
@@ -295,7 +295,7 @@ describe('registries', () => {
 			configScope: () => 'user',
 		});
 
-		expect(rows.find((row) => row.label === 'Appearance plugin update checks')?.value).toBe('on');
+		expect(rows.find((row) => row.label === 'Plugin update checks')?.value).toBe('on');
 	});
 
 	// Missing/extra ui keys are a tsc error, so only the values are worth asserting.

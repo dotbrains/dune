@@ -40,11 +40,11 @@ export function summarizeAppearancePlugins(load: AppearancePluginLoad): string {
 	);
 	const problemCount = load.problems.length;
 	if (themeCount === 0 && iconCount === 0 && pluginNames.length === 0 && problemCount === 0) {
-		return `No local appearance plugins`;
+		return `No local plugins`;
 	}
 	const parts = [`${themeCount} theme${themeCount === 1 ? '' : 's'}`];
 	parts.push(`${iconCount} icon theme${iconCount === 1 ? '' : 's'}`);
 	if (pluginNames.length > 0) parts.push(pluginNames.join(', '));
 	if (problemCount > 0) parts.push(`${problemCount} problem${problemCount === 1 ? '' : 's'}`);
-	return `Local appearance plugins: ${parts.join(', ')}`;
+	return `Local plugins: ${parts.join(', ')}`;
 }

@@ -103,11 +103,11 @@ export interface Config {
 	lspServers: Record<string, string[]>;
 	/** Custom global shortcuts by command id, e.g. `{ "open": "Ctrl+Alt+O" }`. */
 	keybindings: Record<string, string>;
-	/** Directory URL whose `index.json` lists appearance plugin manifests. */
+	/** Directory URL whose `index.json` lists plugin manifests. */
 	pluginRegistry: string;
-	/** Check the appearance plugin catalog at startup for installed plugin updates. */
+	/** Check the plugin catalog at startup for installed plugin updates. */
 	pluginUpdates: boolean;
-	/** Local appearance plugin ids to list but not register. */
+	/** Local plugin ids to list but not register. */
 	disabledAppearancePlugins: string[];
 }
 
