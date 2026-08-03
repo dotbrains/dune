@@ -33,7 +33,7 @@ import { createReplacementHandlers } from './searchReplace';
 import { createAppSettingRows } from './settings/view';
 import { createSidebarSizing } from './sidebarSizing';
 import { createTreeSelection } from './treeSelection';
-import { hiddenTreeNodes } from './treeVisibility';
+import { hiddenTreeNodes as hiddenNodes } from './treeVisibility';
 import type * as AppTypes from './types';
 export function App(props: AppTypes.AppProps) {
 	const renderer = useRenderer();
@@ -91,9 +91,7 @@ export function App(props: AppTypes.AppProps) {
 	const [status, setStatus] = createSignal<AppTypes.StatusMessage>(
 		pluginStatus ?? { msg: READY, tone: 'info' },
 	);
-	const nodes = createMemo(() =>
-		flattenVisible(rootDir, expanded(), hiddenTreeNodes(rootDir, config)),
-	);
+	const nodes = createMemo(() => flattenVisible(rootDir, expanded(), hiddenNodes(rootDir, config)));
 	const activeBuffer = () => (activePath() ? buffers[activePath()!] : undefined);
 	const { patchConfig, quit, say, whileFree } = createAppRuntime({
 		buffers,

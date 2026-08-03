@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { fixture, launch, press, runCommand } from './helpers';
+import { fixture, launch, press, runCommand } from '../helpers';
 
 describe('copying a file path', () => {
 	test('copies the tree selection as a relative path', async () => {
