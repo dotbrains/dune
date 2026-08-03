@@ -219,7 +219,7 @@ function loadInstalledPlugins(
 	return [...plugins.values()];
 }
 
-function loadLocalLanguages(
+export function loadLocalLanguages(
 	rootDir: string,
 	userDir = USER_THEME_PLUGIN_DIR,
 	disabled: readonly string[] = [],

@@ -89,6 +89,18 @@ const LSP_MANIFEST = {
 		},
 	],
 };
+const LANGUAGE_MANIFEST = {
+	id: 'nim-tools',
+	name: 'Nim Tools',
+	version: '1.0.0',
+	languages: [
+		{
+			id: 'nim',
+			extensions: ['.nim'],
+			grammar: { wasm: 'tree-sitter-nim.wasm', query: 'queries/highlights.scm' },
+		},
+	],
+};
 
 const serving = (bodies: Record<string, unknown>, seen: string[] = []): Fetcher =>
 	((url) => {
@@ -97,7 +109,9 @@ const serving = (bodies: Record<string, unknown>, seen: string[] = []): Fetcher 
 		return Promise.resolve(
 			body === undefined
 				? new Response('missing', { status: 404 })
-				: new Response(typeof body === 'string' ? body : JSON.stringify(body)),
+				: body instanceof Uint8Array
+					? new Response(body)
+					: new Response(typeof body === 'string' ? body : JSON.stringify(body)),
 		);
 	}) as Fetcher;
 
@@ -246,6 +260,50 @@ test('a fetched language server manifest is written where plugin loading finds i
 			install: { kind: 'manual', command: 'install kotlin-language-server' },
 		},
 	]);
+});
+
+test('a fetched language plugin writes grammar assets beside the manifest', async () => {
+	const root = temp('language-plugins');
+	const project = temp('language-project');
+	const wasm = new Uint8Array([0, 97, 115, 109]);
+	const query = new Uint8Array(Buffer.from('(comment) @comment'));
+	const seen: string[] = [];
+	const fetched = await fetchPlugin('nim-tools', {
+		registry: REGISTRY,
+		fetcher: serving(
+			{
+				[`${REGISTRY}nim-tools/plugin.json`]: LANGUAGE_MANIFEST,
+				[`${REGISTRY}nim-tools/tree-sitter-nim.wasm`]: wasm,
+				[`${REGISTRY}nim-tools/queries/highlights.scm`]: query,
+			},
+			seen,
+		),
+	});
+
+	expect(fetched.ok && fetched.version).toBe('1.0.0');
+	expect(seen).toEqual([
+		`${REGISTRY}nim-tools/plugin.json`,
+		`${REGISTRY}nim-tools/tree-sitter-nim.wasm`,
+		`${REGISTRY}nim-tools/queries/highlights.scm`,
+	]);
+	expect(writePlugin('nim-tools', fetched, root)).toBeNull();
+	expect(readFileSync(join(root, 'nim-tools', 'tree-sitter-nim.wasm'))).toEqual(Buffer.from(wasm));
+	expect(readFileSync(join(root, 'nim-tools', 'queries', 'highlights.scm'))).toEqual(
+		Buffer.from(query),
+	);
+
+	const appearance = loadAppearancePlugins(project, root);
+	expect(appearance.problems).toEqual([]);
+	expect(appearance.plugins.map((entry) => entry.detail)).toEqual(['languages: nim']);
+});
+
+test('a missing language grammar asset fails the market install before writing', async () => {
+	const fetched = await fetchPlugin('nim-tools', {
+		registry: REGISTRY,
+		fetcher: serving({ [`${REGISTRY}nim-tools/plugin.json`]: LANGUAGE_MANIFEST }),
+	});
+
+	expect(fetched).toEqual({ ok: false, error: 'nim-tools: could not fetch tree-sitter-nim.wasm' });
 });
 
 test('the cache survives a round trip and knows when it is old', () => {

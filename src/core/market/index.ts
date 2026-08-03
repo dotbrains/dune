@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
 import { loadIconThemes } from '../iconThemes';
-import { loadLocalThemes, USER_THEME_PLUGIN_DIR } from '../localThemes';
+import { loadLocalLanguages, loadLocalThemes, USER_THEME_PLUGIN_DIR } from '../localThemes';
 import { loadLocalLspServers } from '../plugins/localLspServers';
 import { isNewer } from '../update';
 import { isThemeName } from '../../themes';
@@ -15,6 +15,8 @@ export const CATALOG_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 
 const TIMEOUT_MS = 2500;
 const MAX_MANIFEST_BYTES = 512 * 1024;
+const MAX_ASSET_BYTES = 8 * 1024 * 1024;
+const ASSET_TIMEOUT_MS = 30_000;
 const CACHE_FILE = join(
 	process.env.XDG_CACHE_HOME ?? join(process.env.HOME ?? tmpdir(), '.cache'),
 	'dune',
@@ -41,7 +43,7 @@ export interface CachedCatalog {
 
 export type Fetcher = (url: string, init?: RequestInit) => Promise<Response>;
 export type FetchedPlugin =
-	| { ok: true; id: string; version: string; body: string }
+	| { ok: true; id: string; version: string; body: string; assets?: Map<string, Uint8Array> }
 	| { ok: false; error: string };
 
 const isRecord = (raw: unknown): raw is Record<string, unknown> =>
@@ -91,6 +93,17 @@ async function get(url: string, fetcher: Fetcher): Promise<string | null> {
 	}
 }
 
+async function getBytes(url: string, fetcher: Fetcher): Promise<Uint8Array | null> {
+	try {
+		const res = await fetcher(url, { signal: AbortSignal.timeout(ASSET_TIMEOUT_MS) });
+		if (!res.ok) return null;
+		const bytes = new Uint8Array(await res.arrayBuffer());
+		return bytes.byteLength > MAX_ASSET_BYTES ? null : bytes;
+	} catch {
+		return null;
+	}
+}
+
 export async function fetchCatalog(
 	registry = MARKET_URL,
 	fetcher: Fetcher = fetch,
@@ -124,6 +137,26 @@ export function writeCachedCatalog(plugins: MarketEntry[], at: number, file = CA
 export const isStale = (cached: CachedCatalog | null, now: number): boolean =>
 	!cached || now - cached.at > CATALOG_MAX_AGE_MS;
 
+function pluginAssetName(value: unknown): string | null {
+	if (typeof value !== 'string' || value.length === 0) return null;
+	if (value.startsWith('/') || value.includes('\0') || value.includes('..')) return null;
+	if (/^[a-z]+:/i.test(value)) return null;
+	return value;
+}
+
+function manifestAssets(raw: unknown): string[] {
+	if (!isRecord(raw) || !Array.isArray(raw.languages)) return [];
+	const assets = new Set<string>();
+	for (const language of raw.languages) {
+		if (!isRecord(language) || !isRecord(language.grammar)) continue;
+		const wasm = pluginAssetName(language.grammar.wasm);
+		const query = pluginAssetName(language.grammar.query);
+		if (wasm) assets.add(wasm);
+		if (query) assets.add(query);
+	}
+	return [...assets];
+}
+
 async function validateManifest(id: string, body: string): Promise<FetchedPlugin> {
 	let raw: unknown;
 	try {
@@ -142,14 +175,21 @@ async function validateManifest(id: string, body: string): Promise<FetchedPlugin
 		writeFileSync(join(plugin, 'plugin.json'), body);
 		const color = loadLocalThemes(root, root);
 		const icon = loadIconThemes(root, root);
+		const languages = loadLocalLanguages(root, root);
 		const lsp = loadLocalLspServers(root, root);
 		const problem =
-			color.problems[0]?.reason ?? icon.problems[0]?.reason ?? lsp.problems[0]?.reason;
+			color.problems[0]?.reason ??
+			icon.problems[0]?.reason ??
+			languages.problems[0]?.reason ??
+			lsp.problems[0]?.reason;
 		if (problem) return { ok: false, error: problem };
-		if (color.themes.length + icon.themes.length + lsp.servers.length === 0) {
+		if (
+			color.themes.length + icon.themes.length + languages.languages.length + lsp.servers.length ===
+			0
+		) {
 			return { ok: false, error: `${id} does not provide a plugin contribution` };
 		}
-		return { ok: true, id, version: raw.version, body };
+		return { ok: true, id, version: raw.version, body, assets: new Map() };
 	} finally {
 		rmSync(root, { recursive: true, force: true });
 	}
@@ -162,10 +202,28 @@ export async function fetchPlugin(
 	if (!/^[\w.-]+$/.test(id)) return { ok: false, error: `${id} is not a plugin id` };
 	const registry = options.registry ?? MARKET_URL;
 	const source = `${dir(registry)}${id}/plugin.json`;
-	const body = await get(source, options.fetcher ?? fetch);
-	return body === null
-		? { ok: false, error: `could not fetch ${source}` }
-		: validateManifest(id, body);
+	const fetcher = options.fetcher ?? fetch;
+	const body = await get(source, fetcher);
+	if (body === null) return { ok: false, error: `could not fetch ${source}` };
+	const fetched = await validateManifest(id, body);
+	if (!fetched.ok) return fetched;
+	let raw: unknown;
+	try {
+		raw = JSON.parse(body);
+	} catch {
+		return fetched;
+	}
+	const assets = await Promise.all(
+		manifestAssets(raw).map(async (asset) => ({
+			asset,
+			bytes: await getBytes(`${dir(registry)}${id}/${asset}`, fetcher),
+		})),
+	);
+	for (const { asset, bytes } of assets) {
+		if (bytes === null) return { ok: false, error: `${id}: could not fetch ${asset}` };
+		(fetched.assets ??= new Map()).set(asset, bytes);
+	}
+	return fetched;
 }
 
 export function pluginDir(id: string, root = USER_THEME_PLUGIN_DIR): string {
@@ -183,6 +241,11 @@ export function writePlugin(
 	try {
 		mkdirSync(target, { recursive: true });
 		writeFileSync(join(target, 'plugin.json'), fetched.body);
+		for (const [name, body] of fetched.assets ?? []) {
+			const path = join(target, name);
+			mkdirSync(dirname(path), { recursive: true });
+			writeFileSync(path, body);
+		}
 		return null;
 	} catch (error) {
 		return error instanceof Error ? error.message : String(error);
