@@ -53,6 +53,13 @@ export function confirmationForPrompt(prompt: Prompt): Confirmation | null {
 				message:
 					'Origin has commits you do not have. Merge origin into this branch, then push again?',
 			};
+		case 'replaceProject':
+			return {
+				title: 'Replace in project',
+				verb: 'replace',
+				danger: true,
+				message: `Replace ${prompt.matches} ${prompt.matches === 1 ? 'match' : 'matches'} in ${prompt.files} ${prompt.files === 1 ? 'file' : 'files'}${prompt.flags}? Closed files are written straight to disk.`,
+			};
 		case 'deleteBranch':
 			return {
 				title: prompt.force ? 'Delete branch (force)' : 'Delete branch',

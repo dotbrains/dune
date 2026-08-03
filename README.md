@@ -120,6 +120,10 @@ The editor cursor can be set to `block`, `line`, or `underline`; vim mode still 
 block cursor outside insert mode and a line cursor while inserting.
 Word wrap is on by default and can be toggled with `Word wrap` from the command palette
 or the `wrap` setting.
+File search can replace the current match with `Enter` or every match with `Ctrl+A`
+after `Tab` opens the replace field. `Find → Replace in project` does the same across
+the workspace with a confirmation step; open buffers become unsaved edits, and closed
+files are written directly while preserving line endings and BOMs.
 External formatters can run on save by setting `formatOnSave` and a `formatters` map in
 user or project JSON, for example `{ "formatters": { "ts,tsx": ["prettier", "--write"] } }`;
 formatter args may use `{}` as the file placeholder, otherwise the path is appended.

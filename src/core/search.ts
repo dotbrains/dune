@@ -1,4 +1,4 @@
-import { listDir, readFile } from './fs';
+import { listDir, readFile, readTextFile, writeFile } from './fs';
 
 export interface Match {
 	path: string;
@@ -26,7 +26,7 @@ export function buildQuery(query: string, options: SearchOptions = {}): RegExp |
 	const escaped = options.regex ? query : query.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&');
 	const wrapped = options.wholeWord ? `\\b(?:${escaped})\\b` : escaped;
 	try {
-		return new RegExp(wrapped, options.caseSensitive ? 'g' : 'gi');
+		return new RegExp(wrapped, options.caseSensitive ? 'gm' : 'gim');
 	} catch {
 		return null;
 	}
@@ -123,6 +123,7 @@ export function searchProject(
 	query: string,
 	options: SearchOptions = {},
 	limit = DEFAULT_LIMIT,
+	buffers?: ReadonlyMap<string, string>,
 ): Match[] {
 	if (!query) return [];
 	const matches: Match[] = [];
@@ -131,7 +132,7 @@ export function searchProject(
 		if (matches.length >= limit) break;
 		let content: string;
 		try {
-			content = readFile(path);
+			content = buffers?.get(path) ?? readFile(path);
 		} catch {
 			continue; // binary or unreadable
 		}
@@ -195,4 +196,82 @@ export function replaceMatch(text: string, match: Match, replacement: string): s
 	const line = lines[match.line]!;
 	lines[match.line] = line.slice(0, match.col) + replacement + line.slice(match.col + match.length);
 	return lines.join('\n');
+}
+
+export interface ProjectReplaceTarget {
+	path: string;
+	count: number;
+}
+
+export interface ProjectReplaceResult {
+	matches: number;
+	replaced: { path: string; count: number; content?: string }[];
+	failed: string[];
+}
+
+export function planProjectReplace(
+	root: string,
+	query: string,
+	options: SearchOptions = {},
+	buffers?: ReadonlyMap<string, string>,
+): { targets: ProjectReplaceTarget[]; matches: number } {
+	if (!query || !buildQuery(query, options)) return { targets: [], matches: 0 };
+	const targets: ProjectReplaceTarget[] = [];
+	let matches = 0;
+	for (const path of filesUnder(root)) {
+		let content: string;
+		try {
+			content = buffers?.get(path) ?? readFile(path);
+		} catch {
+			continue;
+		}
+		const count = searchText(content, query, path, options, Number.POSITIVE_INFINITY).length;
+		if (count === 0) continue;
+		targets.push({ path, count });
+		matches += count;
+	}
+	return { targets, matches };
+}
+
+export function replaceProject(
+	paths: readonly string[],
+	query: string,
+	replacement: string,
+	options: SearchOptions = {},
+	buffers?: ReadonlyMap<string, string>,
+): ProjectReplaceResult {
+	const result: ProjectReplaceResult = { matches: 0, replaced: [], failed: [] };
+	if (!query || !buildQuery(query, options)) return result;
+	for (const path of paths) {
+		const buffered = buffers?.get(path);
+		if (buffered != null) {
+			const next = replaceAll(buffered, query, replacement, options);
+			const count = searchText(buffered, query, path, options, Number.POSITIVE_INFINITY).length;
+			if (count > 0) {
+				result.matches += count;
+				result.replaced.push({ path, count, content: next });
+			}
+			continue;
+		}
+		let file: ReturnType<typeof readTextFile>;
+		try {
+			file = readTextFile(path);
+		} catch (e) {
+			result.failed.push(`${path} — ${(e as Error).message}`);
+			continue;
+		}
+		const count = searchText(file.content, query, path, options, Number.POSITIVE_INFINITY).length;
+		if (count === 0) continue;
+		const error = writeFile(
+			path,
+			replaceAll(file.content, query, replacement, options),
+			file.encoding,
+		);
+		if (error) result.failed.push(`${path} — ${error}`);
+		else {
+			result.matches += count;
+			result.replaced.push({ path, count });
+		}
+	}
+	return result;
 }

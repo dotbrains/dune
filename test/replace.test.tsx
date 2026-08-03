@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { replaceAll, replaceMatch } from '../src/core/search';
-import { fixture, launch, press, pressEscape, settle } from './helpers';
+import { planProjectReplace, replaceAll, replaceMatch, replaceProject } from '../src/core/search';
+import { fixture, launch, press, pressEscape, runCommand, settle, until } from './helpers';
 
 test('replaceAll swaps every occurrence, ignoring case', () => {
 	expect(replaceAll('a Foo b foo c', 'foo', 'bar')).toBe('a bar b bar c');
@@ -18,6 +18,36 @@ test('the query is matched literally, not as a regex', () => {
 
 test('the replacement is inserted literally', () => {
 	expect(replaceAll('foo', 'foo', '$&$1')).toBe('$&$1');
+});
+
+test('an anchored regex replaces every line it was counted on', () => {
+	const dir = fixture({ 'a.ts': 'const a = 1\nconst b = 2\nconst c = 3\n' });
+	const path = join(dir, 'a.ts');
+	expect(planProjectReplace(dir, '^const', { regex: true }).matches).toBe(3);
+
+	const result = replaceProject([path], '^const', 'let', { regex: true });
+	expect(result.matches).toBe(3);
+	expect(readFileSync(path, 'utf8')).toBe('let a = 1\nlet b = 2\nlet c = 3\n');
+});
+
+test('project replace keeps CRLF and BOM spelling', () => {
+	const dir = fixture({});
+	const crlf = join(dir, 'crlf.ts');
+	const bom = join(dir, 'bom.ts');
+	writeFileSync(crlf, 'one OLD\r\ntwo\r\n');
+	writeFileSync(bom, '\uFEFFOLD here\n');
+
+	const result = replaceProject([crlf, bom], 'OLD', 'NEW');
+	expect(result.matches).toBe(2);
+	expect(readFileSync(crlf, 'utf8')).toBe('one NEW\r\ntwo\r\n');
+	expect(readFileSync(bom, 'utf8')).toBe('\uFEFFNEW here\n');
+});
+
+test('project replace plans from open buffers instead of disk', () => {
+	const dir = fixture({ 'a.ts': 'OLD OLD\n' });
+	const path = join(dir, 'a.ts');
+	const buffers = new Map([[path, 'OLD once, edited away the other\n']]);
+	expect(planProjectReplace(dir, 'OLD', {}, buffers).matches).toBe(1);
 });
 
 test('a character that changes length when lowercased does not shift the match', () => {
@@ -116,4 +146,39 @@ test('a replacement is undoable — it must not wipe the history', async () => {
 	await press(t, (i) => i.pressKey('s', { ctrl: true }));
 
 	expect(readFileSync(join(dir, 'a.ts'), 'utf8')).toBe('const old = 1\n');
+});
+
+async function openProjectReplace(dir: string, query: string, replacement: string) {
+	const t = await launch(dir, { autoSaveOnBlur: false }, { width: 100, height: 30 });
+	await runCommand(t, 'Replace in project');
+	await press(t, (i) => void i.typeText(query));
+	await press(t, (i) => i.pressTab());
+	await press(t, (i) => void i.typeText(replacement));
+	await settle(t, 300);
+	return t;
+}
+
+test('the palette opens project replace with previews', async () => {
+	const t = await openProjectReplace(
+		fixture({ 'a.ts': 'const OLD = 1\n', 'b.ts': 'let OLD = 2\n' }),
+		'OLD',
+		'NEW',
+	);
+	const frame = t.captureCharFrame();
+	expect(frame).toContain('Search in project');
+	expect(frame).toContain('NEW');
+	expect(frame).toContain('const OLDNEW = 1');
+});
+
+test('project replace-all confirms and writes closed files', async () => {
+	const dir = fixture({ 'a.ts': 'const OLD = 1\n', 'b.ts': 'let OLD = 2\n' });
+	const t = await openProjectReplace(dir, 'OLD', 'NEW');
+
+	await press(t, (i) => i.pressKey('a', { ctrl: true }));
+	await until(t, () => t.captureCharFrame().includes('Replace 2 matches in 2 files'));
+	await press(t, (i) => i.pressEnter());
+	await until(t, () => t.captureCharFrame().includes('Replaced 2 matches in 2 files'));
+
+	expect(readFileSync(join(dir, 'a.ts'), 'utf8')).toBe('const NEW = 1\n');
+	expect(readFileSync(join(dir, 'b.ts'), 'utf8')).toBe('let NEW = 2\n');
 });

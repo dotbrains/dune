@@ -1,6 +1,7 @@
 import type { Tone } from '../ui/StatusBar';
 import type { Config } from '../core/config';
 import type { TextEncoding } from '../core/fs';
+import type { SearchOptions } from '../core/search';
 import type { FetchableInstall } from '../lsp/servers';
 
 export type Focus = 'tree' | 'editor';
@@ -70,6 +71,16 @@ export type Prompt =
 	| { kind: 'deleteBranch'; name: string; force: boolean }
 	| { kind: 'mergeBranch'; name: string }
 	| { kind: 'pullPush'; branch: string; hasUpstream: boolean }
+	| {
+			kind: 'replaceProject';
+			query: string;
+			replacement: string;
+			options: SearchOptions;
+			paths: string[];
+			matches: number;
+			files: number;
+			flags: string;
+	  }
 	| { kind: 'installServer'; id: string; name: string; install: FetchableInstall }
 	| { kind: 'installPlugin'; id: string; name: string; reason: string; commands?: string[] }
 	| null;

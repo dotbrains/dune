@@ -146,6 +146,7 @@ interface AppViewProps {
 	onPickSearch: (match: Match) => void;
 	onReplaceOne?: (match: Match, replacement: string) => void;
 	onReplaceAll?: (query: string, replacement: string, options: SearchOptions) => void;
+	searchBuffers?: () => ReadonlyMap<string, string>;
 	onCloseSearch: () => void;
 	onPickFile: (path: string) => void;
 	onClosePicker: () => void;
@@ -389,9 +390,11 @@ export function AppView(props: AppViewProps) {
 							activeContent={props.activeBuffer?.content ?? ''}
 							initialQuery={props.selection}
 							replacing={search.replacing}
+							buffers={search.scope === 'project' ? props.searchBuffers : undefined}
+							suspended={props.confirmation !== null}
 							onPick={props.onPickSearch}
-							onReplaceOne={search.scope === 'file' ? props.onReplaceOne : undefined}
-							onReplaceAll={search.scope === 'file' ? props.onReplaceAll : undefined}
+							onReplaceOne={props.onReplaceOne}
+							onReplaceAll={props.onReplaceAll}
 							onClose={() => props.onCloseSearch()}
 						/>
 					);

@@ -83,6 +83,7 @@ export function useAppKeyboard(deps: {
 		'goto.definition': deps.goToDefinition,
 		'find.file': () => deps.setSearch({ scope: 'file' }),
 		'find.project': () => deps.setSearch({ scope: 'project' }),
+		'find.replaceProject': () => deps.setSearch({ scope: 'project', replacing: true }),
 		'file.new': () => deps.setPrompt({ kind: 'newFile', dir: deps.targetDir() }),
 		'open.cursor': deps.openPathUnderCursor,
 		'file.newDir': () => deps.setPrompt({ kind: 'newFolder', dir: deps.targetDir() }),

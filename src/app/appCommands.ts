@@ -202,6 +202,7 @@ export function createAppCommands(deps: {
 				findInFile: () => deps.setSearch({ scope: 'file' }),
 				findInProject: () => deps.setSearch({ scope: 'project' }),
 				replaceInFile: () => deps.setSearch({ scope: 'file', replacing: true }),
+				replaceInProject: () => deps.setSearch({ scope: 'project', replacing: true }),
 				newFile: () => deps.setPrompt({ kind: 'newFile', dir: deps.targetDir() }),
 				newFolder: () => deps.setPrompt({ kind: 'newFolder', dir: deps.targetDir() }),
 				rename: deps.withNode((n) => deps.setPrompt({ kind: 'rename', target: n.path })),

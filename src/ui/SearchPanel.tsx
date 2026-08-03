@@ -23,15 +23,17 @@ export interface SearchPanelProps {
 	initialQuery?: string;
 	/** Open with the replacement field already showing. */
 	replacing?: boolean;
+	buffers?: () => ReadonlyMap<string, string>;
+	suspended?: boolean;
 	onPick: (match: Match) => void;
-	/** Replace the selected match only. Absent for project-wide search. */
+	/** Replace the selected match only. */
 	onReplaceOne?: (match: Match, replacement: string) => void;
-	/** Replace every match in the open file. Absent for project-wide search. */
+	/** Replace every match in scope. */
 	onReplaceAll?: (query: string, replacement: string, options: SearchOptions) => void;
 	onClose: () => void;
 }
 
-const MIN_QUERY = 2;
+export const MIN_QUERY = 2;
 
 /** Lines either side of the selected match in the preview. */
 const CONTEXT = 2;
@@ -78,6 +80,9 @@ export function SearchPanel(props: SearchPanelProps) {
 	const [scanned, setScanned] = createSignal(opened);
 	const [replacement, setReplacement] = createSignal('');
 	const [replacing, setReplacing] = createSignal(props.replacing ?? false);
+	const [field, setField] = createSignal<'query' | 'replace'>(
+		props.replacing && props.initialQuery ? 'replace' : 'query',
+	);
 	/** Row the selection is nearest to, not the match: rows outnumber matches. */
 	const [index, setIndex] = createSignal(0);
 	/** Paths whose matches are hidden behind their heading. */
@@ -101,12 +106,14 @@ export function SearchPanel(props: SearchPanelProps) {
 	};
 
 	const pending = () => props.scope === 'project' && scanned() !== query();
+	const [generation, setGeneration] = createSignal(0);
 
 	const matches = createMemo(() => {
+		generation();
 		const q = scanned();
 		if (q.length < MIN_QUERY) return [];
 		return props.scope === 'project'
-			? searchProject(props.rootDir, q, options())
+			? searchProject(props.rootDir, q, options(), undefined, props.buffers?.())
 			: searchText(props.activeContent, q, props.activePath ?? '', options());
 	});
 
@@ -201,13 +208,19 @@ export function SearchPanel(props: SearchPanelProps) {
 	 * is written — which is the whole reason to look at the list before pressing Enter.
 	 */
 	const swap = () => (replacing() ? replacement() : '');
+	const contextForProjectMatch = (match: Match): Context | null => {
+		const buffered = props.buffers?.().get(match.path);
+		return buffered != null
+			? contextIn(buffered, match.line, CONTEXT)
+			: contextAround(match.path, match.line, CONTEXT);
+	};
 
 	/** Surroundings of the selected match, or null when there is no room to show them. */
 	const preview = createMemo<Context | null>(() => {
 		const match = current();
 		if (!match || dimensions().height < 18) return null;
 		return props.scope === 'project'
-			? contextAround(match.path, match.line, CONTEXT)
+			? contextForProjectMatch(match)
 			: contextIn(props.activeContent, match.line, CONTEXT);
 	});
 
@@ -247,6 +260,7 @@ export function SearchPanel(props: SearchPanelProps) {
 	};
 
 	useKeyboard((key: KeyEvent) => {
+		if (props.suspended) return;
 		const k = key.name;
 		const option = key.ctrl ? OPTION_KEYS[k] : undefined;
 		if (option) {
@@ -258,11 +272,14 @@ export function SearchPanel(props: SearchPanelProps) {
 		} else if (k === 'down') {
 			key.preventDefault();
 			move(1);
-		} else if (k === 'tab' && props.onReplaceAll) {
+		} else if (k === 'tab' && props.scope === 'file' && props.onReplaceAll) {
 			key.preventDefault();
-			setReplacing((r) => !r);
-			// Tab is the replace toggle wherever replacing is offered, so folding only
-			// takes it in project search — which is also the only scope with headings.
+			const next = !replacing();
+			setReplacing(next);
+			setField(next ? 'replace' : 'query');
+		} else if (k === 'tab' && props.scope === 'project' && replacing()) {
+			key.preventDefault();
+			setField((f) => (f === 'query' ? 'replace' : 'query'));
 		} else if (k === 'tab' && key.shift && props.scope === 'project') {
 			key.preventDefault();
 			toggleAllFolds();
@@ -280,8 +297,10 @@ export function SearchPanel(props: SearchPanelProps) {
 			if (!match) return;
 			// Replacing one match at a time is the point of the mode; the whole file goes
 			// through Ctrl+A, which is the harder move to make by accident.
-			if (replacing() && props.onReplaceOne) props.onReplaceOne(match, replacement());
-			else props.onPick(match);
+			if (replacing() && props.onReplaceOne) {
+				props.onReplaceOne(match, replacement());
+				if (props.scope === 'project') setGeneration((g) => g + 1);
+			} else props.onPick(match);
 		} else if (k === 'escape') {
 			key.preventDefault();
 			props.onClose();
@@ -325,9 +344,19 @@ export function SearchPanel(props: SearchPanelProps) {
 				paddingLeft={PAD}
 				paddingRight={PAD}
 			>
-				<TextInput value={query()} placeholder="Search…" onInput={type} />
+				<TextInput
+					value={query()}
+					placeholder="Search…"
+					focused={!props.suspended && (!replacing() || field() === 'query')}
+					onInput={type}
+				/>
 				<Show when={replacing()}>
-					<TextInput value={replacement()} placeholder="Replace with…" onInput={setReplacement} />
+					<TextInput
+						value={replacement()}
+						placeholder="Replace with…"
+						focused={!props.suspended && field() === 'replace'}
+						onInput={setReplacement}
+					/>
 				</Show>
 				<text fg={ui.dim} bg={ui.panelBg} content={summary()} />
 				<text fg={ui.panelBg} bg={ui.panelBg} content="" />
@@ -482,11 +511,15 @@ export function SearchPanel(props: SearchPanelProps) {
 					fg={ui.dim}
 					bg={ui.panelBg}
 					content={
-						props.onReplaceAll
-							? replacing()
-								? '↑↓ move · Enter replace · Ctrl+A replace all · Tab back · Esc close'
-								: '↑↓ move · Enter jump · Tab replace · Ctrl+C/W/R case/word/regex · Esc close'
-							: '↑↓ move · Enter jump · Tab fold · Shift+Tab all · Ctrl+C/W/R case/word/regex · Esc close'
+						props.scope === 'project' && !replacing()
+							? '↑↓ move · Enter jump · Tab fold · Shift+Tab all · Ctrl+C/W/R case/word/regex · Esc close'
+							: props.onReplaceAll
+								? replacing()
+									? props.scope === 'project'
+										? '↑↓ move · Enter replace · Ctrl+A replace all · Tab field · Esc close'
+										: '↑↓ move · Enter replace · Ctrl+A replace all · Tab back · Esc close'
+									: '↑↓ move · Enter jump · Tab replace · Ctrl+C/W/R case/word/regex · Esc close'
+								: '↑↓ move · Enter jump · Tab fold · Shift+Tab all · Ctrl+C/W/R case/word/regex · Esc close'
 					}
 				/>
 			</box>

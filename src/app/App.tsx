@@ -222,6 +222,11 @@ export function App(props: AppTypes.AppProps) {
 		setBuffers(path, { content: next, dirty: true });
 		pushEdit(next);
 	};
+	const applyBufferReplacement = (path: string, next: string) => {
+		pinTab(path);
+		setBuffers(path, { ...(buffers[path] ?? { mtime: 0 }), content: next, dirty: true });
+		if (path === activePath()) pushEdit(next);
+	};
 	const jumpTo = (match: { path: string | null; line: number; col: number }) => {
 		setSearch(null);
 		if (match.path && match.path !== activePath()) openFile(match.path);
@@ -510,13 +515,37 @@ export function App(props: AppTypes.AppProps) {
 		completion: completion.show,
 		expanded,
 	});
-	const { replaceOne, replaceEvery } = createReplacementHandlers({
+	const {
+		replaceOne,
+		replaceEvery,
+		replaceProjectOne,
+		confirmProject,
+		applyProject,
+		replaceOverlay,
+	} = createReplacementHandlers({
+		rootDir,
 		activePath,
+		buffers,
 		buffer: (path) => buffers[path],
 		closeSearch: () => setSearch(null),
+		pinTab,
 		applyReplacement,
+		applyBufferReplacement,
+		syncFromDisk,
+		bumpGit: () => setGitRevision((n) => n + 1),
+		setPrompt,
 		say,
 	});
+	const confirmActivePrompt = () => {
+		const p = prompt();
+		if (p?.kind === 'replaceProject') {
+			setPrompt(null);
+			setSearch(null);
+			applyProject(p.paths, p.query, p.replacement, p.options);
+			return;
+		}
+		confirmPrompt();
+	};
 	return (
 		<>
 			<AppView
@@ -617,10 +646,19 @@ export function App(props: AppTypes.AppProps) {
 					submitPrompt(value);
 				}}
 				onCancelPrompt={() => setPrompt(null)}
-				onConfirmPrompt={confirmPrompt}
+				onConfirmPrompt={confirmActivePrompt}
 				onPickSearch={jumpTo}
-				onReplaceOne={replaceOne}
-				onReplaceAll={replaceEvery}
+				onReplaceOne={(match, replacement) =>
+					search()?.scope === 'project'
+						? replaceProjectOne(match, replacement)
+						: replaceOne(match, replacement)
+				}
+				onReplaceAll={(query, replacement, options) =>
+					search()?.scope === 'project'
+						? confirmProject(query, replacement, options)
+						: replaceEvery(query, replacement, options)
+				}
+				searchBuffers={replaceOverlay}
 				onCloseSearch={() => setSearch(null)}
 				onPickFile={(path: string) => void (setPicker(null), openFile(path))}
 				onClosePicker={() => setPicker(null)}
