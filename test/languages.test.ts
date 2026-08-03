@@ -187,6 +187,38 @@ describe('languages', () => {
 		}
 	});
 
+	test('local plugins can reuse vendored grammars', async () => {
+		const root = mkdtempSync(join(tmpdir(), 'dune-vendored-grammar-plugin-'));
+		const pluginDir = join(root, 'plugins', 'local-toml');
+		mkdirSync(pluginDir, { recursive: true });
+		writeFileSync(
+			join(pluginDir, 'plugin.json'),
+			JSON.stringify({
+				id: 'local-toml-tools',
+				name: 'Local TOML Tools',
+				version: '1.0.0',
+				languages: [
+					{
+						id: 'localtoml',
+						extensions: ['.ltoml'],
+						grammar: { vendored: 'toml' },
+					},
+				],
+			}),
+		);
+
+		try {
+			const loaded = loadAppearancePlugins(root, join(root, 'plugins'));
+
+			expect(loaded.problems).toEqual([]);
+			expect(filetypeForPath(join(root, 'config.ltoml'))).toBe('localtoml');
+			const segs = await allSegments('name = "dune"\n', 'localtoml');
+			expect(segs.length).toBeGreaterThan(0);
+		} finally {
+			clearLocalLanguages();
+		}
+	});
+
 	test('terraform highlights block keywords, attributes and references', async () => {
 		const source = [
 			'resource "aws_instance" "web" {',

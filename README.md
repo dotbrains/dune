@@ -106,11 +106,13 @@ away. By default the tree lists dotfiles and gitignored files; use the View comm
 plain tree arrows, or point it at an icon theme from a local JSON plugin in
 `~/.config/dune/plugins/` or `<project>/.dune/plugins/`. The same plugin folders
 can also contribute local color themes with a `themes` array, pattern, bundled, or
-grammar-backed languages with a `languages` array, and language-server commands with a
-`languageServers` array. Market catalog entries can advertise those language-server
-plugins with `provides.languageServers` and filetype coverage with `provides.filetypes`. Set
-`disabledAppearancePlugins` to a list of plugin ids to keep installed but inactive, or
-use the command palette's per-plugin enable/disable commands.
+grammar-backed languages with a `languages` array. Grammar-backed plugins can ship
+their own assets or point at a grammar Dune already vendors. Plugins can also contribute
+language-server commands with a `languageServers` array. Market catalog entries can
+advertise those language-server plugins with `provides.languageServers` and filetype
+coverage with `provides.filetypes`. Set `disabledAppearancePlugins` to a list of plugin
+ids to keep installed but inactive, or use the command palette's per-plugin
+enable/disable commands.
 Use `Settings: this project` to save overrides in `.dune/settings.json`; project values
 take precedence over `~/.config/dune/config.json` when that workspace opens.
 Auto-save on blur and tab switch is on by default and can be disabled from Settings.

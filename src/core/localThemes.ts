@@ -3,6 +3,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, normalize } from 'node:path';
 
 import { clearLocalLanguages, registerLocalLanguages, type Language } from '../languages';
+import { GRAMMARS } from '../languages/grammars';
 import { registerLocalThemes, type Theme, THEMES, type ThemeUi } from '../themes';
 import { CONFIG_FILE, PROJECT_CONFIG_DIR } from './config';
 import { loadIconThemes, type IconTheme } from './iconThemes';
@@ -118,7 +119,12 @@ function parseLanguageIn(raw: unknown, source: string | undefined): Language | n
 		language.lineComment = raw.lineComment;
 	}
 	if (isRecord(raw.grammar)) {
-		if (raw.grammar.bundled === true) language.bundled = true;
+		if (typeof raw.grammar.vendored === 'string') {
+			const grammar = GRAMMARS[raw.grammar.vendored as keyof typeof GRAMMARS];
+			if (!grammar) return null;
+			language.wasm = grammar.wasm;
+			language.query = grammar.query;
+		} else if (raw.grammar.bundled === true) language.bundled = true;
 		else if (source) {
 			const wasm = pluginAsset(source, raw.grammar.wasm);
 			const query = pluginAsset(source, raw.grammar.query);
