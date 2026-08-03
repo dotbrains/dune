@@ -1,9 +1,23 @@
-import { spawn, spawnSync } from 'node:child_process';
-import { chmodSync, existsSync, mkdirSync, renameSync, rmSync } from 'node:fs';
+import {
+	chmodSync,
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	renameSync,
+	rmSync,
+	writeFileSync,
+} from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
+import { firstLine, notInstalled, run } from '../core/process';
+import type { ProcessResult } from '../core/process';
+
 const INSTALL_TIMEOUT_MS = 180_000;
+export type PackageManager = 'npm' | 'bun' | 'pnpm';
+
+const MANAGERS: PackageManager[] = ['npm', 'bun', 'pnpm'];
+const MANAGER_FILE = '.manager';
 
 export const SERVER_ROOT = join(
 	process.env.XDG_DATA_HOME ?? join(homedir(), '.local', 'share'),
@@ -25,48 +39,65 @@ export function installedCommand(command: string[], root = SERVER_ROOT): string[
 }
 
 export function hasNodeRuntime(): boolean {
+	return which('node') !== null;
+}
+
+function which(bin: string): string | null {
+	return Bun.which(bin, { PATH: process.env.PATH ?? '' });
+}
+
+function savedManager(root: string): PackageManager | null {
 	try {
-		const child = spawnSync('node', ['--version'], { stdio: 'ignore' });
-		return child.status === 0;
+		const saved = readFileSync(join(root, MANAGER_FILE), 'utf8').trim();
+		return MANAGERS.find((manager) => manager === saved) ?? null;
 	} catch {
-		return false;
+		return null;
 	}
 }
 
-export function installServer(packages: string[], root = SERVER_ROOT): Promise<string | null> {
-	return new Promise((resolve) => {
-		const child = spawn(
-			'npm',
-			['install', '--prefix', root, '--no-save', '--no-audit', '--no-fund', ...packages],
-			{ stdio: ['ignore', 'ignore', 'pipe'] },
-		);
-		let stderr = '';
-		child.stderr?.on('data', (chunk) => (stderr += chunk));
+function rememberManager(root: string, manager: PackageManager): void {
+	try {
+		writeFileSync(join(root, MANAGER_FILE), manager);
+	} catch {}
+}
 
-		let killed = false;
-		const timer = setTimeout(() => {
-			killed = true;
-			child.kill('SIGKILL');
-		}, INSTALL_TIMEOUT_MS);
-		timer.unref?.();
+export function availablePackageManagers(root = SERVER_ROOT): PackageManager[] {
+	if (!hasNodeRuntime()) return [];
+	const chosen = savedManager(root);
+	if (chosen) return which(chosen) ? [chosen] : [];
+	return MANAGERS.filter((manager) => which(manager));
+}
 
-		let settled = false;
-		const finish = (error: string | null) => {
-			if (settled) return;
-			settled = true;
-			clearTimeout(timer);
-			resolve(error);
-		};
+const INSTALL_ARGS: Record<PackageManager, (root: string) => string[]> = {
+	npm: (root) => ['install', '--prefix', root, '--no-save', '--no-audit', '--no-fund'],
+	bun: (root) => ['add', '--cwd', root],
+	pnpm: (root) => ['add', '--dir', root],
+};
 
-		child.on('error', (error: NodeJS.ErrnoException) =>
-			finish(error.code === 'ENOENT' ? 'npm is not installed, or not on PATH' : error.message),
-		);
-		child.on('close', (code) => {
-			if (killed) return finish('npm timed out');
-			if (code === 0) return finish(null);
-			return finish(firstLine(stderr) || `npm exited with code ${code}`);
-		});
+function failureOf(result: ProcessResult, manager: PackageManager): string | null {
+	if (result.error) {
+		return notInstalled(result)
+			? `${manager} is not installed, or not on PATH`
+			: result.error.message;
+	}
+	if (result.timedOut) return `${manager} timed out`;
+	if (result.status === 0) return null;
+	return firstLine(result.stderr) || `${manager} exited with code ${result.status}`;
+}
+
+export async function installServer(
+	packages: string[],
+	root = SERVER_ROOT,
+	manager: PackageManager = 'npm',
+): Promise<string | null> {
+	mkdirSync(root, { recursive: true });
+	const result = await run(manager, [...INSTALL_ARGS[manager](root), ...packages], {
+		timeout: INSTALL_TIMEOUT_MS,
 	});
+	const failure = failureOf(result, manager);
+	if (failure) return failure;
+	rememberManager(root, manager);
+	return null;
 }
 
 export async function downloadServer(
@@ -88,8 +119,4 @@ export async function downloadServer(
 		rmSync(partial, { force: true });
 		return error instanceof Error ? error.message : String(error);
 	}
-}
-
-function firstLine(text: string): string {
-	return text.trim().split('\n')[0]?.trim() ?? '';
 }

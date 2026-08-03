@@ -5,6 +5,7 @@ import { dirname, join, relative } from 'node:path';
 import { BinaryFileError, readFile } from './fs';
 import { hasBinaryContent } from './gitDiff';
 import type { DiffFile } from './gitDiff';
+import { discoverRepos, groupByRepo } from './vcs/repos';
 
 export type LineChange = 'added' | 'modified' | 'deleted';
 export type FileStatus = 'untracked' | 'added' | 'modified' | 'deleted' | 'renamed';
@@ -163,6 +164,12 @@ const changedPath = (
  */
 export function statusMap(cwd: string, ref: string | null = null): Map<string, FileStatus> {
 	const statuses = new Map<string, FileStatus>();
+	if (keyBase(cwd) === null) {
+		for (const repo of discoverRepos(cwd)) {
+			for (const [path, status] of statusMap(repo, ref)) statuses.set(path, status);
+		}
+		return statuses;
+	}
 	for (const entry of statusEntries(cwd, ref)) statuses.set(entry.path, entry.status);
 	return statuses;
 }
@@ -230,6 +237,11 @@ function statusAgainst(cwd: string, ref: string, base: string): StatusEntry[] {
 }
 
 export function diffFiles(cwd: string, only?: string, ref: string | null = null): DiffFile[] {
+	if (keyBase(cwd) === null) {
+		const files: DiffFile[] = [];
+		for (const repo of discoverRepos(cwd)) files.push(...diffFiles(repo, only, ref));
+		return files.toSorted((a, b) => a.path.localeCompare(b.path));
+	}
 	const statuses = statusEntries(cwd, ref);
 	const files: DiffFile[] = [];
 	const base = keyBase(cwd) ?? cwd;
@@ -265,6 +277,12 @@ export function diffFiles(cwd: string, only?: string, ref: string | null = null)
 export function ignoredAmong(cwd: string, paths: string[]): Set<string> {
 	const ignored = new Set<string>();
 	if (paths.length === 0) return ignored;
+	if (keyBase(cwd) === null) {
+		for (const [repo, repoPaths] of groupByRepo(paths, discoverRepos(cwd))) {
+			for (const path of ignoredAmong(repo, repoPaths)) ignored.add(path);
+		}
+		return ignored;
+	}
 	const run = git(cwd, ['check-ignore', '--stdin', '-z'], 5000, `${paths.join('\0')}\0`);
 	if (run.status !== 0) return ignored;
 	for (const path of run.stdout.split('\0')) {
@@ -276,7 +294,12 @@ export function ignoredAmong(cwd: string, paths: string[]): Set<string> {
 export function ignoredPaths(cwd: string): Set<string> {
 	const ignored = new Set<string>();
 	const base = keyBase(cwd);
-	if (base === null) return ignored;
+	if (base === null) {
+		for (const repo of discoverRepos(cwd)) {
+			for (const path of ignoredPaths(repo)) ignored.add(path);
+		}
+		return ignored;
+	}
 	const run = git(cwd, [
 		'ls-files',
 		'--others',

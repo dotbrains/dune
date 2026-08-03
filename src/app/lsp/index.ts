@@ -13,7 +13,7 @@ import { normalizeDefinition } from '../../lsp/definition';
 import type { DefinitionTarget } from '../../lsp/definition';
 import {
 	downloadServer,
-	hasNodeRuntime,
+	availablePackageManagers,
 	installedCommand,
 	installServer,
 	SERVER_ROOT,
@@ -128,7 +128,7 @@ export function createAppLsp(deps: {
 			!deps.config.lspAutoInstall ||
 			!deps.setPrompt ||
 			offered.has(resolved.id) ||
-			(resolved.install.kind === 'npm' && !hasNodeRuntime())
+			(resolved.install.kind === 'npm' && availablePackageManagers().length === 0)
 		) {
 			return false;
 		}
@@ -138,6 +138,7 @@ export function createAppLsp(deps: {
 			id: resolved.id,
 			name: resolved.command[0]!,
 			install: resolved.install,
+			manager: resolved.install.kind === 'npm' ? availablePackageManagers()[0] : undefined,
 		});
 		return true;
 	};
@@ -209,13 +210,18 @@ export function createAppLsp(deps: {
 		}, DEPENDENCY_QUIET_MS);
 	};
 
-	const install = async (id: string, name: string, spec: ResolvedServer['install']) => {
+	const install = async (
+		id: string,
+		name: string,
+		spec: ResolvedServer['install'],
+		manager?: Parameters<typeof installServer>[2],
+	) => {
 		if (!spec || spec.kind === 'manual') return;
 		deps.say(`Installing ${name}...`);
 		const error =
 			spec.kind === 'download'
 				? await downloadServer(spec.url, name)
-				: await installServer(spec.packages);
+				: await installServer(spec.packages, SERVER_ROOT, manager);
 		if (error) return deps.say(`Could not install ${name}: ${error}`, 'error');
 		if (!installedCommand([name])) {
 			return deps.say(`Installed ${name}, but no ${name} appeared in ${SERVER_ROOT}`, 'error');

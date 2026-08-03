@@ -70,6 +70,21 @@ test('the rendered page uses the unsaved buffer text', async () => {
 	expect(t.captureCharFrame()).toContain('Typed');
 });
 
+test('mermaid fences render as diagrams', async () => {
+	const t = await launchDoc(`\`\`\`mermaid
+flowchart TD
+  A[Start] --> B[Ship]
+\`\`\`
+`);
+	await runCommand(t, 'Markdown: rendered');
+	await until(t, () => t.captureCharFrame().includes('Start'));
+
+	const rendered = t.captureCharFrame();
+	expect(rendered).toContain('Ship');
+	expect(rendered).toContain('▼');
+	expect(rendered).not.toContain('flowchart TD');
+});
+
 test('non-markdown files warn instead of switching views', async () => {
 	const t = await fixtureWithFile('a.ts', 'const a = 1\n');
 	await runCommand(t, 'Markdown: rendered');

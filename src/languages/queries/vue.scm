@@ -6,3 +6,7 @@
 (interpolation) @embedded
 ["<" ">" "</" "/>"] @punctuation.bracket
 "=" @operator
+
+(script_element (raw_text) @injection.typescript)
+(style_element (raw_text) @injection.css)
+(interpolation (raw_text) @injection.typescript)

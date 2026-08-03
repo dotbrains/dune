@@ -67,6 +67,23 @@ describe('respectGitignore: true', () => {
 		expect(ignoredPaths(fixture(PROJECT)).size).toBe(0);
 	});
 
+	test('ignoredPaths uses each repository below an opened folder', () => {
+		const dir = fixture({
+			'alpha/.gitignore': 'dist\n',
+			'alpha/a.ts': 'const a = 1\n',
+			'alpha/dist/bundle.js': 'var a = 1\n',
+			'beta/.gitignore': 'debug.log\n',
+			'beta/debug.log': 'debug\n',
+			'dist/loose.js': 'loose\n',
+		});
+		execFileSync('git', ['init', '-q', '-b', 'main'], { cwd: join(dir, 'alpha') });
+		execFileSync('git', ['init', '-q', '-b', 'main'], { cwd: join(dir, 'beta') });
+
+		expect(ignoredPaths(dir)).toEqual(
+			new Set([join(dir, 'alpha', 'dist'), join(dir, 'beta', 'debug.log')]),
+		);
+	});
+
 	test('ignored entries leave the tree, tracked and clean ones stay', async () => {
 		const frame = (await launch(ignoredRepo(), { respectGitignore: true })).captureCharFrame();
 

@@ -2,6 +2,7 @@ import type { Tone } from '../ui/StatusBar';
 import type { Config } from '../core/config';
 import type { TextEncoding } from '../core/fs';
 import type { SearchOptions } from '../core/search';
+import type { PackageManager } from '../lsp/install';
 import type { FetchableInstall } from '../lsp/servers';
 
 export type Focus = 'tree' | 'editor';
@@ -81,7 +82,13 @@ export type Prompt =
 			files: number;
 			flags: string;
 	  }
-	| { kind: 'installServer'; id: string; name: string; install: FetchableInstall }
+	| {
+			kind: 'installServer';
+			id: string;
+			name: string;
+			install: FetchableInstall;
+			manager?: PackageManager;
+	  }
 	| { kind: 'installPlugin'; id: string; name: string; reason: string; commands?: string[] }
 	| null;
 

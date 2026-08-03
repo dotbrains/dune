@@ -8,3 +8,5 @@
 (primitive_type) @type
 ["{" "}" "(" ")" "[" "]"] @punctuation.bracket
 ["," ";" ":" "."] @punctuation.delimiter
+
+(text) @injection.html

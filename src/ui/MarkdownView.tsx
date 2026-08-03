@@ -1,9 +1,10 @@
 import type { KeyEvent, ScrollBoxRenderable, TreeSitterClient } from '@opentui/core';
-import { useKeyboard, useTerminalDimensions } from '@opentui/solid';
+import { useKeyboard, useRenderer, useTerminalDimensions } from '@opentui/solid';
 import { createEffect, createMemo, createSignal, on, onMount } from 'solid-js';
 
 import { getSyntaxStyle, highlightClient } from '../languages/highlight';
 import { activeTheme, ui } from '../themes';
+import { mermaidRenderer } from './viewers/mermaidBlock';
 
 export interface MarkdownViewProps {
 	path: string;
@@ -19,12 +20,16 @@ export interface MarkdownViewProps {
 
 export function MarkdownView(props: MarkdownViewProps) {
 	const dimensions = useTerminalDimensions();
+	const renderer = useRenderer();
 	const [client, setClient] = createSignal<TreeSitterClient | null | undefined>(undefined);
 	let box: ScrollBoxRenderable | undefined;
 
 	onMount(() => void highlightClient().then((c) => setClient(c)));
 
 	const style = createMemo(on([() => props.theme, activeTheme], () => getSyntaxStyle()));
+	const renderNode = createMemo(
+		on([() => props.theme, activeTheme], () => mermaidRenderer(renderer, ui)),
+	);
 	const scroll = (delta: number) => {
 		if (box) box.scrollTop = Math.max(0, box.scrollTop + delta);
 	};
@@ -86,6 +91,7 @@ export function MarkdownView(props: MarkdownViewProps) {
 				<markdown
 					content={props.content}
 					syntaxStyle={style()}
+					renderNode={renderNode()}
 					treeSitterClient={client() ?? undefined}
 					fg={ui.text}
 					bg={ui.bg}

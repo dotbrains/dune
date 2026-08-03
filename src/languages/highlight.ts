@@ -177,6 +177,46 @@ function outsideProse(
 	);
 }
 
+const INJECTION = 'injection.';
+
+type RawCapture = readonly [number, number, string, ...unknown[]];
+
+async function resolveInjections(
+	client: TreeSitterClient,
+	content: string,
+	captures: ReadonlyArray<RawCapture>,
+): Promise<RawCapture[]> {
+	const kept: RawCapture[] = [];
+	const spans: { start: number; end: number; filetype: string }[] = [];
+	for (const capture of captures) {
+		const [start, end, group] = capture;
+		if (!group.startsWith(INJECTION)) {
+			kept.push(capture);
+			continue;
+		}
+		const filetype = group.slice(INJECTION.length);
+		const lang = languageFor(filetype);
+		if (lang && (lang.bundled || (lang.wasm && lang.query))) spans.push({ start, end, filetype });
+	}
+	if (spans.length === 0) return kept;
+	const injected = await Promise.all(
+		spans.map(async (span) => {
+			try {
+				const res = await client.highlightOnce(content.slice(span.start, span.end), span.filetype);
+				return (res.highlights ?? [])
+					.filter((highlight) => !highlight[2].startsWith(INJECTION))
+					.map(
+						(highlight) =>
+							[highlight[0] + span.start, highlight[1] + span.start, highlight[2]] as RawCapture,
+					);
+			} catch {
+				return [];
+			}
+		}),
+	);
+	return [...kept, ...injected.flat()];
+}
+
 /** Answered instead of segments when `isStale` says the text moved on. */
 export const STALE = Symbol('stale');
 
@@ -234,7 +274,8 @@ export async function computeHighlights(
 	try {
 		const res = await client.highlightOnce(content, filetype!);
 		if (isStale?.()) return STALE;
-		const highlights = res.highlights ?? [];
+		const highlights = await resolveInjections(client, content, res.highlights ?? []);
+		if (isStale?.()) return STALE;
 		return prepare(content, [
 			...highlights,
 			...outsideProse(content, overlay, highlights),

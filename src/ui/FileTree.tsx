@@ -139,7 +139,11 @@ function builtinGlyph(node: TreeNode, expanded: boolean, iconTheme: IconThemeNam
 
 function themedGlyph(node: TreeNode, expanded: boolean, theme: IconTheme): IconRule {
 	if (node.isDir)
-		return theme.folders[node.name.toLowerCase()] ?? (expanded ? theme.folderOpen : theme.folder);
+		return (
+			(expanded ? theme.foldersOpen[node.name.toLowerCase()] : undefined) ??
+			theme.folders[node.name.toLowerCase()] ??
+			(expanded ? theme.folderOpen : theme.folder)
+		);
 	const name = node.name.toLowerCase();
 	const byName = theme.names[name];
 	if (byName) return byName;

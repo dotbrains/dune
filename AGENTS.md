@@ -11,7 +11,8 @@ reconciler on a native Zig core). Shipped as a standalone binary — GitHub Pack
 Homebrew, a curl installer — and run as a CLI.
 
 Features: file tree with bulk file operations and optional unicode/local-plugin icons, preview/pinned tabs, editor navigation history, git status marks and
-gitignored dimming, tree-sitter syntax highlighting, rendered markdown tabs, image/PDF viewer tabs, search and replace (current file and
+gitignored dimming across opened folders that hold multiple repositories, tree-sitter syntax highlighting, rendered markdown tabs with Mermaid fences,
+image/PDF viewer tabs, search and replace (current file and
 project-wide), command palette, built-in and local-plugin themes with transparent-background mode, vim mode, configurable cursor shape and word wrap, git marks in tree/gutter/status bar,
 file watching with conflict prompts, language server diagnostics/completion/status,
 per-project session restore, and a startup update check.
@@ -22,6 +23,8 @@ plugin manifests are parsed by `src/core/plugins/localLspServers.ts`; local
 pattern/bundled/grammar-backed language contributions are parsed by
 `src/core/localThemes.ts` and registered in `src/languages/index.ts`. The loaders only
 execute data manifests from the user/project plugin directories.
+Icon theme manifests may use reusable `definitions`, folder-specific open icons, and
+single-cell Nerd Font private-plane glyphs; wide emoji glyphs are still rejected.
 `disabledAppearancePlugins` keeps local plugins installed but inactive.
 `pluginRegistry` in user or project settings overrides the HTTPS plugin
 catalog directory URL, and `pluginUpdates` controls the startup appearance-plugin
@@ -34,6 +37,9 @@ update check.
   never "fix" a Bun dependency by switching the runtime. Users need nothing installed:
   `bun build --compile` bakes the Bun runtime, the native library and every grammar into
   one executable.
+- Built-in LSP auto-install can fetch npm-shaped language servers with `npm`, `bun` or
+  `pnpm`, but Node must still be on PATH to run those servers. The first manager that
+  fills dune's LSP prefix is recorded there so later installs keep using the same tool.
 - **bun manages dependencies and scripts.** Do not use npm or pnpm for installs — the
   lockfile is `bun.lock`.
 - **Say `bun run <script>`, not `bun <script>`.** `build` collides with Bun's own bundler

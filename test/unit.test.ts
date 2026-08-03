@@ -188,6 +188,61 @@ describe('registries', () => {
 		expect(load.problems[0]?.reason).toBe('invalid icon theme');
 	});
 
+	test('icon theme plugins accept private-plane nerd font glyphs', () => {
+		const dir = mkdtempSync(join(tmpdir(), 'dune-icon-theme-'));
+		const plugin = join(dir, 'plugins');
+		mkdirSync(plugin);
+		writeFileSync(
+			join(plugin, 'nerd.json'),
+			JSON.stringify({
+				icons: [
+					{
+						id: 'nerd',
+						name: 'Nerd',
+						file: '󰈔',
+						folder: '▸',
+						folderOpen: '▾',
+					},
+				],
+			}),
+		);
+
+		const load = loadIconThemes(dir, plugin);
+		expect(load.problems).toEqual([]);
+		expect(load.themes[0]?.file.glyph).toBe('󰈔');
+	});
+
+	test('icon theme definitions can be reused by file and folder maps', () => {
+		const dir = mkdtempSync(join(tmpdir(), 'dune-icon-theme-'));
+		const plugin = join(dir, 'plugins');
+		mkdirSync(plugin);
+		writeFileSync(
+			join(plugin, 'defs.json'),
+			JSON.stringify({
+				icons: [
+					{
+						id: 'defs',
+						name: 'Definitions',
+						definitions: {
+							ts: { glyph: 't', color: '#3178c6' },
+							src: { glyph: 's', open: 'S' },
+						},
+						file: '·',
+						folder: '▸',
+						folderOpen: '▾',
+						extensions: { '.ts': 'ts' },
+						folders: { src: 'src' },
+					},
+				],
+			}),
+		);
+
+		const theme = loadIconThemes(dir, plugin).themes[0]!;
+		expect(theme.extensions.ts).toEqual({ glyph: 't', color: '#3178c6' });
+		expect(theme.folders.src).toEqual({ glyph: 's' });
+		expect(theme.foldersOpen.src).toEqual({ glyph: 'S' });
+	});
+
 	test('every command leaf is runnable, unique, and reachable', () => {
 		const ran: string[] = [];
 		const actions = new Proxy({} as CommandActions, {

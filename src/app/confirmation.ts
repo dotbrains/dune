@@ -76,7 +76,7 @@ export function confirmationForPrompt(prompt: Prompt): Confirmation | null {
 				danger: false,
 				message:
 					prompt.install.kind === 'npm'
-						? `${prompt.name} is not installed. Fetch it with npm into ${SERVER_ROOT}?`
+						? `${prompt.name} is not installed. Fetch it with ${prompt.manager ?? 'npm'} into ${SERVER_ROOT}?`
 						: `${prompt.name} is not installed. Download it into ${SERVER_ROOT}?`,
 			};
 		case 'installPlugin':
