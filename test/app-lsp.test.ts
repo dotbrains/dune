@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { createRoot, createSignal } from 'solid-js';
 import { createStore } from 'solid-js/store';
 
+import { confirmationForPrompt } from '../src/app/confirmation';
 import { createAppLsp, problemFrom, wireAppLspEffects } from '../src/app/lsp/index';
 import { createServerPluginSuggester } from '../src/app/lsp/pluginSuggestion';
 import type { BufferState, Prompt } from '../src/app/types';
@@ -263,19 +264,34 @@ test('files with no server can ask for a plugin suggestion', () => {
 test('server plugin suggestions raise an install prompt', async () => {
 	const realFetch = globalThis.fetch;
 	let prompt: Prompt = null;
-	globalThis.fetch = (() =>
+	globalThis.fetch = ((url: Parameters<typeof fetch>[0]) =>
 		Promise.resolve(
 			new Response(
-				JSON.stringify({
-					plugins: [
-						{
-							id: 'kotlin-tools',
-							name: 'Kotlin Tools',
-							version: '1.0.0',
-							provides: { filetypes: ['kotlin'] },
-						},
-					],
-				}),
+				JSON.stringify(
+					String(url).endsWith('/index.json')
+						? {
+								plugins: [
+									{
+										id: 'kotlin-tools',
+										name: 'Kotlin Tools',
+										version: '1.0.0',
+										provides: { filetypes: ['kotlin'] },
+									},
+								],
+							}
+						: {
+								id: 'kotlin-tools',
+								name: 'Kotlin Tools',
+								version: '1.0.0',
+								languageServers: [
+									{
+										id: 'kotlin',
+										command: ['kotlin-language-server'],
+										filetypes: ['kotlin'],
+									},
+								],
+							},
+				),
 			),
 		)) as unknown as typeof fetch;
 	try {
@@ -292,7 +308,9 @@ test('server plugin suggestions raise an install prompt', async () => {
 			id: 'kotlin-tools',
 			name: 'Kotlin Tools',
 			reason: 'No language server for kotlin',
+			commands: ['kotlin-language-server'],
 		});
+		expect(confirmationForPrompt(prompt)?.message).toContain('It may run: kotlin-language-server');
 	} finally {
 		globalThis.fetch = realFetch;
 	}

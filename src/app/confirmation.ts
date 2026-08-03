@@ -77,7 +77,10 @@ export function confirmationForPrompt(prompt: Prompt): Confirmation | null {
 				title: 'Plugin available',
 				verb: 'install it',
 				danger: false,
-				message: `${prompt.reason}. Install ${prompt.name} from the plugin market?`,
+				message: [
+					`${prompt.reason}. Install ${prompt.name} from the plugin market?`,
+					...(prompt.commands?.length ? [`It may run: ${prompt.commands.join(', ')}`] : []),
+				].join(' '),
 			};
 		default:
 			return null;
