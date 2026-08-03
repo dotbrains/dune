@@ -1,6 +1,17 @@
 import { describe, expect, test } from 'bun:test';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
-import { LANGUAGES, languageFor, languageLabel } from '../src/languages';
+import {
+	clearLocalLanguages,
+	commentPrefix,
+	LANGUAGES,
+	languageFor,
+	languageLabel,
+} from '../src/languages';
+import { loadAppearancePlugins } from '../src/core/localThemes';
 import {
 	computeHighlights,
 	filetypeForPath,
@@ -97,6 +108,48 @@ describe('languages', () => {
 		expect(filetypeForPath('packer.hcl')).toBe('hcl');
 		expect(filetypeForPath('shelf.ts')).toBe('typescript');
 		expect(languageLabel('terraform')).toBe('tf');
+	});
+
+	test('local plugins can contribute pattern languages', async () => {
+		const root = mkdtempSync(join(tmpdir(), 'dune-language-plugin-'));
+		const userPlugins = join(root, 'plugins');
+		mkdirSync(join(userPlugins, 'make'), { recursive: true });
+		writeFileSync(
+			join(userPlugins, 'make', 'plugin.json'),
+			JSON.stringify({
+				id: 'make-tools',
+				name: 'Make Tools',
+				version: '1.0.0',
+				languages: [
+					{
+						id: 'makefile',
+						label: 'mk',
+						filenames: ['Makefile'],
+						extensions: ['.mk'],
+						lineComment: '#',
+						patterns: [
+							{ group: 'property', re: '^[A-Za-z0-9_-]+(?=:)', flags: 'm' },
+							{ group: 'comment', re: '#.*$' },
+						],
+					},
+				],
+			}),
+		);
+
+		try {
+			const loaded = loadAppearancePlugins(root, userPlugins);
+
+			expect(loaded.plugins[0]?.detail).toBe('languages: makefile');
+			expect(loaded.problems).toEqual([]);
+			expect(filetypeForPath(join(root, 'Makefile'))).toBe('makefile');
+			expect(filetypeForPath(join(root, 'rules.mk'))).toBe('makefile');
+			expect(languageLabel('makefile')).toBe('mk');
+			expect(commentPrefix('makefile')).toBe('#');
+			const segs = await allSegments('build: # compile\n', 'makefile');
+			expect(segs.length).toBeGreaterThan(0);
+		} finally {
+			clearLocalLanguages();
+		}
 	});
 
 	test('terraform highlights block keywords, attributes and references', async () => {

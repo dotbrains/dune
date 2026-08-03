@@ -31,6 +31,14 @@ export interface Language {
 	wasm?: string;
 	/** Path to the highlight query, when we vendor the grammar ourselves. */
 	query?: string;
+	/** File extensions that route to this language, including the leading dot. */
+	extensions?: string[];
+	/** Exact file names that route to this language. */
+	filenames?: string[];
+	/** File names matching this pattern route to this language. */
+	filenamePattern?: RegExp;
+	/** Line-comment prefix for Ctrl+/. */
+	lineComment?: string;
 	/**
 	 * Regex highlighting, for formats with no usable grammar. Patterns paint in
 	 * order, so later entries win the characters they overlap.
@@ -222,13 +230,14 @@ const LINE_COMMENTS: Record<string, string> = {
 };
 
 export function commentPrefix(filetype: string | undefined): string | undefined {
-	return filetype ? LINE_COMMENTS[filetype] : undefined;
+	return filetype ? (languageFor(filetype)?.lineComment ?? LINE_COMMENTS[filetype]) : undefined;
 }
 
 const BY_ID = new Map(LANGUAGES.map((lang) => [lang.id, lang]));
+const LOCAL = new Map<string, Language>();
 
 export function languageFor(filetype: string | undefined): Language | undefined {
-	return filetype ? BY_ID.get(filetype) : undefined;
+	return filetype ? (LOCAL.get(filetype) ?? BY_ID.get(filetype)) : undefined;
 }
 
 /** What to call `filetype` on screen. */
@@ -238,3 +247,25 @@ export function languageLabel(filetype: string): string {
 
 /** Languages we ship a grammar for and must register with tree-sitter at runtime. */
 export const VENDORED_LANGUAGES = LANGUAGES.filter((lang) => lang.wasm && lang.query);
+
+export function clearLocalLanguages(): void {
+	LOCAL.clear();
+}
+
+export function registerLocalLanguages(languages: readonly Language[]): void {
+	for (const language of languages) LOCAL.set(language.id, language);
+}
+
+export function localFiletypeForName(name: string): string | undefined {
+	for (const language of LOCAL.values()) {
+		if (language.filenames?.includes(name)) return language.id;
+		if (language.filenamePattern) {
+			language.filenamePattern.lastIndex = 0;
+			if (language.filenamePattern.test(name)) return language.id;
+		}
+		for (const extension of language.extensions ?? []) {
+			if (name.endsWith(extension)) return language.id;
+		}
+	}
+	return undefined;
+}

@@ -2,6 +2,7 @@ import type { StyleDefinitionInput } from '@opentui/core';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
+import { clearLocalLanguages, registerLocalLanguages, type Language } from '../languages';
 import { registerLocalThemes, type Theme, THEMES, type ThemeUi } from '../themes';
 import { CONFIG_FILE, PROJECT_CONFIG_DIR } from './config';
 import { loadIconThemes, type IconTheme } from './iconThemes';
@@ -43,12 +44,19 @@ export const USER_THEME_PLUGIN_DIR = join(dirname(CONFIG_FILE), 'plugins');
 
 const MANIFEST = 'plugin.json';
 const HEX = /^#[\da-f]{6}$/i;
+const ID = /^[\w.-]+$/;
 const UI_KEYS = Object.keys(THEMES.dark!.ui) as (keyof ThemeUi)[];
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const isColor = (value: unknown): value is string => typeof value === 'string' && HEX.test(value);
+
+const strings = (value: unknown): string[] | null => {
+	if (!Array.isArray(value)) return null;
+	const out = value.filter((entry) => typeof entry === 'string' && entry.length > 0);
+	return out.length === value.length && out.length > 0 ? out : null;
+};
 
 function manifestsIn(dir: string): string[] {
 	let entries: { name: string; isDir: boolean }[];
@@ -92,6 +100,46 @@ function parseTheme(raw: unknown): { id: string; theme: Theme } | null {
 	return { id: raw.id, theme: { name: raw.name, ui, syntax } };
 }
 
+function parseLanguage(raw: unknown): Language | null {
+	if (!isRecord(raw) || typeof raw.id !== 'string' || !ID.test(raw.id)) return null;
+	const language: Language = { id: raw.id };
+	if (typeof raw.label === 'string' && raw.label.length > 0) language.label = raw.label;
+	if (typeof raw.lineComment === 'string' && raw.lineComment.length > 0) {
+		language.lineComment = raw.lineComment;
+	}
+	if (isRecord(raw.grammar) && raw.grammar.bundled === true) language.bundled = true;
+	if (Array.isArray(raw.patterns)) {
+		const patterns: NonNullable<Language['patterns']> = [];
+		for (const entry of raw.patterns) {
+			if (!isRecord(entry) || typeof entry.group !== 'string' || typeof entry.re !== 'string') {
+				return null;
+			}
+			try {
+				const flags = typeof entry.flags === 'string' ? entry.flags : '';
+				patterns.push({
+					group: entry.group,
+					re: new RegExp(entry.re, flags.includes('g') ? flags : `${flags}g`),
+				});
+			} catch {
+				return null;
+			}
+		}
+		if (patterns.length > 0) language.patterns = patterns;
+	}
+	const extensions = strings(raw.extensions);
+	if (extensions) language.extensions = extensions;
+	const filenames = strings(raw.filenames);
+	if (filenames) language.filenames = filenames;
+	if (typeof raw.filenamePattern === 'string' && raw.filenamePattern.length > 0) {
+		try {
+			language.filenamePattern = new RegExp(raw.filenamePattern);
+		} catch {
+			return null;
+		}
+	}
+	return language.bundled || language.patterns ? language : null;
+}
+
 function loadInstalledPlugins(
 	rootDir: string,
 	userDir = USER_THEME_PLUGIN_DIR,
@@ -114,7 +162,8 @@ function loadInstalledPlugins(
 		const hasAppearance =
 			(Array.isArray(raw.themes) && raw.themes.length > 0) ||
 			(Array.isArray(raw.icons) && raw.icons.length > 0);
-		if (hasAppearance) {
+		const hasLanguages = Array.isArray(raw.languages) && raw.languages.length > 0;
+		if (hasAppearance || hasLanguages) {
 			const themes = Array.isArray(raw.themes)
 				? raw.themes
 						.map((entry) => (isRecord(entry) && typeof entry.id === 'string' ? entry.id : null))
@@ -125,9 +174,15 @@ function loadInstalledPlugins(
 						.map((entry) => (isRecord(entry) && typeof entry.id === 'string' ? entry.id : null))
 						.filter((entry): entry is string => entry !== null)
 				: [];
+			const languages = Array.isArray(raw.languages)
+				? raw.languages
+						.map((entry) => (isRecord(entry) && typeof entry.id === 'string' ? entry.id : null))
+						.filter((entry): entry is string => entry !== null)
+				: [];
 			const parts = [
 				...(themes.length > 0 ? [`themes: ${themes.join(', ')}`] : []),
 				...(icons.length > 0 ? [`icons: ${icons.join(', ')}`] : []),
+				...(languages.length > 0 ? [`languages: ${languages.join(', ')}`] : []),
 			];
 			plugins.set(raw.id, {
 				id: raw.id,
@@ -140,6 +195,40 @@ function loadInstalledPlugins(
 		}
 	}
 	return [...plugins.values()];
+}
+
+function loadLocalLanguages(
+	rootDir: string,
+	userDir = USER_THEME_PLUGIN_DIR,
+	disabled: readonly string[] = [],
+): { languages: Language[]; problems: LocalThemeProblem[] } {
+	const problems: LocalThemeProblem[] = [];
+	const languages: Language[] = [];
+	const sources = [
+		...manifestsIn(userDir),
+		...manifestsIn(join(rootDir, PROJECT_CONFIG_DIR, 'plugins')),
+	];
+	for (const source of sources) {
+		if (!existsSync(source)) continue;
+		let raw: unknown;
+		try {
+			raw = JSON.parse(readFileSync(source, 'utf8'));
+		} catch (error) {
+			problems.push({ source, reason: error instanceof Error ? error.message : String(error) });
+			continue;
+		}
+		if (!isRecord(raw) || (typeof raw.id === 'string' && disabled.includes(raw.id))) continue;
+		const entries = Array.isArray(raw.languages) ? raw.languages : [];
+		for (const entry of entries) {
+			const language = parseLanguage(entry);
+			if (!language) {
+				problems.push({ source, reason: 'invalid language' });
+				continue;
+			}
+			languages.push(language);
+		}
+	}
+	return { languages, problems };
 }
 
 export function loadLocalThemes(
@@ -187,11 +276,14 @@ export function loadAppearancePlugins(
 ): AppearancePluginLoad {
 	const colorThemes = loadLocalThemes(rootDir, userDir, disabled);
 	const iconThemes = loadIconThemes(rootDir, userDir, disabled);
+	const languages = loadLocalLanguages(rootDir, userDir, disabled);
 	registerLocalThemes(colorThemes.themes);
+	clearLocalLanguages();
+	registerLocalLanguages(languages.languages);
 	return {
 		themes: colorThemes.themes,
 		iconThemes: iconThemes.themes,
 		plugins: loadInstalledPlugins(rootDir, userDir, disabled),
-		problems: [...colorThemes.problems, ...iconThemes.problems],
+		problems: [...colorThemes.problems, ...iconThemes.problems, ...languages.problems],
 	};
 }

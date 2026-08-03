@@ -17,9 +17,11 @@ file watching with conflict prompts, language server diagnostics/completion/stat
 per-project session restore, and a startup update check.
 
 Plugin catalog/cache/install primitives live in `src/core/market/`; catalog entries may
-advertise appearance assets and language servers. Local language server plugin manifests
-are parsed by `src/core/plugins/localLspServers.ts`. The loaders only execute data
-manifests from the user/project plugin directories.
+advertise appearance assets, language servers, and filetypes. Local language server
+plugin manifests are parsed by `src/core/plugins/localLspServers.ts`; local
+pattern/bundled language contributions are parsed by `src/core/localThemes.ts` and
+registered in `src/languages/index.ts`. The loaders only execute data manifests from the
+user/project plugin directories.
 `disabledAppearancePlugins` keeps local appearance plugins installed but inactive.
 `pluginRegistry` in user or project settings overrides the HTTPS appearance plugin
 catalog directory URL, and `pluginUpdates` controls the startup appearance-plugin
@@ -136,13 +138,13 @@ someone copies the release asset by hand.
 Read [ARCHITECTURE.md](ARCHITECTURE.md) first. It has the folder map, the one-way
 dependency rule, and recipes for the extension points:
 
-| Want to add a… | Edit                                                                                                                                                |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| language       | `src/languages/grammars.ts` + a query in `src/languages/queries/`, then `src/languages/index.ts`                                                    |
-| theme          | palette file in `src/themes/`, usually via `defineTheme()` in `src/themes/builder.ts`, then register it in `src/themes/registry.ts`                 |
-| setting        | `src/core/config.ts` (`Config`, `DEFAULTS`, `parsePartial`/`resolveConfig`)                                                                         |
-| command        | `src/app/commands.ts` + wire handlers in `src/app/appCommands.ts`, `src/app/appControls.ts`, `src/app/fileActions.ts` or `src/app/gitCommands.ts`   |
-| keybinding     | handler in `src/app/keyboard.ts` or `src/ui/editorKeymap.ts`, advertised in `src/ui/keys.ts` (feeds the footer hints, help overlay and Ctrl+K peek) |
+| Want to add a… | Edit                                                                                                                                                                                            |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| language       | Built-in: `src/languages/grammars.ts` + a query in `src/languages/queries/`, then `src/languages/index.ts`; local pattern/bundled plugins: `src/core/localThemes.ts` + `src/languages/index.ts` |
+| theme          | palette file in `src/themes/`, usually via `defineTheme()` in `src/themes/builder.ts`, then register it in `src/themes/registry.ts`                                                             |
+| setting        | `src/core/config.ts` (`Config`, `DEFAULTS`, `parsePartial`/`resolveConfig`)                                                                                                                     |
+| command        | `src/app/commands.ts` + wire handlers in `src/app/appCommands.ts`, `src/app/appControls.ts`, `src/app/fileActions.ts` or `src/app/gitCommands.ts`                                               |
+| keybinding     | handler in `src/app/keyboard.ts` or `src/ui/editorKeymap.ts`, advertised in `src/ui/keys.ts` (feeds the footer hints, help overlay and Ctrl+K peek)                                             |
 
 `src/app/commands.ts` is the feature index — read it to learn what the editor can do.
 

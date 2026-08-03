@@ -3,7 +3,7 @@ import { getTreeSitterClient, pathToFiletype, SyntaxStyle } from '@opentui/core'
 import type { TreeSitterClient } from '@opentui/core';
 
 import { syntaxTheme, ui } from '../themes';
-import { languageFor, VENDORED_LANGUAGES } from './index';
+import { languageFor, localFiletypeForName, VENDORED_LANGUAGES } from './index';
 import type { Language } from './index';
 
 /** Two dots so it outranks any syntax capture on the same whitespace. */
@@ -63,6 +63,8 @@ export function filetypeForPath(path: string): string | undefined {
 	// is the file name.
 	const name = path.slice(Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\')) + 1);
 	if (BY_NAME[name]) return BY_NAME[name];
+	const local = localFiletypeForName(name);
+	if (local) return local;
 	if (DOTENV.test(name)) return 'dotenv';
 	if (name.endsWith('.tsrx')) return 'tsrx';
 	if (name.endsWith('.tf') || name.endsWith('.tfvars')) return 'terraform';
