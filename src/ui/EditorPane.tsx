@@ -23,6 +23,7 @@ import {
 	ignoreScrollOutsideBounds,
 	inlineProblemNotes,
 	scrollTextarea,
+	selectOnMultiClick,
 } from './editorHost';
 import { useEditorKeymap } from './editorKeymap';
 import { createEditorCompletion } from './editorCompletion';
@@ -497,6 +498,7 @@ export function EditorPane(props: EditorPaneProps) {
 					applyWindow(true);
 				});
 				allowSelectionOnlyInEditor(el);
+				selectOnMultiClick(el, scheduleCursorSync);
 				onCleanup(releaseEditor);
 			}}
 			onContentChange={() => {

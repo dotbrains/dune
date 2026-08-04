@@ -1,0 +1,31 @@
+const WORD_CHAR = /[A-Za-z0-9_$]/;
+
+type CharClass = 'word' | 'space' | 'newline' | 'other';
+
+function classOf(ch: string): CharClass {
+	if (WORD_CHAR.test(ch)) return 'word';
+	if (ch === '\n' || ch === '\r') return 'newline';
+	if (ch === ' ' || ch === '\t') return 'space';
+	return 'other';
+}
+
+export function wordRangeAt(text: string, offset: number): { start: number; end: number } {
+	if (text.length === 0) return { start: 0, end: 0 };
+	const at = Math.min(Math.max(0, offset), text.length);
+	const ch = at < text.length ? text[at]! : text[at - 1]!;
+	const kind = classOf(ch);
+	if (kind === 'newline') return { start: at, end: at };
+	let start = at < text.length ? at : at - 1;
+	let end = start + 1;
+	while (start > 0 && classOf(text[start - 1]!) === kind) start--;
+	while (end < text.length && classOf(text[end]!) === kind) end++;
+	return { start, end };
+}
+
+export function lineRangeAt(text: string, offset: number): { start: number; end: number } {
+	if (text.length === 0) return { start: 0, end: 0 };
+	const at = Math.min(Math.max(0, offset), text.length);
+	const start = text.lastIndexOf('\n', at - 1) + 1;
+	const nl = text.indexOf('\n', at);
+	return { start, end: nl >= 0 ? nl + 1 : text.length };
+}

@@ -1,9 +1,11 @@
 import type { MouseEvent, TextareaRenderable } from '@opentui/core';
 import { useRenderer } from '@opentui/solid';
 import { lineAt } from '../editor/window';
+import { lineRangeAt, wordRangeAt } from '../editor/words';
 import type { ProblemSeverity } from '../lsp/protocol';
 
 const selectionHosts = new WeakMap<object, unknown>();
+const DOUBLE_CLICK_MS = 400;
 
 export function allowSelectionOnlyInEditor(el: TextareaRenderable) {
 	const renderer = useRenderer() as unknown as {
@@ -37,6 +39,29 @@ export function ignoreScrollOutsideBounds(el: TextareaRenderable) {
 			if (!inside) return;
 		}
 		handle(event);
+	};
+}
+
+export function selectOnMultiClick(el: TextareaRenderable, after: () => void) {
+	let last = { x: -1, y: -1, at: 0, count: 0 };
+	const host = el as unknown as { onMouseEvent: (event: MouseEvent) => void };
+	const handle = host.onMouseEvent.bind(host);
+	host.onMouseEvent = (event: MouseEvent) => {
+		handle(event);
+		if (event.type !== 'down') return;
+		const now = Date.now();
+		const same = event.x === last.x && event.y === last.y && now - last.at < DOUBLE_CLICK_MS;
+		const count = same ? last.count + 1 : 1;
+		last = { x: event.x, y: event.y, at: now, count };
+		if (count < 2) return;
+		const range =
+			count >= 3
+				? lineRangeAt(el.plainText, el.cursorOffset)
+				: wordRangeAt(el.plainText, el.cursorOffset);
+		if (range.start >= range.end) return;
+		el.setSelection(range.start, range.end);
+		if (count >= 3) last.count = 0;
+		after();
 	};
 }
 
