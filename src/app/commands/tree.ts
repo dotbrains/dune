@@ -31,6 +31,7 @@ export function createAppCommandTree(deps: {
 	setHelp: Setter<boolean>;
 	patchConfig: (patch: Partial<Config>, scope?: 'user' | 'project') => void;
 	saveActive: () => void;
+	saveAll: () => void;
 	targetDir: () => string;
 	tabs: Accessor<string[]>;
 	closeTabs: (paths: string[], done: string) => void;
@@ -85,6 +86,7 @@ export function createAppCommandTree(deps: {
 		config: deps.config,
 		rootDir: deps.rootDir,
 		saveActive: deps.saveActive,
+		saveAll: deps.saveAll,
 		setPicker: (kind) => deps.setPicker(kind),
 		activePath: deps.activePath,
 		activeLine: () =>

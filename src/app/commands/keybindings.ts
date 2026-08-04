@@ -1,6 +1,7 @@
 export const KEYBINDABLE_COMMANDS: ReadonlyArray<{ id: string; label: string }> = [
 	{ id: 'open', label: 'Open file...' },
 	{ id: 'save', label: 'Save file' },
+	{ id: 'file.saveAll', label: 'Save all' },
 	{ id: 'tabs.switch', label: 'Switch to...' },
 	{ id: 'navigation.back', label: 'Go back' },
 	{ id: 'navigation.forward', label: 'Go forward' },

@@ -27,6 +27,7 @@ export interface Command {
 
 export interface CommandActions {
 	save: () => void;
+	saveAll: () => void;
 	openFile: () => void;
 	openPathUnderCursor: () => void;
 	goToDefinition: () => void;
@@ -173,6 +174,7 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 			label: 'File',
 			children: [
 				{ id: 'file.new', label: 'New file', hint: 'Ctrl+N', run: actions.newFile },
+				{ id: 'file.saveAll', label: 'Save all', run: actions.saveAll },
 				{
 					id: 'open.cursor',
 					label: 'Open file under cursor',

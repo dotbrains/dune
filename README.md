@@ -97,6 +97,9 @@ dune update           # upgrade this installation
 | `Ctrl+Z` / `Ctrl+Y`                  | Undo / redo            |
 | `PgUp` / `PgDn`, `Ctrl+U` / `Ctrl+D` | Page editor            |
 
+`Ctrl+S` saves the active file. The command palette also has `File → Save all` for
+writing every unsaved tab at once.
+
 The file tree supports keyboard and mouse navigation, preview tabs, bulk moves and
 copies, guarded deletes, git status marks, and dimming for gitignored paths. `Ctrl+C`
 copies when text is selected and quits when it is not, so unsaved work is not thrown

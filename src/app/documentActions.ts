@@ -162,6 +162,13 @@ export function createDocumentActions(deps: {
 		if (skipped.length > 0) deps.say(`${CLASH_CHANGED}${skipped.join(', ')}`, 'warn');
 		if (failed.length > 0) deps.say(`Save failed: ${failed.join(', ')}`, 'error');
 	};
+	const saveAll = () => {
+		const dirty = Object.entries(deps.buffers)
+			.filter(([, buffer]) => buffer.dirty)
+			.map(([path]) => path);
+		if (dirty.length === 0) return deps.say('Nothing to save');
+		void saveDirtyPaths(dirty);
+	};
 	const saveDirtyOnBlur = () => void saveDirtyPaths(Object.keys(deps.buffers));
 	const resolveConflict = (choice: string) => {
 		const c = deps.conflict();
@@ -446,6 +453,7 @@ export function createDocumentActions(deps: {
 		onEditorChange,
 		resolveConflict,
 		saveActive,
+		saveAll,
 		saveDirtyOnBlur,
 		saveDirtyPaths,
 		submitPrompt,

@@ -21,6 +21,7 @@ export function createAppCommands(deps: {
 	config: Config;
 	rootDir: string;
 	saveActive: () => void;
+	saveAll: () => void;
 	setPicker: (kind: 'files' | 'tabs') => void;
 	activePath: () => string | null;
 	activeLine: () => string | null;
@@ -182,6 +183,7 @@ export function createAppCommands(deps: {
 		return buildCommands(
 			{
 				save: deps.saveActive,
+				saveAll: deps.saveAll,
 				openFile: () => deps.setPicker('files'),
 				openPathUnderCursor: () =>
 					openPathUnderCursor({
