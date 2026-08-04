@@ -7,9 +7,10 @@
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](.pre-commit-config.yaml)
 [![Dev env: Flox](https://img.shields.io/badge/dev%20env-flox-7c3aed.svg)](https://flox.dev)
 
-A terminal code editor with a file tree, tabs, search, git marks, themes, vim mode, and
-tree-sitter highlighting for 30+ languages. `dune` is meant to feel like a small,
-fast project workspace rather than a shell command that happens to open one file.
+A terminal code editor with a file tree, tabs, search, git marks, review notes, themes,
+vim mode, and tree-sitter highlighting for 30+ languages. `dune` is meant to feel like
+a small, fast project workspace rather than a shell command that happens to open one
+file.
 
 When it starts, the first screen is the editor itself: a tree on the left, tabs across
 the top, a status bar along the bottom, and the active buffer taking the rest of the
@@ -156,19 +157,26 @@ selects all changed files. Diff overlays can be shown inline or split from Setti
 `Ctrl+Opt+G` swaps the sidebar to a compact source-control panel with changed files
 and status marks. Click a changed file there to open its diff.
 
+The Review commands let you add local issue, suggestion, question, and note remarks on
+the current line, then read them in a sidebar panel. `Fetch pull request comments`
+loads comments for the current branch from GitHub, GitLab, Gitea/Forgejo, or Bitbucket
+using the configured `reviewRemote`; set `reviewForge` for self-hosted remotes that
+cannot be detected from their host name. Tokens are read from forge-specific
+environment variables or `DUNE_FORGE_TOKEN`.
+
 ## Project Map
 
-| Path             | Purpose                                                               |
-| ---------------- | --------------------------------------------------------------------- |
-| `src/app/`       | Application state, command dispatch, and root TUI composition         |
-| `src/ui/`        | Reusable terminal UI components                                       |
-| `src/editor/`    | Text buffer, edits, history, selection, windowing, and vim logic      |
-| `src/core/`      | CLI parsing, filesystem, config, git, updates, sessions, and search   |
-| `src/languages/` | Tree-sitter grammar registry, queries, and highlighting               |
-| `src/themes/`    | Theme builders, palette files, registry, and runtime theme state      |
-| `bin/`           | Package launcher, install-time binary fetcher, and platform detection |
-| `scripts/`       | Release archive and Homebrew formula generation                       |
-| `test/`          | Bun unit and off-screen TUI tests                                     |
+| Path             | Purpose                                                                     |
+| ---------------- | --------------------------------------------------------------------------- |
+| `src/app/`       | Application state, command dispatch, and root TUI composition               |
+| `src/ui/`        | Reusable terminal UI components                                             |
+| `src/editor/`    | Text buffer, edits, history, selection, windowing, and vim logic            |
+| `src/core/`      | CLI parsing, filesystem, config, git, review, updates, sessions, and search |
+| `src/languages/` | Tree-sitter grammar registry, queries, and highlighting                     |
+| `src/themes/`    | Theme builders, palette files, registry, and runtime theme state            |
+| `bin/`           | Package launcher, install-time binary fetcher, and platform detection       |
+| `scripts/`       | Release archive and Homebrew formula generation                             |
+| `test/`          | Bun unit and off-screen TUI tests                                           |
 
 ## Development
 

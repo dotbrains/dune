@@ -324,6 +324,7 @@ export function createGitCommands(deps: {
 		diff,
 		diffTitle,
 		panel,
+		setPanel,
 		togglePanel: () => setPanel((open) => !open),
 		closeDiff: () => {
 			setDiff(null);

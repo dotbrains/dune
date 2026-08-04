@@ -343,6 +343,16 @@ export function upstreamOf(cwd: string): Upstream | null {
 	return { name: ref.stdout.trim(), ahead: ahead ?? 0, behind: behind ?? 0 };
 }
 
+/**
+ * The configured remote URL, before git applies insteadOf rewrites. Forge
+ * discovery needs the host the user configured, not a rewritten mirror.
+ */
+export function remoteUrl(cwd: string, remote = 'origin'): string | null {
+	const run = git(cwd, ['config', '--get', `remote.${remote}.url`], 3000);
+	const url = run.status === 0 ? run.stdout.trim() : '';
+	return url.length > 0 ? url : null;
+}
+
 export function inRepository(cwd: string): boolean {
 	return git(cwd, ['rev-parse', '--is-inside-work-tree'], 3000).stdout?.trim() === 'true';
 }

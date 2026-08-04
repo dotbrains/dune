@@ -25,6 +25,8 @@ export function GitPanel(props: {
 	onCommit: () => void;
 	onPush: () => void;
 	onBranchAction: (action: 'switch' | 'compare' | 'commits') => void;
+	reviewCount: number;
+	onReview: () => void;
 }) {
 	const [index, setIndex] = createSignal(0);
 	const [collapsed, setCollapsed] = createSignal<Set<string>>(new Set());
@@ -126,15 +128,18 @@ export function GitPanel(props: {
 				<text fg={props.focused ? ui.text : ui.dim} bg={ui.panelBg} content={headline()} />
 				<box height={1} flexDirection="row" backgroundColor={ui.panelBg}>
 					<text
-						fg={props.base ? ui.dirty : ui.faint}
+						fg={props.base ? ui.dirty : props.reviewCount > 0 ? ui.accent : ui.faint}
 						bg={ui.panelBg}
 						content={
 							filtering() || filter()
 								? `filter ${filter()}`
 								: props.base
 									? `vs ${props.base}`
-									: 'source control'
+									: props.reviewCount > 0
+										? `review ${props.reviewCount}`
+										: 'review'
 						}
+						onMouseDown={props.onReview}
 					/>
 					<Show when={canCollapseAll()}>
 						<text fg={ui.faint} bg={ui.panelBg} content=" · collapse" onMouseDown={collapseAll} />

@@ -12,6 +12,7 @@ const PROMPT_TITLES: Partial<Record<NonNullable<Prompt>['kind'], string>> = {
 	appearancePluginId: 'Plugin id',
 	appearancePluginRemoveId: 'Remove plugin id',
 	appearancePluginRegistry: 'Plugin registry URL',
+	reviewNote: 'Review note',
 	gotoLine: 'Go to line',
 	commitMessage: 'Commit message',
 	newBranch: 'New branch name',
@@ -20,6 +21,7 @@ const PROMPT_TITLES: Partial<Record<NonNullable<Prompt>['kind'], string>> = {
 
 export function promptTitleFor(prompt: Prompt): string | undefined {
 	if (prompt?.kind === 'newBranch' && prompt.from) return `New branch from ${prompt.from}`;
+	if (prompt?.kind === 'reviewNote') return `${prompt.noteKind} on line ${prompt.line + 1}`;
 	return prompt ? PROMPT_TITLES[prompt.kind] : undefined;
 }
 

@@ -80,6 +80,13 @@ export function createDocumentActions(deps: {
 	pushEdit: (content: string) => void;
 	patchConfig: (patch: Partial<Config>) => void;
 	reloadAppearancePlugins: () => void;
+	addReviewNote: (note: {
+		path: string;
+		line: number;
+		endLine: number;
+		kind: import('../core/review').NoteKind;
+		body: string;
+	}) => void;
 	whileFree: (run: () => void) => void;
 	rootDir: string;
 }) {
@@ -236,6 +243,16 @@ export function createDocumentActions(deps: {
 		const p = deps.prompt();
 		deps.setPrompt(null);
 		if (!p || !isTextPrompt(p)) return;
+		if (p.kind === 'reviewNote') {
+			if (!name) return deps.say('Nothing entered', 'warn');
+			return deps.addReviewNote({
+				path: p.path,
+				line: p.line,
+				endLine: p.endLine,
+				kind: p.noteKind,
+				body: name,
+			});
+		}
 		if (p.kind === 'commitMessage') return deps.gitCommands.submitCommit(name);
 		if (p.kind === 'newBranch') return deps.gitCommands.submitBranch(name, p.from);
 		if (p.kind === 'renameBranch') return deps.gitCommands.rename(p.from, name);

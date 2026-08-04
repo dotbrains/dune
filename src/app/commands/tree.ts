@@ -73,6 +73,10 @@ export function createAppCommandTree(deps: {
 	lspRestart: () => boolean;
 	openLspStatus: () => void;
 	completion: { show: () => void; goToDefinition: () => void };
+	reviewOpen: () => void;
+	reviewFetch: () => void;
+	reviewNote: (kind: import('../../core/review').NoteKind) => void;
+	reviewClear: () => void;
 	gitCommands: Parameters<typeof createAppCommands>[0]['gitCommands'];
 	say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
 	quit: () => void;
@@ -140,6 +144,10 @@ export function createAppCommandTree(deps: {
 		problemsRestart: () =>
 			deps.say(deps.lspRestart() ? 'Restarted language servers' : 'No language servers running'),
 		lspStatus: deps.openLspStatus,
+		reviewOpen: deps.reviewOpen,
+		reviewFetch: deps.reviewFetch,
+		reviewNote: deps.reviewNote,
+		reviewClear: deps.reviewClear,
 		completion: {
 			show: deps.completion.show,
 			goToDefinition: () => {

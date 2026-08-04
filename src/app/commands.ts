@@ -91,6 +91,10 @@ export interface CommandActions {
 	problemsRestart: () => void;
 	lspStatus: () => void;
 	completion: () => void;
+	reviewOpen: () => void;
+	reviewFetch: () => void;
+	reviewNote: (kind: import('../core/review').NoteKind) => void;
+	reviewClear: () => void;
 	commit: () => void;
 	sourceControl: () => void;
 	diffCurrent: () => void;
@@ -434,6 +438,31 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 					label: 'Transparent background',
 					run: actions.toggleTransparent,
 				},
+			],
+		},
+		{
+			id: 'review',
+			label: 'Review',
+			children: [
+				{ id: 'review.open', label: 'Open review panel', run: actions.reviewOpen },
+				{ id: 'review.issue', label: 'Add issue note', run: () => actions.reviewNote('issue') },
+				{
+					id: 'review.suggestion',
+					label: 'Add suggestion note',
+					run: () => actions.reviewNote('suggestion'),
+				},
+				{
+					id: 'review.question',
+					label: 'Add question note',
+					run: () => actions.reviewNote('question'),
+				},
+				{ id: 'review.note', label: 'Add note', run: () => actions.reviewNote('note') },
+				{
+					id: 'review.fetch',
+					label: 'Fetch pull request comments',
+					run: actions.reviewFetch,
+				},
+				{ id: 'review.clear', label: 'Clear review notes', run: actions.reviewClear },
 			],
 		},
 		{

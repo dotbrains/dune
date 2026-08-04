@@ -32,6 +32,7 @@ import { KeyPeek } from '../ui/KeyPeek';
 import { LspStatusView } from '../ui/overlays/LspStatusView';
 import { MarkdownView } from '../ui/MarkdownView';
 import { GitPanel } from '../ui/overlays/GitPanel';
+import { ReviewPanel } from '../ui/ReviewPanel';
 import { SettingsView } from '../ui/overlays/SettingsView';
 import type { SettingRow } from '../ui/overlays/SettingsView';
 import { PromptModal } from '../ui/PromptModal';
@@ -46,6 +47,7 @@ import type { SearchOptions } from '../core/search';
 import type { UpdateInfo } from '../core/update';
 import type { Command } from './commands';
 import type { LspStatusRow } from './lsp';
+import type { Review } from './review';
 import type { BufferState, Confirmation, Conflict, Focus } from './types';
 
 const GRIP = [0, 1, 2, 3, 4];
@@ -99,6 +101,8 @@ interface AppViewProps {
 	search: { scope: SearchScope; replacing?: boolean } | null;
 	picker: 'files' | 'tabs' | null;
 	gitPanel: boolean;
+	reviewPanel: boolean;
+	review: Review;
 	palette: boolean;
 	settingsPage: boolean;
 	settingsScope: 'user' | 'project';
@@ -131,6 +135,8 @@ interface AppViewProps {
 	onGitCommit: () => void;
 	onGitPush: () => void;
 	onGitBranchAction: (action: 'switch' | 'compare' | 'commits') => void;
+	onOpenReview: () => void;
+	onCloseReview: () => void;
 	onResizeStart: (event: MouseEvent) => void;
 	onEditorChange: (text: string) => void;
 	onCursor: (pos: { line: number; col: number }) => void;
@@ -208,7 +214,7 @@ export function AppView(props: AppViewProps) {
 			>
 				<Show when={props.sidebar}>
 					<Show
-						when={props.gitPanel}
+						when={props.gitPanel || props.reviewPanel}
 						fallback={
 							<FileTree
 								rootName={basename(props.rootDir) || props.rootDir}
@@ -229,21 +235,52 @@ export function AppView(props: AppViewProps) {
 							/>
 						}
 					>
-						<GitPanel
-							rootDir={props.rootDir}
-							branch={props.branch}
-							base={props.diffBase}
-							upstream={props.upstream}
-							view={props.config.gitPanelView}
-							width={props.treeWidth}
-							focused={props.focus === 'tree' && !props.blocked}
-							status={props.gitStatus}
-							onFocus={() => props.onTreeFocus()}
-							onDiff={props.onGitDiff}
-							onCommit={props.onGitCommit}
-							onPush={props.onGitPush}
-							onBranchAction={props.onGitBranchAction}
-						/>
+						<Show
+							when={props.reviewPanel}
+							fallback={
+								<GitPanel
+									rootDir={props.rootDir}
+									branch={props.branch}
+									base={props.diffBase}
+									upstream={props.upstream}
+									view={props.config.gitPanelView}
+									width={props.treeWidth}
+									focused={props.focus === 'tree' && !props.blocked}
+									status={props.gitStatus}
+									onFocus={() => props.onTreeFocus()}
+									onDiff={props.onGitDiff}
+									onCommit={props.onGitCommit}
+									onPush={props.onGitPush}
+									onBranchAction={props.onGitBranchAction}
+									reviewCount={props.review.count()}
+									onReview={props.onOpenReview}
+								/>
+							}
+						>
+							<ReviewPanel
+								rows={props.review.rows()}
+								cursor={props.review.cursor()}
+								count={props.review.count()}
+								pull={
+									props.review.pull()
+										? `#${props.review.pull()!.number} ${props.review.pull()!.title}`
+										: null
+								}
+								fetching={props.review.fetching()}
+								focused={props.focus === 'tree' && !props.blocked}
+								width={props.treeWidth}
+								onFocus={() => props.onTreeFocus()}
+								onActivate={(index) => props.review.activate(index)}
+								onCollapseAll={props.review.collapseAll}
+								onMove={(delta) => {
+									props.review.move(delta);
+									props.review.show();
+								}}
+								onFetch={props.review.fetchPullRequest}
+								onRemove={props.review.remove}
+								onClose={props.onCloseReview}
+							/>
+						</Show>
 					</Show>
 					{/* Drag handle: the whole column is the grab target, but only a short
               grip is drawn at its middle — a full-height rule is a heavy line

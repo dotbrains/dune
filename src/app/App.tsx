@@ -4,6 +4,7 @@ import { createStore, produce } from 'solid-js/store';
 import { resolvedTheme, type Config } from '../core/config';
 import { flattenVisible } from '../core/fs';
 import { currentBranch, type FileStatus, type LineChange, type Upstream } from '../core/git';
+import { discoverRepos, repoOf } from '../core/vcs/repos';
 import { invalidateSyntaxStyle } from '../languages/highlight';
 import { setTheme } from '../themes';
 import type { VimMode } from '../editor/vim';
@@ -30,6 +31,7 @@ import { openPathUnderCursor as openPathUnderCursorAction } from './openPathUnde
 import { createOverlayOpen } from './overlayState';
 import { createAppRuntime, selectedSingleLineText } from './runtime';
 import { createReplacementHandlers } from './searchReplace';
+import { createReview } from './review';
 import { createAppSettingRows } from './settings/view';
 import { createSidebarSizing } from './sidebarSizing';
 import { createTreeSelection } from './treeSelection';
@@ -80,6 +82,7 @@ export function App(props: AppTypes.AppProps) {
 	const [branch, setBranch] = createSignal(currentBranch(rootDir));
 	const [diffBase, setDiffBase] = createSignal<string | null>(null);
 	const [upstream, setUpstream] = createSignal<Upstream | null>(null);
+	const [reviewPanel, setReviewPanel] = createSignal(false);
 	const [resizing, setResizing] = createSignal(false);
 	const [history, setHistory] = createSignal<AppTypes.HistoryRequest>(null);
 	const [goto, setGoto] = createSignal<AppTypes.GotoRequest>(null);
@@ -286,6 +289,25 @@ export function App(props: AppTypes.AppProps) {
 		whileFree,
 		syncFromDisk: () => documentActions.syncFromDisk(),
 	});
+	const activeRepo = () => {
+		const path = activePath();
+		if (path) return repoOf(path, discoverRepos(rootDir));
+		const repos = discoverRepos(rootDir);
+		return repos.length === 1 ? repos[0]! : null;
+	};
+	const review = createReview({
+		rootDir,
+		config,
+		activePath,
+		activeRepo,
+		branch,
+		openFile,
+		setFocus,
+		setGoto,
+		setGitPanel: gitCommands.setPanel,
+		setReviewPanel,
+		say,
+	});
 	const documentActions = createDocumentActions({
 		config,
 		buffers,
@@ -320,6 +342,7 @@ export function App(props: AppTypes.AppProps) {
 		pushEdit,
 		patchConfig: (patch) => patchConfig(patch, settingsPage() ?? 'user'),
 		reloadAppearancePlugins: reloadUi,
+		addReviewNote: review.add,
 		whileFree,
 		rootDir,
 	});
@@ -411,6 +434,26 @@ export function App(props: AppTypes.AppProps) {
 		problemUi,
 		lspRestart: lsp.restart,
 		openLspStatus: () => setLspStatusOpen(true),
+		reviewOpen: () => {
+			setSidebar(true);
+			gitCommands.setPanel(false);
+			setReviewPanel(true);
+			setFocus('tree');
+			review.autoFetch();
+		},
+		reviewFetch: review.fetchPullRequest,
+		reviewNote: (kind) => {
+			const path = activePath();
+			if (!path) return say('No file to review', 'warn');
+			setPrompt({
+				kind: 'reviewNote',
+				noteKind: kind,
+				path,
+				line: cursor().line,
+				endLine: cursor().line,
+			});
+		},
+		reviewClear: review.clear,
 		completion,
 		setLineOp,
 		patchConfig,
@@ -465,7 +508,7 @@ export function App(props: AppTypes.AppProps) {
 		config,
 		activePath,
 		clipboard,
-		focus: () => (gitCommands.panel() ? 'gitPanel' : focus()),
+		focus: () => (gitCommands.panel() || reviewPanel() ? 'gitPanel' : focus()),
 		help,
 		marked,
 		notice,
@@ -600,6 +643,8 @@ export function App(props: AppTypes.AppProps) {
 				search={search()}
 				picker={picker()}
 				gitPanel={gitCommands.panel()}
+				reviewPanel={reviewPanel()}
+				review={review}
 				palette={palette()}
 				settingsPage={settingsPage() !== null}
 				settingsScope={settingsPage() ?? 'user'}
@@ -632,6 +677,12 @@ export function App(props: AppTypes.AppProps) {
 				onGitCommit={gitCommands.openCommitPicker}
 				onGitPush={gitCommands.push}
 				onGitBranchAction={gitCommands.openPanelBranchAction}
+				onOpenReview={() => {
+					gitCommands.setPanel(false);
+					setReviewPanel(true);
+					review.autoFetch();
+				}}
+				onCloseReview={() => setReviewPanel(false)}
 				onResizeStart={(event) => {
 					setResizing(true);
 					resizeSidebar(event.x);

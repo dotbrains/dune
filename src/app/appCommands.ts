@@ -73,6 +73,10 @@ export function createAppCommands(deps: {
 	problemsRestart: () => void;
 	lspStatus: () => void;
 	completion: { show: () => void; goToDefinition: () => void };
+	reviewOpen: () => void;
+	reviewFetch: () => void;
+	reviewNote: (kind: import('../core/review').NoteKind) => void;
+	reviewClear: () => void;
 	openSettings: () => void;
 	openProjectSettings: () => void;
 	openAppearancePlugins: () => void;
@@ -268,6 +272,10 @@ export function createAppCommands(deps: {
 				lspStatus: deps.lspStatus,
 				completion: deps.completion.show,
 				goToDefinition: deps.completion.goToDefinition,
+				reviewOpen: deps.reviewOpen,
+				reviewFetch: deps.reviewFetch,
+				reviewNote: deps.reviewNote,
+				reviewClear: deps.reviewClear,
 				commit: deps.gitCommands.openCommitPicker,
 				sourceControl: deps.gitCommands.togglePanel,
 				diffCurrent: () => deps.gitCommands.openDiff(deps.activePath()),

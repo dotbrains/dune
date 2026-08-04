@@ -4,6 +4,7 @@ import type { TextEncoding } from '../core/fs';
 import type { SearchOptions } from '../core/search';
 import type { PackageManager } from '../lsp/install';
 import type { FetchableInstall } from '../lsp/servers';
+import type { NoteKind } from '../core/review';
 
 export type Focus = 'tree' | 'editor';
 export type PickerState = 'files' | 'tabs' | null;
@@ -64,6 +65,7 @@ export type Prompt =
 	| { kind: 'appearancePluginId' }
 	| { kind: 'appearancePluginRemoveId' }
 	| { kind: 'appearancePluginRegistry'; current: string }
+	| { kind: 'reviewNote'; noteKind: NoteKind; path: string; line: number; endLine: number }
 	| { kind: 'delete'; targets: string[] }
 	| { kind: 'closeDirty'; paths: string[]; names: string[] }
 	| { kind: 'quitDirty'; names: string[] }

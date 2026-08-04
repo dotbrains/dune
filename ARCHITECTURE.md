@@ -27,6 +27,8 @@ scripts/
     pdf.ts           PDFium-backed page rendering for read-only PDF viewer tabs
     search.ts        in-file/project search, fuzzy matching, replace
     git.ts           read-only queries: diff hunks, status, branch, ahead/behind
+    review.ts        persisted local review notes
+    forge.ts         read-only pull-request discovery/comments for review
     markdown.ts      markdown path detection for rendered document tabs
     bulk.ts          delete/copy/move in the background, reporting progress
     clipboard.ts     pbcopy/wl-copy/xclip/xsel wrappers

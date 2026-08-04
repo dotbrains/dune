@@ -12,6 +12,7 @@ import os from 'node:os';
 import { dirname, join } from 'node:path';
 
 import type { Formatters } from './format';
+import { FORGE_KINDS, type ForgeKind, type ForgeSetting } from './forge';
 import type { ThemeName } from '../themes';
 
 export const CONFIG_FILE = join(
@@ -91,6 +92,12 @@ export interface Config {
 	diffView: 'inline' | 'split';
 	/** Changed-files presentation in the source control panel. */
 	gitPanelView: 'tree' | 'list';
+	/** Remote whose pull request comments feed the review panel. */
+	reviewRemote: string;
+	/** Forge type for pull request comments, or auto-detect from the remote host. */
+	reviewForge: ForgeSetting;
+	/** Fetch pull request comments quietly when the review panel opens. */
+	reviewAutoFetch: boolean;
 	/** Language servers: spawn matching servers as files open. */
 	lsp: boolean;
 	/** Completion menu while typing. Requires `lsp` to be enabled. */
@@ -134,6 +141,9 @@ export const DEFAULTS: Config = {
 	respectGitignore: false,
 	diffView: 'inline',
 	gitPanelView: 'tree',
+	reviewRemote: 'origin',
+	reviewForge: 'auto',
+	reviewAutoFetch: true,
 	lsp: false,
 	lspCompletion: true,
 	lspInline: true,
@@ -189,6 +199,13 @@ function parsePartial(raw: unknown): Partial<Config> {
 	if (obj.gitPanelView === 'tree' || obj.gitPanelView === 'list') {
 		config.gitPanelView = obj.gitPanelView;
 	}
+	if (typeof obj.reviewRemote === 'string' && /^[\w.-]+$/.test(obj.reviewRemote)) {
+		config.reviewRemote = obj.reviewRemote;
+	}
+	if (obj.reviewForge === 'auto' || FORGE_KINDS.includes(obj.reviewForge as ForgeKind)) {
+		config.reviewForge = obj.reviewForge as ForgeSetting;
+	}
+	if (typeof obj.reviewAutoFetch === 'boolean') config.reviewAutoFetch = obj.reviewAutoFetch;
 	if (typeof obj.lsp === 'boolean') config.lsp = obj.lsp;
 	if (typeof obj.lspCompletion === 'boolean') config.lspCompletion = obj.lspCompletion;
 	if (typeof obj.lspInline === 'boolean') config.lspInline = obj.lspInline;
