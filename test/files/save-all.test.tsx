@@ -2,8 +2,8 @@ import { expect, test } from 'bun:test';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { fixture, launch, openFile, press, runCommand, until } from './helpers';
-import type { Harness } from './helpers';
+import { fixture, launch, openFile, press, runCommand, until } from '../helpers';
+import type { Harness } from '../helpers';
 
 const PROJECT = {
 	'a.ts': 'const a = 1\n',
