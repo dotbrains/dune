@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -66,4 +66,33 @@ test('install server uses the selected package manager and creates the prefix', 
 	expect(error).toBeNull();
 	expect(readFileSync(join(marker, 'args'), 'utf8').trim()).toBe(`add --dir ${root} pyright`);
 	expect(readFileSync(join(root, '.manager'), 'utf8')).toBe('pnpm');
+});
+
+test('install server keeps a manifest so later installs do not prune the prefix', async () => {
+	const binDir = tempDir('dune-lsp-bin-');
+	const root = tempDir('dune-lsp-root-');
+	const marker = tempDir('dune-lsp-marker-');
+	bin(binDir, 'node');
+	bin(binDir, 'npm', `echo "$@" > "${join(marker, 'args')}"`);
+	process.env.PATH = binDir;
+
+	const installed = join(root, 'node_modules', 'typescript-language-server');
+	mkdirSync(installed, { recursive: true });
+	writeFileSync(
+		join(installed, 'package.json'),
+		JSON.stringify({ name: 'typescript-language-server', version: '4.4.1' }),
+	);
+
+	const error = await installServer(['pyright'], root, 'npm');
+
+	expect(error).toBeNull();
+	expect(readFileSync(join(marker, 'args'), 'utf8').trim()).toBe(
+		`install --prefix ${root} --no-audit --no-fund pyright`,
+	);
+	expect(JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))).toEqual({
+		name: 'dune-language-servers',
+		version: '0.0.0',
+		private: true,
+		dependencies: { 'typescript-language-server': '4.4.1' },
+	});
 });

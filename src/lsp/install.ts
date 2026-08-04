@@ -2,6 +2,7 @@ import {
 	chmodSync,
 	existsSync,
 	mkdirSync,
+	readdirSync,
 	readFileSync,
 	renameSync,
 	rmSync,
@@ -61,6 +62,55 @@ function rememberManager(root: string, manager: PackageManager): void {
 	} catch {}
 }
 
+function readdirOrNone(dir: string): string[] {
+	try {
+		return readdirSync(dir);
+	} catch {
+		return [];
+	}
+}
+
+function installedPackages(root: string): Record<string, string> {
+	const modules = join(root, 'node_modules');
+	const found: Record<string, string> = {};
+	const add = (dir: string) => {
+		try {
+			const parsed = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')) as {
+				name?: unknown;
+				version?: unknown;
+			};
+			if (typeof parsed.name === 'string' && typeof parsed.version === 'string') {
+				found[parsed.name] = parsed.version;
+			}
+		} catch {}
+	};
+	for (const entry of readdirOrNone(modules)) {
+		if (entry.startsWith('.')) continue;
+		if (entry.startsWith('@')) {
+			for (const scoped of readdirOrNone(join(modules, entry))) {
+				add(join(modules, entry, scoped));
+			}
+		} else {
+			add(join(modules, entry));
+		}
+	}
+	return found;
+}
+
+function ensureManifest(root: string): void {
+	const manifest = join(root, 'package.json');
+	if (existsSync(manifest)) return;
+	const body = {
+		name: 'dune-language-servers',
+		version: '0.0.0',
+		private: true,
+		dependencies: installedPackages(root),
+	};
+	try {
+		writeFileSync(manifest, `${JSON.stringify(body, null, 2)}\n`);
+	} catch {}
+}
+
 export function availablePackageManagers(root = SERVER_ROOT): PackageManager[] {
 	if (!hasNodeRuntime()) return [];
 	const chosen = savedManager(root);
@@ -69,7 +119,7 @@ export function availablePackageManagers(root = SERVER_ROOT): PackageManager[] {
 }
 
 const INSTALL_ARGS: Record<PackageManager, (root: string) => string[]> = {
-	npm: (root) => ['install', '--prefix', root, '--no-save', '--no-audit', '--no-fund'],
+	npm: (root) => ['install', '--prefix', root, '--no-audit', '--no-fund'],
 	bun: (root) => ['add', '--cwd', root],
 	pnpm: (root) => ['add', '--dir', root],
 };
@@ -91,6 +141,7 @@ export async function installServer(
 	manager: PackageManager = 'npm',
 ): Promise<string | null> {
 	mkdirSync(root, { recursive: true });
+	ensureManifest(root);
 	const result = await run(manager, [...INSTALL_ARGS[manager](root), ...packages], {
 		timeout: INSTALL_TIMEOUT_MS,
 	});
