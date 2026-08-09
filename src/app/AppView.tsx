@@ -25,7 +25,7 @@ import type { CommitFile } from '../ui/CommitModal';
 import { ConfirmModal } from '../ui/ConfirmModal';
 import { DiffView } from '../ui/overlays/DiffView';
 import { EditorPane } from '../ui/EditorPane';
-import { FilePicker } from '../ui/FilePicker';
+import { FilePicker, type PickPosition } from '../ui/FilePicker';
 import { FileTree } from '../ui/FileTree';
 import { HelpOverlay } from '../ui/HelpOverlay';
 import { KeyPeek } from '../ui/KeyPeek';
@@ -154,7 +154,7 @@ interface AppViewProps {
 	onReplaceAll?: (query: string, replacement: string, options: SearchOptions) => void;
 	searchBuffers?: () => ReadonlyMap<string, string>;
 	onCloseSearch: () => void;
-	onPickFile: (path: string) => void;
+	onPickFile: (path: string, position?: PickPosition) => void;
 	onClosePicker: () => void;
 	onClosePalette: () => void;
 	onCloseSettings: () => void;
@@ -443,9 +443,9 @@ export function AppView(props: AppViewProps) {
 						rootDir={props.rootDir}
 						files={kind() === 'tabs' ? props.tabs : undefined}
 						title={kind() === 'tabs' ? 'Switch tab' : 'Open file'}
-						onPick={(path) => {
+						onPick={(path, position) => {
 							props.onClosePicker();
-							props.onPickFile(path);
+							props.onPickFile(path, position);
 						}}
 						onClose={() => props.onClosePicker()}
 					/>

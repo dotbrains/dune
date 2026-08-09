@@ -10,14 +10,25 @@ import { listRows, modalWidth, PAD } from './modal';
 import { Overlay } from './Overlay';
 import { TextInput } from './TextInput';
 
+/** 0-based, the way the editor counts — the query writes them 1-based. */
+export interface PickPosition {
+	line: number;
+	col: number;
+}
+
 export interface FilePickerProps {
 	rootDir: string;
 	/** Candidates to choose from. Defaults to every file in the project. */
 	files?: string[];
 	title?: string;
-	onPick: (path: string) => void;
+	onPick: (path: string, position?: PickPosition) => void;
 	onClose: () => void;
 }
+
+// A trailing :line or :line:col is a destination, not part of the path — the
+// shape compilers and stack traces print, so it is what gets pasted in here.
+// Anchored and digits-only, or a file actually named foo:bar would stop matching.
+const POSITION = /:(\d+)(?::(\d+))?$/;
 
 export function FilePicker(props: FilePickerProps) {
 	const dimensions = useTerminalDimensions();
@@ -33,8 +44,22 @@ export function FilePicker(props: FilePickerProps) {
 
 	const label = (value: string) => relative(props.rootDir, value);
 
+	/** The query split into what it searches for and where in the file it lands. */
+	const target = createMemo(() => {
+		const raw = query().trim();
+		const at = POSITION.exec(raw);
+		if (!at) return { text: raw, position: undefined };
+		return {
+			text: raw.slice(0, at.index),
+			position: {
+				line: Math.max(0, Number(at[1]) - 1),
+				col: Math.max(0, Number(at[2] ?? 1) - 1),
+			},
+		};
+	});
+
 	const matches = createMemo(() => {
-		const q = query().trim();
+		const q = target().text;
 		const scored: { path: string; score: number }[] = [];
 		for (const path of files) {
 			const score = fuzzyScore(label(path), q);
@@ -44,6 +69,12 @@ export function FilePicker(props: FilePickerProps) {
 	});
 
 	const selected = () => Math.min(index(), Math.max(0, matches().length - 1));
+
+	/** The destination is echoed so a mistyped suffix reads as one before Enter. */
+	const openAt = () => {
+		const at = target().position;
+		return at ? ` at ${at.line + 1}:${at.col + 1}` : '';
+	};
 	const fillRows = createMemo(() => {
 		const drawn = matches().length > 0 ? matches().length : 1;
 		return Array.from({ length: Math.max(0, visibleRows() - drawn) });
@@ -61,7 +92,7 @@ export function FilePicker(props: FilePickerProps) {
 		} else if (k === 'return' || k === 'enter') {
 			key.preventDefault();
 			const match = matches()[selected()];
-			if (match) props.onPick(match.path);
+			if (match) props.onPick(match.path, target().position);
 		} else if (k === 'escape') {
 			key.preventDefault();
 			props.onClose();
@@ -84,7 +115,7 @@ export function FilePicker(props: FilePickerProps) {
 			>
 				<TextInput
 					value={query()}
-					placeholder="Type part of a path…"
+					placeholder="Type part of a path, :line or :line:col to land on…"
 					onInput={(v) => {
 						setQuery(v);
 						setIndex(0);
@@ -119,7 +150,11 @@ export function FilePicker(props: FilePickerProps) {
 					</For>
 				</Show>
 				<For each={fillRows()}>{() => <text fg={ui.panelBg} bg={ui.panelBg} content="" />}</For>
-				<text fg={ui.dim} bg={ui.panelBg} content="↑↓ move · Enter open · Esc close" />
+				<text
+					fg={ui.dim}
+					bg={ui.panelBg}
+					content={`↑↓ move · Enter open${openAt()} · Esc close`}
+				/>
 			</box>
 		</Overlay>
 	);

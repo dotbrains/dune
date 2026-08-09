@@ -714,7 +714,23 @@ export function App(props: AppTypes.AppProps) {
 				}
 				searchBuffers={replaceOverlay}
 				onCloseSearch={() => setSearch(null)}
-				onPickFile={(path: string) => void (setPicker(null), openFile(path))}
+				onPickFile={(path, position) => {
+					setPicker(null);
+					// A jump inside the already-open file changes no tab, so nothing
+					// else records where it started; mark history like Go to line does.
+					if (position && path === activePath()) navigation.mark();
+					openFile(path);
+					// Viewer tabs have no buffer to land in, and a failed open leaves
+					// the previous file on screen — a goto then would aim at it.
+					const lines = buffers[path]?.content.split('\n').length;
+					if (position && lines && activePath() === path) {
+						setGoto((prev) => ({
+							line: Math.min(position.line, lines - 1),
+							col: position.col,
+							key: (prev?.key ?? 0) + 1,
+						}));
+					}
+				}}
 				onClosePicker={() => setPicker(null)}
 				onClosePalette={() => setPalette(false)}
 				onCloseSettings={() => setSettingsPage(null)}

@@ -101,6 +101,10 @@ dune update           # upgrade this installation
 `Ctrl+S` saves the active file. The command palette also has `File → Save all` for
 writing every unsaved tab at once.
 
+`Ctrl+O` and `Ctrl+T` filter by fuzzy path. A trailing `:line` or `:line:col` on the
+query — the shape compilers and stack traces print — is a destination, not part of the
+path: the file opens with the cursor there, and a line past the end lands on the last one.
+
 The file tree supports keyboard and mouse navigation, preview tabs, bulk moves and
 copies, guarded deletes, git status marks, and dimming for gitignored paths. `Ctrl+C`
 copies when text is selected and quits when it is not, so unsaved work is not thrown

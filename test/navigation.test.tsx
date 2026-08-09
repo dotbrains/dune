@@ -25,6 +25,21 @@ test('the file picker opens a file by fuzzy path', async () => {
 	expect(frame).toContain('target.ts');
 });
 
+test('the picker treats a trailing :line:col as a destination', async () => {
+	const dir = fixture(PROJECT);
+	const t = await launch(dir);
+	await press(t, (i) => i.pressKey('o', { ctrl: true }));
+	await press(t, (i) => void i.typeText('notes:4:3'));
+	// The suffix is a destination, not part of the path: notes.md still matches
+	// and the footer echoes where Enter will land.
+	expect(t.captureCharFrame()).toContain('at 4:3');
+	await press(t, (i) => i.pressEnter());
+	await press(t, (i) => void i.typeText('X'));
+	await press(t, (i) => i.pressKey('s', { ctrl: true }));
+
+	expect(readFileSync(join(dir, 'notes.md'), 'utf8')).toBe('one\ntwo\nthree\nfoXur\nfive\n');
+});
+
 test('go to line moves the cursor there', async () => {
 	const dir = fixture(PROJECT);
 	const t = await launch(dir);
