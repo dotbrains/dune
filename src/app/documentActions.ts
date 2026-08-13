@@ -90,7 +90,18 @@ export function createDocumentActions(deps: {
 	whileFree: (run: () => void) => void;
 	rootDir: string;
 }) {
-	const writeBuffer = async (path: string, content: string): Promise<boolean> => {
+	// Guards a formatter's async re-read against a second save or format-on-demand
+	// landing on the same path first — without it, the slower one's stale disk read
+	// would silently clobber whatever the newer one just wrote.
+	const saveEpoch: Record<string, number> = {};
+	const nextEpoch = (path: string) => (saveEpoch[path] = (saveEpoch[path] ?? 0) + 1);
+
+	const writeBuffer = async (
+		path: string,
+		content: string,
+		opts: { skipFormat?: boolean } = {},
+	): Promise<boolean> => {
+		const epoch = nextEpoch(path);
 		const encoding = deps.buffers[path]?.encoding;
 		const final = deps.config.trimOnSave ? trimTrailing(content) : content;
 		const err = writeFile(path, final, encoding);
@@ -99,9 +110,13 @@ export function createDocumentActions(deps: {
 			return false;
 		}
 		let saved = final;
-		const formatter = deps.config.formatOnSave ? formatterFor(path, deps.config.formatters) : null;
+		const formatter =
+			!opts.skipFormat && deps.config.formatOnSave
+				? formatterFor(path, deps.config.formatters)
+				: null;
 		if (formatter) {
 			const formatError = await runFormatter(formatter, path, deps.rootDir);
+			if (epoch !== saveEpoch[path]) return true;
 			if (formatError) {
 				deps.setBuffers(path, { content: final, dirty: false, mtime: mtimeOf(path), encoding });
 				if (final !== content && path === deps.activePath()) deps.pushEdit(final);
@@ -133,12 +148,42 @@ export function createDocumentActions(deps: {
 		deps.say(formatter ? `Formatted ${basename(path)}` : `Saved ${basename(path)}`);
 		return true;
 	};
-	const saveActive = async () => {
-		const path = deps.activePath();
-		const buffer = deps.activeBuffer();
-		if (!path || !buffer) return;
+	/** Runs the configured formatter for `path` regardless of `formatOnSave`, assuming the
+	 * buffer is already synced to disk. Returns an error message rather than saying it, so
+	 * `formatOpenFiles` can report one summary instead of a message per file. */
+	const formatOnDisk = async (path: string): Promise<{ ok: boolean; error?: string }> => {
+		const formatter = formatterFor(path, deps.config.formatters);
+		if (!formatter) return { ok: false };
+		const before = deps.buffers[path]?.content;
+		const epoch = nextEpoch(path);
+		const formatError = await runFormatter(formatter, path, deps.rootDir);
+		if (epoch !== saveEpoch[path]) return { ok: false };
+		if (formatError) return { ok: false, error: formatError };
+		try {
+			const file = readTextFile(path);
+			deps.setBuffers(path, {
+				content: file.content,
+				dirty: false,
+				mtime: mtimeOf(path),
+				encoding: file.encoding,
+			});
+			if (file.content !== before && path === deps.activePath()) deps.pushEdit(file.content);
+			deps.setGitRevision((n) => n + 1);
+			return { ok: true };
+		} catch (e) {
+			return { ok: false, error: (e as Error).message };
+		}
+	};
+	const saveWithConflictCheck = async (
+		path: string,
+		buffer: BufferState,
+		opts: { skipFormat?: boolean } = {},
+	): Promise<boolean> => {
 		if (mtimeOf(path) !== buffer.mtime) {
-			if (!exists(path)) return deps.setConflict({ path, disk: '', deleted: true });
+			if (!exists(path)) {
+				deps.setConflict({ path, disk: '', deleted: true });
+				return false;
+			}
 			let disk = '';
 			let encoding = buffer.encoding;
 			try {
@@ -146,10 +191,58 @@ export function createDocumentActions(deps: {
 				disk = file.content;
 				encoding = file.encoding;
 			} catch {}
-			if (disk !== buffer.content)
-				return deps.setConflict({ path, disk, encoding, deleted: false });
+			if (disk !== buffer.content) {
+				deps.setConflict({ path, disk, encoding, deleted: false });
+				return false;
+			}
 		}
-		await writeBuffer(path, buffer.content);
+		return writeBuffer(path, buffer.content, opts);
+	};
+	const saveActive = async () => {
+		const path = deps.activePath();
+		const buffer = deps.activeBuffer();
+		if (!path || !buffer) return;
+		await saveWithConflictCheck(path, buffer);
+	};
+	const saveWithoutFormatting = async () => {
+		const path = deps.activePath();
+		const buffer = deps.activeBuffer();
+		if (!path || !buffer) return;
+		await saveWithConflictCheck(path, buffer, { skipFormat: true });
+	};
+	const formatActive = async () => {
+		const path = deps.activePath();
+		const buffer = deps.activeBuffer();
+		if (!path || !buffer) return;
+		if (!formatterFor(path, deps.config.formatters)) {
+			return deps.say('No formatter configured for this file', 'warn');
+		}
+		if (buffer.dirty && !(await saveWithConflictCheck(path, buffer, { skipFormat: true })))
+			return;
+		const result = await formatOnDisk(path);
+		if (result.error) deps.say(`Format failed: ${result.error}`, 'error');
+		else if (result.ok) deps.say(`Formatted ${basename(path)}`);
+	};
+	const formatOpenFiles = async () => {
+		let formatted = 0;
+		const failed: string[] = [];
+		for (const path of deps.tabs()) {
+			const buffer = deps.buffers[path];
+			if (!buffer || !formatterFor(path, deps.config.formatters)) continue;
+			if (buffer.dirty && !(await saveWithConflictCheck(path, buffer, { skipFormat: true })))
+				continue;
+			const result = await formatOnDisk(path);
+			if (result.ok) formatted++;
+			else if (result.error) failed.push(basename(path));
+		}
+		if (formatted === 0 && failed.length === 0) {
+			return deps.say('No open files matched a formatter', 'warn');
+		}
+		if (failed.length > 0) {
+			deps.say(`Formatted ${formatted}, failed: ${failed.join(', ')}`, 'error');
+		} else {
+			deps.say(formatted === 1 ? 'Formatted 1 file' : `Formatted ${formatted} files`);
+		}
 	};
 	const saveDirtyPaths = async (paths: string[]) => {
 		const skipped: string[] = [];
@@ -473,6 +566,9 @@ export function createDocumentActions(deps: {
 		saveAll,
 		saveDirtyOnBlur,
 		saveDirtyPaths,
+		saveWithoutFormatting,
+		formatActive,
+		formatOpenFiles,
 		submitPrompt,
 		confirmPrompt,
 		syncFromDisk,

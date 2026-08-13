@@ -87,6 +87,8 @@ export const KEYS: KeyInfo[] = [
 		section: 'Editing',
 		where: 'editor',
 	},
+	{ key: `Ctrl+${ALT}+B`, label: 'Go to beginning of line', section: 'Editing', where: 'editor' },
+	{ key: `Ctrl+${ALT}+L`, label: 'Format document', section: 'Editing', where: 'editor' },
 	{ key: 'Shift+Tab', label: 'Outdent', section: 'Editing', where: 'editor' },
 
 	{

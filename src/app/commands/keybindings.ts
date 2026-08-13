@@ -26,6 +26,7 @@ export const KEYBINDABLE_COMMANDS: ReadonlyArray<{ id: string; label: string }> 
 	{ id: 'problems.prev', label: 'Previous problem' },
 	{ id: 'problems.restart', label: 'Restart language servers' },
 	{ id: 'editor.complete', label: 'Show completions' },
+	{ id: 'editor.format', label: 'Format document' },
 	{ id: 'help', label: 'Keyboard shortcuts' },
 	{ id: 'quit', label: 'Quit' },
 ];

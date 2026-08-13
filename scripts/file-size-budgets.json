@@ -3,10 +3,11 @@
 	"files": {
 		"src/app/App.tsx": 765,
 		"src/app/AppView.tsx": 555,
-		"src/app/commands.ts": 545,
+		"src/app/commands.ts": 585,
+		"src/app/documentActions.ts": 600,
 		"src/core/forge.ts": 515,
 		"src/core/git.ts": 530,
-		"src/ui/EditorPane.tsx": 525,
+		"src/ui/EditorPane.tsx": 540,
 		"src/ui/SearchPanel.tsx": 530
 	},
 	"exclude": ["^bun\\.lock$"]

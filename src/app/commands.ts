@@ -13,6 +13,7 @@ import { THEME_ENTRIES, themeLabels } from '../themes';
 import type { ThemeName } from '../themes';
 import { isNewer } from '../core/update';
 import { ALT } from '../ui/keys';
+import type { LineOpRequest } from './types';
 
 export interface Command {
 	id: string;
@@ -28,6 +29,9 @@ export interface Command {
 export interface CommandActions {
 	save: () => void;
 	saveAll: () => void;
+	saveWithoutFormatting: () => void;
+	formatActive: () => void;
+	formatOpenFiles: () => void;
 	openFile: () => void;
 	openPathUnderCursor: () => void;
 	goToDefinition: () => void;
@@ -80,7 +84,7 @@ export interface CommandActions {
 	setTheme: (name: ThemeName) => void;
 	previewTheme: (name: ThemeName) => void;
 	cancelThemePreview: () => void;
-	lineOp: (op: 'comment' | 'up' | 'down' | 'duplicate') => void;
+	lineOp: (op: NonNullable<LineOpRequest>['op']) => void;
 	toggleTrim: () => void;
 	toggleFormat: () => void;
 	toggleAutoSave: () => void;
@@ -179,6 +183,11 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 			children: [
 				{ id: 'file.new', label: 'New file', hint: 'Ctrl+N', run: actions.newFile },
 				{ id: 'file.saveAll', label: 'Save all', run: actions.saveAll },
+				{
+					id: 'file.saveWithoutFormatting',
+					label: 'Save without formatting',
+					run: actions.saveWithoutFormatting,
+				},
 				{
 					id: 'open.cursor',
 					label: 'Open file under cursor',
@@ -389,6 +398,12 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 					run: () => actions.lineOp('duplicate'),
 				},
 				{
+					id: 'editor.lineStart',
+					label: 'Go to beginning of line',
+					hint: `Ctrl+${ALT}+B`,
+					run: () => actions.lineOp('lineHome'),
+				},
+				{
 					id: 'editor.vimOn',
 					label: `${check(ctx.vimEnabled)}Vim mode on`,
 					run: () => actions.setVim(true),
@@ -421,6 +436,17 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 					id: 'editor.formatOnSave',
 					label: `${check(ctx.formatOnSave)}Format on save`,
 					run: actions.toggleFormat,
+				},
+				{
+					id: 'editor.format',
+					label: 'Format document',
+					hint: `Ctrl+${ALT}+L`,
+					run: actions.formatActive,
+				},
+				{
+					id: 'editor.formatOpen',
+					label: 'Format open files',
+					run: actions.formatOpenFiles,
 				},
 				{
 					id: 'editor.autoSave',

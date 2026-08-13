@@ -89,6 +89,17 @@ test('the caret follows a moved line', async () => {
 	expect(t.captureCharFrame()).toContain('Ln 2, Col 1');
 });
 
+test('Ctrl+Opt+B jumps the caret to the start of the line', async () => {
+	const { t } = await open('const a = 1\n');
+	await press(t, (i) => i.pressArrow('right'));
+	await press(t, (i) => i.pressArrow('right'));
+	await press(t, (i) => i.pressArrow('right'));
+	expect(t.captureCharFrame()).toContain('Ln 1, Col 4');
+
+	await press(t, (i) => i.pressKey('b', { ctrl: true, meta: true }));
+	expect(t.captureCharFrame()).toContain('Ln 1, Col 1');
+});
+
 // The chords are not always sendable — no Ctrl+/ byte on some layouts, Opt only
 // with "Option as Esc+" on macOS — so the palette must reach the same actions.
 test('the palette can comment and move lines without any chord', async () => {

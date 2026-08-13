@@ -10,7 +10,7 @@ import type { ThemeName } from '../themes';
 import { confirmationForPrompt } from './confirmation';
 import { createAppCommands } from './appCommands';
 import { promptTitleFor } from './prompts';
-import type { Focus, Prompt } from './types';
+import type { Focus, LineOpRequest, Prompt } from './types';
 
 function previewTheme(name: ThemeName) {
 	setTheme(name);
@@ -181,12 +181,7 @@ export type AppCommandDeps = {
 	editFormatter: () => void;
 	editKeybinding: () => void;
 	editSidebarWidth: () => void;
-	setLineOp: (
-		update: (prev: { op: 'comment' | 'up' | 'down' | 'duplicate'; key: number } | null) => {
-			op: 'comment' | 'up' | 'down' | 'duplicate';
-			key: number;
-		},
-	) => void;
+	setLineOp: (update: (prev: LineOpRequest) => NonNullable<LineOpRequest>) => void;
 	patchConfig: (patch: Partial<Config>) => void;
 	toggleFormat: () => void;
 	gitCommands: Parameters<typeof createAppCommands>[0]['gitCommands'];
