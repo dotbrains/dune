@@ -90,18 +90,26 @@ export function createDocumentActions(deps: {
 	whileFree: (run: () => void) => void;
 	rootDir: string;
 }) {
-	// Guards a formatter's async re-read against a second save or format-on-demand
-	// landing on the same path first — without it, the slower one's stale disk read
-	// would silently clobber whatever the newer one just wrote.
-	const saveEpoch: Record<string, number> = {};
-	const nextEpoch = (path: string) => (saveEpoch[path] = (saveEpoch[path] ?? 0) + 1);
+	// Runs at most one write/format at a time per path. A counter that only discarded a
+	// stale *result* was not enough: the external formatter process itself would still
+	// write the file's old content to disk after a newer save, regardless of anything
+	// this process decided to ignore. Queuing means the two can never overlap at all.
+	const pathQueue: Record<string, Promise<void>> = {};
+	const serialize = <T>(path: string, run: () => Promise<T>): Promise<T> => {
+		const prior = pathQueue[path] ?? Promise.resolve();
+		const result = prior.then(run);
+		pathQueue[path] = result.then(
+			() => undefined,
+			() => undefined,
+		);
+		return result;
+	};
 
-	const writeBuffer = async (
+	const writeBufferNow = async (
 		path: string,
 		content: string,
 		opts: { skipFormat?: boolean } = {},
 	): Promise<boolean> => {
-		const epoch = nextEpoch(path);
 		const encoding = deps.buffers[path]?.encoding;
 		const final = deps.config.trimOnSave ? trimTrailing(content) : content;
 		const err = writeFile(path, final, encoding);
@@ -116,7 +124,6 @@ export function createDocumentActions(deps: {
 				: null;
 		if (formatter) {
 			const formatError = await runFormatter(formatter, path, deps.rootDir);
-			if (epoch !== saveEpoch[path]) return true;
 			if (formatError) {
 				deps.setBuffers(path, { content: final, dirty: false, mtime: mtimeOf(path), encoding });
 				if (final !== content && path === deps.activePath()) deps.pushEdit(final);
@@ -148,17 +155,36 @@ export function createDocumentActions(deps: {
 		deps.say(formatter ? `Formatted ${basename(path)}` : `Saved ${basename(path)}`);
 		return true;
 	};
+	const writeBuffer = (
+		path: string,
+		content: string,
+		opts: { skipFormat?: boolean } = {},
+	): Promise<boolean> => serialize(path, () => writeBufferNow(path, content, opts));
 	/** Runs the configured formatter for `path` regardless of `formatOnSave`, assuming the
 	 * buffer is already synced to disk. Returns an error message rather than saying it, so
-	 * `formatOpenFiles` can report one summary instead of a message per file. */
-	const formatOnDisk = async (path: string): Promise<{ ok: boolean; error?: string }> => {
+	 * `formatOpenFiles` can report one summary instead of a message per file. Not queued on
+	 * its own — callers that also need to flush a dirty buffer first run both in one
+	 * `serialize` block, via `formatOnDiskNow`, so nothing can land between the two. */
+	const formatOnDiskNow = async (path: string): Promise<{ ok: boolean; error?: string }> => {
 		const formatter = formatterFor(path, deps.config.formatters);
 		if (!formatter) return { ok: false };
 		const before = deps.buffers[path]?.content;
-		const epoch = nextEpoch(path);
 		const formatError = await runFormatter(formatter, path, deps.rootDir);
-		if (epoch !== saveEpoch[path]) return { ok: false };
 		if (formatError) return { ok: false, error: formatError };
+		const current = deps.buffers[path];
+		if (!current) return { ok: false };
+		if (current.dirty) {
+			// An edit landed while the formatter ran. It still wrote to disk — there is no way
+			// to stop an external process mid-write — but the newer edit must win, not this
+			// stale result, so only the mtime is acknowledged here. Comparing content instead of
+			// checking dirty would also misfire on dune's own file watcher quietly absorbing
+			// this same write into the buffer first (that always clears dirty, never sets it).
+			// The save queued behind this one (per-path serialize) sees a buffer whose mtime now
+			// matches disk and so writes cleanly instead of raising a conflict over a change
+			// dune itself just made.
+			deps.setBuffers(path, { ...current, mtime: mtimeOf(path) });
+			return { ok: false };
+		}
 		try {
 			const file = readTextFile(path);
 			deps.setBuffers(path, {
@@ -174,7 +200,7 @@ export function createDocumentActions(deps: {
 			return { ok: false, error: (e as Error).message };
 		}
 	};
-	const saveWithConflictCheck = async (
+	const saveWithConflictCheckNow = async (
 		path: string,
 		buffer: BufferState,
 		opts: { skipFormat?: boolean } = {},
@@ -196,30 +222,46 @@ export function createDocumentActions(deps: {
 				return false;
 			}
 		}
-		return writeBuffer(path, buffer.content, opts);
+		return writeBufferNow(path, buffer.content, opts);
 	};
+	// Re-reads the buffer inside the queued job rather than taking a snapshot at call time —
+	// by the time this runs, a format queued ahead of it may have moved on without it.
+	const saveWithConflictCheck = (
+		path: string,
+		opts: { skipFormat?: boolean } = {},
+	): Promise<boolean> =>
+		serialize(path, () => {
+			const buffer = deps.buffers[path];
+			return buffer ? saveWithConflictCheckNow(path, buffer, opts) : Promise.resolve(false);
+		});
 	const saveActive = async () => {
 		const path = deps.activePath();
-		const buffer = deps.activeBuffer();
-		if (!path || !buffer) return;
-		await saveWithConflictCheck(path, buffer);
+		if (!path || !deps.activeBuffer()) return;
+		await saveWithConflictCheck(path);
 	};
 	const saveWithoutFormatting = async () => {
 		const path = deps.activePath();
-		const buffer = deps.activeBuffer();
-		if (!path || !buffer) return;
-		await saveWithConflictCheck(path, buffer, { skipFormat: true });
+		if (!path || !deps.activeBuffer()) return;
+		await saveWithConflictCheck(path, { skipFormat: true });
 	};
+	// A flush-then-format for one path, queued as a single unit so a save that lands while
+	// the formatter is still running has to wait its turn instead of racing its disk write.
+	const formatOnePath = (path: string): Promise<{ ok: boolean; error?: string }> =>
+		serialize(path, async () => {
+			const buffer = deps.buffers[path];
+			if (!buffer) return { ok: false };
+			if (buffer.dirty && !(await saveWithConflictCheckNow(path, buffer, { skipFormat: true }))) {
+				return { ok: false };
+			}
+			return formatOnDiskNow(path);
+		});
 	const formatActive = async () => {
 		const path = deps.activePath();
-		const buffer = deps.activeBuffer();
-		if (!path || !buffer) return;
+		if (!path || !deps.activeBuffer()) return;
 		if (!formatterFor(path, deps.config.formatters)) {
 			return deps.say('No formatter configured for this file', 'warn');
 		}
-		if (buffer.dirty && !(await saveWithConflictCheck(path, buffer, { skipFormat: true })))
-			return;
-		const result = await formatOnDisk(path);
+		const result = await formatOnePath(path);
 		if (result.error) deps.say(`Format failed: ${result.error}`, 'error');
 		else if (result.ok) deps.say(`Formatted ${basename(path)}`);
 	};
@@ -227,11 +269,8 @@ export function createDocumentActions(deps: {
 		let formatted = 0;
 		const failed: string[] = [];
 		for (const path of deps.tabs()) {
-			const buffer = deps.buffers[path];
-			if (!buffer || !formatterFor(path, deps.config.formatters)) continue;
-			if (buffer.dirty && !(await saveWithConflictCheck(path, buffer, { skipFormat: true })))
-				continue;
-			const result = await formatOnDisk(path);
+			if (!formatterFor(path, deps.config.formatters)) continue;
+			const result = await formatOnePath(path);
 			if (result.ok) formatted++;
 			else if (result.error) failed.push(basename(path));
 		}
