@@ -10,6 +10,8 @@ import {
 import { dracula } from './dracula';
 import { everforestDark } from './everforest-dark';
 import { everforestLight } from './everforest-light';
+import { flexokiDark } from './flexoki-dark';
+import { flexokiLight } from './flexoki-light';
 import { githubDark } from './github-dark';
 import { githubLight } from './github-light';
 import { gruvboxDark } from './gruvbox-dark';
@@ -47,6 +49,8 @@ export const THEME_ENTRIES = [
 	['dracula', dracula],
 	['everforest-dark', everforestDark],
 	['everforest-light', everforestLight],
+	['flexoki-dark', flexokiDark],
+	['flexoki-light', flexokiLight],
 	['gruvbox', gruvboxDark],
 	['gruvbox-light', gruvboxLight],
 	['iceberg-dark', icebergDark],

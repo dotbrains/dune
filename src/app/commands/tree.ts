@@ -32,6 +32,9 @@ export function createAppCommandTree(deps: {
 	patchConfig: (patch: Partial<Config>, scope?: 'user' | 'project') => void;
 	saveActive: () => void;
 	saveAll: () => void;
+	saveWithoutFormatting: () => void;
+	formatActive: () => void;
+	formatOpenFiles: () => void;
 	targetDir: () => string;
 	tabs: Accessor<string[]>;
 	closeTabs: (paths: string[], done: string) => void;
@@ -91,6 +94,9 @@ export function createAppCommandTree(deps: {
 		rootDir: deps.rootDir,
 		saveActive: deps.saveActive,
 		saveAll: deps.saveAll,
+		saveWithoutFormatting: deps.saveWithoutFormatting,
+		formatActive: deps.formatActive,
+		formatOpenFiles: deps.formatOpenFiles,
 		setPicker: (kind) => deps.setPicker(kind),
 		activePath: deps.activePath,
 		activeLine: () =>

@@ -38,7 +38,7 @@ export interface EditorPaneProps extends EditorCompletionProps {
 	goto: { line: number; col: number; key: number } | null;
 	history: { kind: 'undo' | 'redo'; key: number } | null;
 	edit: { content: string; key: number } | null;
-	lineOp: { op: 'comment' | 'up' | 'down' | 'duplicate'; key: number } | null;
+	lineOp: { op: 'comment' | 'up' | 'down' | 'duplicate' | 'lineHome'; key: number } | null;
 	vim: boolean;
 	cursorStyle: CursorStyle;
 	wrap: boolean;
@@ -267,6 +267,8 @@ export function EditorPane(props: EditorPaneProps) {
 						return moveSelectedLines(1);
 					case 'duplicate':
 						return duplicateSelectedLines(true);
+					case 'lineHome':
+						return void editor?.gotoLineHome();
 				}
 			},
 			{ defer: true },

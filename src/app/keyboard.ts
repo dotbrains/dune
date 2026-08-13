@@ -46,6 +46,7 @@ export function useAppKeyboard(deps: {
 	copyPath: (path: string, kind: 'absolute' | 'relative') => void;
 	reopenTab: () => void;
 	saveActive: () => void;
+	formatActive: () => void;
 	say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
 	setAnchor: (path: string | null) => void;
 	setClipboard: (clipboard: { paths: string[]; mode: 'cut' | 'copy' }) => void;
@@ -77,6 +78,7 @@ export function useAppKeyboard(deps: {
 	const customCommands: Record<string, () => void> = {
 		open: () => deps.setPicker('files'),
 		save: deps.saveActive,
+		'editor.format': deps.formatActive,
 		'tabs.switch': () => deps.setPicker('tabs'),
 		'navigation.back': deps.navigateBack,
 		'navigation.forward': deps.navigateForward,
@@ -160,6 +162,9 @@ export function useAppKeyboard(deps: {
 		if (key.ctrl && k === 'g' && !customizes('goto'))
 			return claim(() => deps.setPrompt({ kind: 'gotoLine' }));
 		if (key.ctrl && k === 's' && !customizes('save')) return claim(deps.saveActive);
+		if (key.ctrl && chord(key) && k === 'l' && !customizes('editor.format')) {
+			return claim(deps.formatActive);
+		}
 		const vimOwnsRedo = deps.config.vim && deps.focus() === 'editor' && deps.vimMode() !== 'insert';
 		if (key.ctrl && k === 'r' && !vimOwnsRedo && !customizes('find.project'))
 			return claim(() => deps.setSearch({ scope: 'project' }));
@@ -185,7 +190,9 @@ export function useAppKeyboard(deps: {
 		}
 		if (key.ctrl && k === 'n' && !customizes('file.new'))
 			return claim(() => deps.setPrompt({ kind: 'newFile', dir: deps.targetDir() }));
-		if (key.ctrl && k === 'b' && !customizes('view.sidebar')) return claim(deps.toggleSidebar);
+		if (key.ctrl && !chord(key) && k === 'b' && !customizes('view.sidebar')) {
+			return claim(deps.toggleSidebar);
+		}
 		if (key.ctrl && chord(key) && k === 'm' && !customizes('view.markdown'))
 			return claim(deps.toggleMarkdown);
 		if (key.ctrl && (k === 'pageup' || k === 'left')) return claim(() => deps.switchTab(-1));

@@ -48,7 +48,7 @@ import type { UpdateInfo } from '../core/update';
 import type { Command } from './commands';
 import type { LspStatusRow } from './lsp';
 import type { Review } from './review';
-import type { BufferState, Confirmation, Conflict, Focus } from './types';
+import type { BufferState, Confirmation, Conflict, Focus, LineOpRequest } from './types';
 
 const GRIP = [0, 1, 2, 3, 4];
 
@@ -77,7 +77,7 @@ interface AppViewProps {
 	goto: { line: number; col: number; key: number } | null;
 	history: { kind: 'undo' | 'redo'; key: number } | null;
 	edit: { content: string; key: number } | null;
-	lineOp: { op: 'comment' | 'up' | 'down' | 'duplicate'; key: number } | null;
+	lineOp: LineOpRequest;
 	completion: { key: number } | null;
 	gitLines: Map<number, LineChange>;
 	problems: Map<number, { severity: ProblemSeverity; message: string }>;

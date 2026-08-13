@@ -15,13 +15,16 @@ import type { TreeNode } from '../core/fs';
 import type { ThemeName } from '../themes';
 import { buildCommands } from './commands';
 import { openPathUnderCursor } from './openPathUnderCursor';
-import type { Focus, Prompt } from './types';
+import type { Focus, LineOpRequest, Prompt } from './types';
 
 export function createAppCommands(deps: {
 	config: Config;
 	rootDir: string;
 	saveActive: () => void;
 	saveAll: () => void;
+	saveWithoutFormatting: () => void;
+	formatActive: () => void;
+	formatOpenFiles: () => void;
 	setPicker: (kind: 'files' | 'tabs') => void;
 	activePath: () => string | null;
 	activeLine: () => string | null;
@@ -83,12 +86,7 @@ export function createAppCommands(deps: {
 	listAppearancePlugins: () => void;
 	reloadAppearancePlugins: () => void;
 	appearanceVersion: () => AppearancePluginLoad;
-	setLineOp: (
-		update: (prev: { op: 'comment' | 'up' | 'down' | 'duplicate'; key: number } | null) => {
-			op: 'comment' | 'up' | 'down' | 'duplicate';
-			key: number;
-		},
-	) => void;
+	setLineOp: (update: (prev: LineOpRequest) => NonNullable<LineOpRequest>) => void;
 	patchConfig: (patch: Partial<Config>) => void;
 	gitCommands: {
 		openCommitPicker: () => void;
@@ -188,6 +186,9 @@ export function createAppCommands(deps: {
 			{
 				save: deps.saveActive,
 				saveAll: deps.saveAll,
+				saveWithoutFormatting: deps.saveWithoutFormatting,
+				formatActive: deps.formatActive,
+				formatOpenFiles: deps.formatOpenFiles,
 				openFile: () => deps.setPicker('files'),
 				openPathUnderCursor: () =>
 					openPathUnderCursor({

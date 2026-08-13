@@ -92,6 +92,11 @@ export function useEditorKeymap(deps: {
 			deps.toggleCommentLines();
 			return;
 		}
+		if (key.ctrl && (key.option || key.meta) && k === 'b') {
+			key.preventDefault();
+			editor.gotoLineHome();
+			return;
+		}
 		if ((key.option || key.meta) && !key.ctrl && (key.name === 'up' || key.name === 'down')) {
 			key.preventDefault();
 			if (key.shift) deps.duplicateSelectedLines(key.name === 'down');
