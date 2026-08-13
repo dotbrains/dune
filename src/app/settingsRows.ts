@@ -1,5 +1,5 @@
 import { createMemo } from 'solid-js';
-import { CURSOR_STYLES, ICON_THEMES } from '../core/config';
+import { CURSOR_STYLES, GIT_SCAN_DEPTH_MAX, GIT_SCAN_DEPTH_MIN, ICON_THEMES } from '../core/config';
 import type { Config } from '../core/config';
 import type { IconTheme } from '../core/iconThemes';
 import type { ThemeName } from '../themes';
@@ -11,6 +11,11 @@ export type { SettingRow } from '../ui/overlays/SettingsView';
 const TAB_SIZES = [2, 4, 8];
 const DIFF_VIEWS = ['inline', 'split'] as const;
 const GIT_PANEL_VIEWS = ['tree', 'list'] as const;
+const GIT_SCAN_DEPTHS = Array.from(
+	{ length: GIT_SCAN_DEPTH_MAX - GIT_SCAN_DEPTH_MIN + 1 },
+	(_, i) => GIT_SCAN_DEPTH_MIN + i,
+);
+const SIDEBAR_POSITIONS = ['left', 'right'] as const;
 
 const onOff = (value: boolean) => (value ? 'on' : 'off');
 
@@ -209,6 +214,16 @@ export function settingsRows(
 		},
 		{
 			section: 'Tree',
+			label: 'Sidebar position',
+			value: config.sidebarPosition,
+			change: (dir) =>
+				actions.patchConfig(
+					{ sidebarPosition: cycle(SIDEBAR_POSITIONS, config.sidebarPosition, dir) },
+					actions.configScope(),
+				),
+		},
+		{
+			section: 'Tree',
 			label: 'Show dotfiles',
 			value: onOff(config.showDotfiles),
 			change: actions.toggleDotfiles,
@@ -236,6 +251,16 @@ export function settingsRows(
 			change: (dir) =>
 				actions.patchConfig(
 					{ gitPanelView: cycle(GIT_PANEL_VIEWS, config.gitPanelView, dir) },
+					actions.configScope(),
+				),
+		},
+		{
+			section: 'Git',
+			label: 'Repo scan depth',
+			value: `${config.gitScanDepth}`,
+			change: (dir) =>
+				actions.patchConfig(
+					{ gitScanDepth: cycle(GIT_SCAN_DEPTHS, config.gitScanDepth, dir) },
 					actions.configScope(),
 				),
 		},

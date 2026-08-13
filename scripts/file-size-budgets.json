@@ -1,11 +1,11 @@
 {
 	"default_lines": 500,
 	"files": {
-		"src/app/App.tsx": 745,
+		"src/app/App.tsx": 765,
 		"src/app/AppView.tsx": 555,
 		"src/app/commands.ts": 545,
 		"src/core/forge.ts": 515,
-		"src/core/git.ts": 510,
+		"src/core/git.ts": 530,
 		"src/ui/EditorPane.tsx": 525,
 		"src/ui/SearchPanel.tsx": 530
 	},

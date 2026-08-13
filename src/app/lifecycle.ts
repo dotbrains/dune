@@ -171,13 +171,21 @@ export function useAppLifecycle(deps: {
 	);
 	createEffect(
 		on(
-			() => [deps.nodes(), deps.gitRevision(), deps.reloadKey(), deps.diffBase()] as const,
+			() =>
+				[
+					deps.nodes(),
+					deps.gitRevision(),
+					deps.reloadKey(),
+					deps.diffBase(),
+					deps.config.gitScanDepth,
+				] as const,
 			() => {
-				deps.setGitStatus(statusMap(deps.rootDir, deps.diffBase()));
+				deps.setGitStatus(statusMap(deps.rootDir, deps.diffBase(), deps.config.gitScanDepth));
 				deps.setGitIgnored(
 					ignoredAmong(
 						deps.rootDir,
 						deps.nodes().map((node) => node.path),
+						deps.config.gitScanDepth,
 					),
 				);
 				deps.setBranch(currentBranch(deps.rootDir));
