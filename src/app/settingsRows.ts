@@ -1,5 +1,5 @@
 import { createMemo } from 'solid-js';
-import { CURSOR_STYLES, ICON_THEMES } from '../core/config';
+import { CURSOR_STYLES, GIT_SCAN_DEPTH_MAX, GIT_SCAN_DEPTH_MIN, ICON_THEMES } from '../core/config';
 import type { Config } from '../core/config';
 import type { IconTheme } from '../core/iconThemes';
 import type { ThemeName } from '../themes';
@@ -11,7 +11,10 @@ export type { SettingRow } from '../ui/overlays/SettingsView';
 const TAB_SIZES = [2, 4, 8];
 const DIFF_VIEWS = ['inline', 'split'] as const;
 const GIT_PANEL_VIEWS = ['tree', 'list'] as const;
-const GIT_SCAN_DEPTHS = [0, 1, 2, 3, 4, 5];
+const GIT_SCAN_DEPTHS = Array.from(
+	{ length: GIT_SCAN_DEPTH_MAX - GIT_SCAN_DEPTH_MIN + 1 },
+	(_, i) => GIT_SCAN_DEPTH_MIN + i,
+);
 const SIDEBAR_POSITIONS = ['left', 'right'] as const;
 
 const onOff = (value: boolean) => (value ? 'on' : 'off');

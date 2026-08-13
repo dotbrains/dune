@@ -14,18 +14,22 @@ export function createSidebarSizing(deps: {
 			Math.min(sidebarColumns(deps.config.sidebarWidth, deps.width()), deps.width() - EDITOR_MIN),
 		);
 
-	/**
-	 * `x` is the divider's column under the pointer. On the left, the sidebar starts at
-	 * column 0, so that column is the width itself; on the right, the sidebar ends at the
-	 * last column, so the width is what's left of the terminal past the divider.
-	 */
-	const resizeSidebar = (x: number) => {
-		const raw = deps.config.sidebarPosition === 'right' ? deps.width() - 1 - x : x;
-		const next = Math.max(SIDEBAR_MIN, Math.min(SIDEBAR_MAX, Math.round(raw)));
+	const applyWidth = (width: number) => {
+		const next = Math.max(SIDEBAR_MIN, Math.min(SIDEBAR_MAX, Math.round(width)));
 		if (next !== deps.config.sidebarWidth) deps.patchConfig({ sidebarWidth: next });
 	};
 
-	const nudgeSidebar = (delta: number) => resizeSidebar(treeWidth() + delta);
+	/**
+	 * `x` is the divider's column under the pointer, not a width — on the left the sidebar
+	 * starts at column 0, so that column already is the width; on the right the sidebar ends
+	 * at the last column, so the width is what's left of the terminal past the divider.
+	 * `nudgeSidebar` already has a width, so it applies it directly instead of going through
+	 * this pointer-to-width conversion a second time.
+	 */
+	const resizeSidebar = (x: number) =>
+		applyWidth(deps.config.sidebarPosition === 'right' ? deps.width() - 1 - x : x);
+
+	const nudgeSidebar = (delta: number) => applyWidth(treeWidth() + delta);
 
 	return { nudgeSidebar, resizeSidebar, treeWidth };
 }

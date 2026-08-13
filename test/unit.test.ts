@@ -128,6 +128,21 @@ describe('sidebar sizing', () => {
 		resizeSidebar(60);
 		expect(saved.sidebarWidth).toBe(19);
 	});
+
+	test('nudgeSidebar applies the delta directly regardless of sidebar position', () => {
+		let saved: Partial<Config> = {};
+		const { nudgeSidebar } = createSidebarSizing({
+			config: { ...DEFAULTS, sidebarPosition: 'right', sidebarWidth: 30 },
+			width: () => 80,
+			patchConfig: (patch) => {
+				saved = patch;
+			},
+		});
+		// A width already, not a pointer column — must not go through the right-side
+		// pointer-to-width conversion a second time.
+		nudgeSidebar(1);
+		expect(saved.sidebarWidth).toBe(31);
+	});
 });
 
 describe('nested repo discovery', () => {
@@ -407,7 +422,7 @@ describe('registries', () => {
 
 	test('repo scan depth cycles through 0-5 and wraps', () => {
 		let patched: Partial<Config> = {};
-		const rows = settingsRows(DEFAULTS, [], {
+		const actions = {
 			applyTheme: () => {},
 			applyThemeSlot: () => {},
 			applyTabSize: () => {},
@@ -425,15 +440,25 @@ describe('registries', () => {
 			toggleWrap: () => {},
 			toggleFormat: () => {},
 			toggleTrim: () => {},
-			patchConfig: (patch) => {
+			patchConfig: (patch: Partial<Config>) => {
 				patched = patch;
 			},
-			configScope: () => 'user',
-		});
-		const row = rows.find((r) => r.label === 'Repo scan depth');
-		expect(row?.value).toBe(`${DEFAULTS.gitScanDepth}`);
-		row?.change(1);
+			configScope: () => 'user' as const,
+		};
+		const scanDepthRow = (gitScanDepth: number) =>
+			settingsRows({ ...DEFAULTS, gitScanDepth }, [], actions).find(
+				(r) => r.label === 'Repo scan depth',
+			);
+
+		expect(scanDepthRow(DEFAULTS.gitScanDepth)?.value).toBe(`${DEFAULTS.gitScanDepth}`);
+		scanDepthRow(DEFAULTS.gitScanDepth)?.change(1);
 		expect(patched.gitScanDepth).toBe(DEFAULTS.gitScanDepth + 1);
+
+		scanDepthRow(0)?.change(-1);
+		expect(patched.gitScanDepth).toBe(5);
+
+		scanDepthRow(5)?.change(1);
+		expect(patched.gitScanDepth).toBe(0);
 	});
 
 	// Missing/extra ui keys are a tsc error, so only the values are worth asserting.

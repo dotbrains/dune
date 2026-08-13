@@ -282,11 +282,12 @@ vim mode).
   placeholder and destroys the native buffer while `editor` still points at it. Both
   pending timers touch it, so they are cleared from the ref's own `onCleanup` — the pane's
   `onCleanup` fires far too late and the timer throws from outside any handler.
-- **Network.** The only request dune makes is one npm registry lookup at startup to
-  check for a newer version. It is best-effort (2.5s timeout, failures ignored) and
-  disabled by `checkUpdates: false` in the config. dune runs no git command that talks to
-  a remote, which is also what keeps a credential prompt from ever opening `/dev/tty`
-  behind the alt-screen and freezing the single render thread.
+- **Network.** Besides one best-effort npm registry lookup at startup to check for a
+  newer version (2.5s timeout, failures ignored, disabled by `checkUpdates: false`), the
+  only network traffic is push/pull/fetch, run through `mutate()`. Those set
+  `GIT_TERMINAL_PROMPT: '0'` so a missing credential fails the command instead of opening
+  `/dev/tty` behind the alt-screen and freezing the single render thread — the query side
+  in this file still runs no command that talks to a remote.
 - **Session restore.** Tabs and their buffers are seeded synchronously in the component
   body, not in an effect — mounting the editor before its buffer exists renders an empty
   document and marks the file modified.
