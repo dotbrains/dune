@@ -30,7 +30,11 @@ test('Ctrl+Opt+L formats on demand even with formatOnSave off', async () => {
 	await press(t, (i) => i.pressEnter());
 	await press(t, (i) => void i.typeText('!'));
 	await press(t, (i) => i.pressKey('l', { ctrl: true, meta: true }));
-	await until(t, () => readFileSync(join(dir, 'a.ts'), 'utf8') === '!CONST A = 1\n', 300);
+	// Waiting on disk content directly would race this process's own reaction to the
+	// formatter exiting — the write and this process's promise continuation are scheduled
+	// independently, so disk can flip before the buffer/status update do. Wait on the same
+	// signal asserted below instead.
+	await until(t, () => t.captureCharFrame().includes('Formatted a.ts'), 300);
 
 	expect(readFileSync(join(dir, 'a.ts'), 'utf8')).toBe('!CONST A = 1\n');
 	expect(t.captureCharFrame()).toContain('Formatted a.ts');
@@ -94,13 +98,10 @@ test('Format open files formats every dirty tab with a matching formatter', asyn
 	await press(t, (i) => void i.typeText('!'));
 
 	await runPalette('Format open files')(t);
-	await until(
-		t,
-		() =>
-			readFileSync(join(dir, 'a.ts'), 'utf8') === '!CONST A = 1\n' &&
-			readFileSync(join(dir, 'b.ts'), 'utf8') === '!CONST B = 2\n',
-		500,
-	);
+	// As above: this message is unique to the very end of the run (unlike "Saved a.ts",
+	// which also appears from each file's quiet pre-format flush), so waiting on it is
+	// unambiguous and avoids racing this process's own reaction to disk against disk itself.
+	await until(t, () => t.captureCharFrame().includes('Formatted 2 files'), 500);
 
 	expect(readFileSync(join(dir, 'a.ts'), 'utf8')).toBe('!CONST A = 1\n');
 	expect(readFileSync(join(dir, 'b.ts'), 'utf8')).toBe('!CONST B = 2\n');
