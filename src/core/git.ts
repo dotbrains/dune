@@ -5,7 +5,7 @@ import { dirname, join, relative } from 'node:path';
 import { BinaryFileError, readFile } from './fs';
 import { hasBinaryContent } from './gitDiff';
 import type { DiffFile } from './gitDiff';
-import { discoverRepos, groupByRepo } from './vcs/repos';
+import { DEFAULT_SCAN_DEPTH, discoverRepos, groupByRepo } from './vcs/repos';
 
 export type LineChange = 'added' | 'modified' | 'deleted';
 export type FileStatus = 'untracked' | 'added' | 'modified' | 'deleted' | 'renamed';
@@ -162,11 +162,15 @@ const changedPath = (
  * Working-tree status per absolute path. Staged and unstaged changes collapse to
  * one mark — the tree only needs "this differs from HEAD".
  */
-export function statusMap(cwd: string, ref: string | null = null): Map<string, FileStatus> {
+export function statusMap(
+	cwd: string,
+	ref: string | null = null,
+	depth = DEFAULT_SCAN_DEPTH,
+): Map<string, FileStatus> {
 	const statuses = new Map<string, FileStatus>();
 	if (keyBase(cwd) === null) {
-		for (const repo of discoverRepos(cwd)) {
-			for (const [path, status] of statusMap(repo, ref)) statuses.set(path, status);
+		for (const repo of discoverRepos(cwd, depth)) {
+			for (const [path, status] of statusMap(repo, ref, depth)) statuses.set(path, status);
 		}
 		return statuses;
 	}
@@ -236,10 +240,15 @@ function statusAgainst(cwd: string, ref: string, base: string): StatusEntry[] {
 	return statuses;
 }
 
-export function diffFiles(cwd: string, only?: string, ref: string | null = null): DiffFile[] {
+export function diffFiles(
+	cwd: string,
+	only?: string,
+	ref: string | null = null,
+	depth = DEFAULT_SCAN_DEPTH,
+): DiffFile[] {
 	if (keyBase(cwd) === null) {
 		const files: DiffFile[] = [];
-		for (const repo of discoverRepos(cwd)) files.push(...diffFiles(repo, only, ref));
+		for (const repo of discoverRepos(cwd, depth)) files.push(...diffFiles(repo, only, ref, depth));
 		return files.toSorted((a, b) => a.path.localeCompare(b.path));
 	}
 	const statuses = statusEntries(cwd, ref);
@@ -274,12 +283,16 @@ export function diffFiles(cwd: string, only?: string, ref: string | null = null)
 	return files.toSorted((a, b) => a.rel.localeCompare(b.rel));
 }
 
-export function ignoredAmong(cwd: string, paths: string[]): Set<string> {
+export function ignoredAmong(
+	cwd: string,
+	paths: string[],
+	depth = DEFAULT_SCAN_DEPTH,
+): Set<string> {
 	const ignored = new Set<string>();
 	if (paths.length === 0) return ignored;
 	if (keyBase(cwd) === null) {
-		for (const [repo, repoPaths] of groupByRepo(paths, discoverRepos(cwd))) {
-			for (const path of ignoredAmong(repo, repoPaths)) ignored.add(path);
+		for (const [repo, repoPaths] of groupByRepo(paths, discoverRepos(cwd, depth))) {
+			for (const path of ignoredAmong(repo, repoPaths, depth)) ignored.add(path);
 		}
 		return ignored;
 	}
@@ -291,12 +304,12 @@ export function ignoredAmong(cwd: string, paths: string[]): Set<string> {
 	return ignored;
 }
 
-export function ignoredPaths(cwd: string): Set<string> {
+export function ignoredPaths(cwd: string, depth = DEFAULT_SCAN_DEPTH): Set<string> {
 	const ignored = new Set<string>();
 	const base = keyBase(cwd);
 	if (base === null) {
-		for (const repo of discoverRepos(cwd)) {
-			for (const path of ignoredPaths(repo)) ignored.add(path);
+		for (const repo of discoverRepos(cwd, depth)) {
+			for (const path of ignoredPaths(repo, depth)) ignored.add(path);
 		}
 		return ignored;
 	}

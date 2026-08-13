@@ -204,9 +204,11 @@ export function AppView(props: AppViewProps) {
 			/>
 			{/* Drag capture lives on the row, not the divider: the pointer leaves a
           one-column target immediately, and each drag event is delivered to
-          whatever sits under it. */}
+          whatever sits under it. `row-reverse` is what moves the sidebar to the
+          right — Show is transparent, so the sidebar pane, its divider and the
+          editor block are one flat list of flex children this can reorder. */}
 			<box
-				flexDirection="row"
+				flexDirection={props.config.sidebarPosition === 'right' ? 'row-reverse' : 'row'}
 				flexGrow={1}
 				onMouseDrag={props.onResizeDrag}
 				onMouseDragEnd={() => props.onResizeEnd()}

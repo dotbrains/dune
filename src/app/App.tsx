@@ -278,6 +278,7 @@ export function App(props: AppTypes.AppProps) {
 	};
 	const gitCommands = createGitCommands({
 		rootDir,
+		gitScanDepth: () => config.gitScanDepth,
 		branch,
 		diffBase,
 		upstream,
@@ -291,8 +292,8 @@ export function App(props: AppTypes.AppProps) {
 	});
 	const activeRepo = () => {
 		const path = activePath();
-		if (path) return repoOf(path, discoverRepos(rootDir));
-		const repos = discoverRepos(rootDir);
+		if (path) return repoOf(path, discoverRepos(rootDir, config.gitScanDepth));
+		const repos = discoverRepos(rootDir, config.gitScanDepth);
 		return repos.length === 1 ? repos[0]! : null;
 	};
 	const review = createReview({

@@ -22,4 +22,13 @@ describe('sidebar', () => {
 		await press(t, (input) => void input.typeText('X'));
 		expect(t.captureCharFrame()).toContain('X');
 	});
+
+	test('sidebarPosition: right moves the tree to the right edge', async () => {
+		const t = await launch(fixture({ 'alpha.ts': 'const a = 1\n' }), { sidebarPosition: 'right' });
+		const line = t
+			.captureCharFrame()
+			.split('\n')
+			.find((row) => row.includes('explorer'));
+		expect(line?.indexOf('explorer')).toBeGreaterThan(40);
+	});
 });

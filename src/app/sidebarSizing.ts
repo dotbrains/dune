@@ -14,8 +14,14 @@ export function createSidebarSizing(deps: {
 			Math.min(sidebarColumns(deps.config.sidebarWidth, deps.width()), deps.width() - EDITOR_MIN),
 		);
 
-	const resizeSidebar = (width: number) => {
-		const next = Math.max(SIDEBAR_MIN, Math.min(SIDEBAR_MAX, Math.round(width)));
+	/**
+	 * `x` is the divider's column under the pointer. On the left, the sidebar starts at
+	 * column 0, so that column is the width itself; on the right, the sidebar ends at the
+	 * last column, so the width is what's left of the terminal past the divider.
+	 */
+	const resizeSidebar = (x: number) => {
+		const raw = deps.config.sidebarPosition === 'right' ? deps.width() - 1 - x : x;
+		const next = Math.max(SIDEBAR_MIN, Math.min(SIDEBAR_MAX, Math.round(raw)));
 		if (next !== deps.config.sidebarWidth) deps.patchConfig({ sidebarWidth: next });
 	};
 

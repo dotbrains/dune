@@ -6,8 +6,10 @@ import { join } from 'node:path';
 
 import { buildCommands, flattenCommands } from '../src/app/commands';
 import type { CommandActions } from '../src/app/commands';
+import { createSidebarSizing } from '../src/app/sidebarSizing';
 import { settingsRows } from '../src/app/settingsRows';
 import { DEFAULTS } from '../src/core/config';
+import type { Config } from '../src/core/config';
 import { unifiedDiff } from '../src/core/diff';
 import { readFile } from '../src/core/fs';
 import { defaultBranch, failureLine, PUSH_REJECTED } from '../src/core/git';
@@ -15,6 +17,7 @@ import { branchDiffFiles } from '../src/core/gitDiff';
 import { loadIconThemes } from '../src/core/iconThemes';
 import { searchProject, searchText } from '../src/core/search';
 import { isNewer } from '../src/core/update';
+import { discoverRepos } from '../src/core/vcs/repos';
 import { THEMES } from '../src/themes';
 import { git as runGit } from './git-fixture';
 
@@ -95,6 +98,51 @@ describe('git defaults', () => {
 		local.git('config', 'init.defaultBranch', 'trunk');
 		expect(defaultBranch(local.dir)).toBe('trunk');
 		expect(defaultBranch(gitRepo('topic').dir)).toBeNull();
+	});
+});
+
+describe('sidebar sizing', () => {
+	test('resizeSidebar reads the pointer directly when the sidebar is on the left', () => {
+		let saved: Partial<Config> = {};
+		const { resizeSidebar } = createSidebarSizing({
+			config: { ...DEFAULTS, sidebarPosition: 'left' },
+			width: () => 80,
+			patchConfig: (patch) => {
+				saved = patch;
+			},
+		});
+		resizeSidebar(30);
+		expect(saved.sidebarWidth).toBe(30);
+	});
+
+	test('resizeSidebar measures from the right edge when the sidebar is on the right', () => {
+		let saved: Partial<Config> = {};
+		const { resizeSidebar } = createSidebarSizing({
+			config: { ...DEFAULTS, sidebarPosition: 'right' },
+			width: () => 80,
+			patchConfig: (patch) => {
+				saved = patch;
+			},
+		});
+		// Pointer on the divider at column 60 of 80: 19 columns sit to its right.
+		resizeSidebar(60);
+		expect(saved.sidebarWidth).toBe(19);
+	});
+});
+
+describe('nested repo discovery', () => {
+	test('gitScanDepth bounds how far discoverRepos descends', () => {
+		const root = mkdtempSync(join(tmpdir(), 'dune-scan-'));
+		const shallow = join(root, 'a');
+		const deep = join(root, 'x', 'y', 'z');
+		mkdirSync(shallow, { recursive: true });
+		mkdirSync(deep, { recursive: true });
+		execFileSync('git', ['init', '-q', shallow]);
+		execFileSync('git', ['init', '-q', deep]);
+
+		expect(discoverRepos(root, 0)).toEqual([]);
+		expect(discoverRepos(root, 1)).toEqual([shallow]);
+		expect(discoverRepos(root, 3).toSorted()).toEqual([shallow, deep].toSorted());
 	});
 });
 
@@ -355,6 +403,37 @@ describe('registries', () => {
 		});
 
 		expect(rows.find((row) => row.label === 'Plugin update checks')?.value).toBe('on');
+	});
+
+	test('repo scan depth cycles through 0-5 and wraps', () => {
+		let patched: Partial<Config> = {};
+		const rows = settingsRows(DEFAULTS, [], {
+			applyTheme: () => {},
+			applyThemeSlot: () => {},
+			applyTabSize: () => {},
+			applyVim: () => {},
+			editFormatter: () => {},
+			editLspServer: () => {},
+			editTypescriptTsdk: () => {},
+			editKeybinding: () => {},
+			editSidebarWidth: () => {},
+			toggleThemeSync: () => {},
+			toggleAutoSave: () => {},
+			toggleTransparent: () => {},
+			toggleDotfiles: () => {},
+			toggleGitignored: () => {},
+			toggleWrap: () => {},
+			toggleFormat: () => {},
+			toggleTrim: () => {},
+			patchConfig: (patch) => {
+				patched = patch;
+			},
+			configScope: () => 'user',
+		});
+		const row = rows.find((r) => r.label === 'Repo scan depth');
+		expect(row?.value).toBe(`${DEFAULTS.gitScanDepth}`);
+		row?.change(1);
+		expect(patched.gitScanDepth).toBe(DEFAULTS.gitScanDepth + 1);
 	});
 
 	// Missing/extra ui keys are a tsc error, so only the values are worth asserting.

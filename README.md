@@ -141,8 +141,13 @@ Global shortcuts can be customized in JSON with `keybindings`, keyed by command 
 `{ "keybindings": { "open": "Ctrl+Alt+O", "git.sourceControl": "F2" } }`.
 The `Transparent background` setting leaves the editor and tab strip unpainted for
 translucent terminal themes.
+Set `sidebarPosition` to `right` to move the file tree, source control panel and review
+panel to the right edge of the window instead of the left.
 Set `gitPanelView` to `list` to show changed files as flat paths in the source control
 panel instead of the default folder tree.
+When the opened folder is not itself a git repository, dune scans subdirectories for
+repos up to `gitScanDepth` levels deep (3 by default) so status marks and diffs still
+work for a folder holding several repositories; set it to `0` to disable scanning.
 
 PNG, JPEG and PDF files open as read-only viewer tabs. Images render directly in the
 editor slot; PDFs render one page at a time with `PageUp` / `PageDown`, `+` / `-` zoom,

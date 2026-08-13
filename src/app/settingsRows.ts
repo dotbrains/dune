@@ -11,6 +11,8 @@ export type { SettingRow } from '../ui/overlays/SettingsView';
 const TAB_SIZES = [2, 4, 8];
 const DIFF_VIEWS = ['inline', 'split'] as const;
 const GIT_PANEL_VIEWS = ['tree', 'list'] as const;
+const GIT_SCAN_DEPTHS = [0, 1, 2, 3, 4, 5];
+const SIDEBAR_POSITIONS = ['left', 'right'] as const;
 
 const onOff = (value: boolean) => (value ? 'on' : 'off');
 
@@ -209,6 +211,16 @@ export function settingsRows(
 		},
 		{
 			section: 'Tree',
+			label: 'Sidebar position',
+			value: config.sidebarPosition,
+			change: (dir) =>
+				actions.patchConfig(
+					{ sidebarPosition: cycle(SIDEBAR_POSITIONS, config.sidebarPosition, dir) },
+					actions.configScope(),
+				),
+		},
+		{
+			section: 'Tree',
 			label: 'Show dotfiles',
 			value: onOff(config.showDotfiles),
 			change: actions.toggleDotfiles,
@@ -236,6 +248,16 @@ export function settingsRows(
 			change: (dir) =>
 				actions.patchConfig(
 					{ gitPanelView: cycle(GIT_PANEL_VIEWS, config.gitPanelView, dir) },
+					actions.configScope(),
+				),
+		},
+		{
+			section: 'Git',
+			label: 'Repo scan depth',
+			value: `${config.gitScanDepth}`,
+			change: (dir) =>
+				actions.patchConfig(
+					{ gitScanDepth: cycle(GIT_SCAN_DEPTHS, config.gitScanDepth, dir) },
 					actions.configScope(),
 				),
 		},

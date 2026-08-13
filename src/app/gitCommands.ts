@@ -41,6 +41,7 @@ import type { Prompt } from './types';
 
 export function createGitCommands(deps: {
 	rootDir: string;
+	gitScanDepth: () => number;
 	branch: () => string | null;
 	diffBase: () => string | null;
 	upstream: () => Upstream | null;
@@ -93,7 +94,7 @@ export function createGitCommands(deps: {
 
 	const openCommitPicker = () => {
 		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
-		const statuses = statusMap(deps.rootDir);
+		const statuses = statusMap(deps.rootDir, null, deps.gitScanDepth());
 		if (statuses.size === 0) return deps.say('Nothing to commit', 'warn');
 		const staged = stagedPaths(deps.rootDir);
 		setCommitFiles(
@@ -107,7 +108,7 @@ export function createGitCommands(deps: {
 
 	const openDiff = (path?: string | null) => {
 		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
-		const files = diffFiles(deps.rootDir, path ?? undefined, diffBase());
+		const files = diffFiles(deps.rootDir, path ?? undefined, diffBase(), deps.gitScanDepth());
 		if (files.length === 0)
 			return deps.say(path ? 'No changes in current file' : 'No changes', 'warn');
 		setDiffTitle(null);

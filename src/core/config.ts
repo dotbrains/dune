@@ -13,6 +13,7 @@ import { dirname, join } from 'node:path';
 
 import type { Formatters } from './format';
 import { FORGE_KINDS, type ForgeKind, type ForgeSetting } from './forge';
+import { DEFAULT_SCAN_DEPTH } from './vcs/repos';
 import type { ThemeName } from '../themes';
 
 export const CONFIG_FILE = join(
@@ -31,6 +32,10 @@ export type IconThemeName = string;
 /** Narrow enough to still show a name, wide enough to leave the editor usable. */
 export const SIDEBAR_MIN = 15;
 export const SIDEBAR_MAX = 80;
+
+/** How many directory levels under the root `discoverRepos` descends looking for repos. */
+export const GIT_SCAN_DEPTH_MIN = 0;
+export const GIT_SCAN_DEPTH_MAX = 5;
 
 /**
  * `'auto'`: this share of the terminal, within these bounds. The floor is what an
@@ -74,6 +79,8 @@ export interface Config {
 	 * Resizing with `[` / `]` or by dragging the divider pins an explicit number.
 	 */
 	sidebarWidth: number | 'auto';
+	/** Which side of the window the file tree / git / review sidebar sits on. */
+	sidebarPosition: 'left' | 'right';
 	/** Version whose update notice was dismissed; suppresses the banner for it. */
 	skipUpdate: string;
 	/** On save: strip trailing spaces and end the file with one newline. */
@@ -92,6 +99,8 @@ export interface Config {
 	diffView: 'inline' | 'split';
 	/** Changed-files presentation in the source control panel. */
 	gitPanelView: 'tree' | 'list';
+	/** Directory levels scanned under a non-repository root for nested git repos. */
+	gitScanDepth: number;
 	/** Remote whose pull request comments feed the review panel. */
 	reviewRemote: string;
 	/** Forge type for pull request comments, or auto-detect from the remote host. */
@@ -132,6 +141,7 @@ export const DEFAULTS: Config = {
 	wrap: true,
 	tabSize: 2,
 	sidebarWidth: 'auto',
+	sidebarPosition: 'left',
 	skipUpdate: '',
 	trimOnSave: false,
 	formatOnSave: false,
@@ -141,6 +151,7 @@ export const DEFAULTS: Config = {
 	respectGitignore: false,
 	diffView: 'inline',
 	gitPanelView: 'tree',
+	gitScanDepth: DEFAULT_SCAN_DEPTH,
 	reviewRemote: 'origin',
 	reviewForge: 'auto',
 	reviewAutoFetch: true,
@@ -199,6 +210,13 @@ function parsePartial(raw: unknown): Partial<Config> {
 	if (obj.gitPanelView === 'tree' || obj.gitPanelView === 'list') {
 		config.gitPanelView = obj.gitPanelView;
 	}
+	if (
+		typeof obj.gitScanDepth === 'number' &&
+		obj.gitScanDepth >= GIT_SCAN_DEPTH_MIN &&
+		obj.gitScanDepth <= GIT_SCAN_DEPTH_MAX
+	) {
+		config.gitScanDepth = Math.floor(obj.gitScanDepth);
+	}
 	if (typeof obj.reviewRemote === 'string' && /^[\w.-]+$/.test(obj.reviewRemote)) {
 		config.reviewRemote = obj.reviewRemote;
 	}
@@ -248,6 +266,9 @@ function parsePartial(raw: unknown): Partial<Config> {
 		config.sidebarWidth = Math.floor(obj.sidebarWidth);
 	} else if (obj.sidebarWidth === 'auto') {
 		config.sidebarWidth = 'auto';
+	}
+	if (obj.sidebarPosition === 'left' || obj.sidebarPosition === 'right') {
+		config.sidebarPosition = obj.sidebarPosition;
 	}
 	return config;
 }
