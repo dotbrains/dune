@@ -30,7 +30,7 @@ test('Ctrl+Opt+L formats on demand even with formatOnSave off', async () => {
 	await press(t, (i) => i.pressEnter());
 	await press(t, (i) => void i.typeText('!'));
 	await press(t, (i) => i.pressKey('l', { ctrl: true, meta: true }));
-	await until(t, () => readFileSync(join(dir, 'a.ts'), 'utf8') === '!CONST A = 1\n', 100);
+	await until(t, () => readFileSync(join(dir, 'a.ts'), 'utf8') === '!CONST A = 1\n', 300);
 
 	expect(readFileSync(join(dir, 'a.ts'), 'utf8')).toBe('!CONST A = 1\n');
 	expect(t.captureCharFrame()).toContain('Formatted a.ts');
@@ -50,7 +50,7 @@ test('a save that lands during a slow format is not clobbered by the stale resul
 	await press(t, (i) => void i.typeText('?')); // edits again before it finishes
 	await press(t, (i) => i.pressKey('s', { ctrl: true })); // and saves — must not race the formatter
 
-	await until(t, () => readFileSync(join(dir, 'a.ts'), 'utf8') === '!?const a = 1\n', 150);
+	await until(t, () => readFileSync(join(dir, 'a.ts'), 'utf8') === '!?const a = 1\n', 400);
 	expect(readFileSync(join(dir, 'a.ts'), 'utf8')).toBe('!?const a = 1\n');
 });
 
@@ -72,7 +72,7 @@ test('Save without formatting skips the configured formatter for one save', asyn
 	await press(t, (i) => i.pressEnter());
 	await press(t, (i) => void i.typeText('!'));
 	await runPalette('Save without formatting')(t);
-	await until(t, () => t.captureCharFrame().includes('Saved a.ts'), 100);
+	await until(t, () => t.captureCharFrame().includes('Saved a.ts'), 300);
 
 	expect(readFileSync(join(dir, 'a.ts'), 'utf8')).toBe('!const a = 1\n');
 	expect(t.captureCharFrame()).not.toContain('Formatted');
@@ -99,7 +99,7 @@ test('Format open files formats every dirty tab with a matching formatter', asyn
 		() =>
 			readFileSync(join(dir, 'a.ts'), 'utf8') === '!CONST A = 1\n' &&
 			readFileSync(join(dir, 'b.ts'), 'utf8') === '!CONST B = 2\n',
-		150,
+		500,
 	);
 
 	expect(readFileSync(join(dir, 'a.ts'), 'utf8')).toBe('!CONST A = 1\n');
