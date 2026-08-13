@@ -26,7 +26,8 @@ scripts/
     fs.ts            file listing, read/write, binary guard, directory watcher
     pdf.ts           PDFium-backed page rendering for read-only PDF viewer tabs
     search.ts        in-file/project search, fuzzy matching, replace
-    git.ts           read-only queries: diff hunks, status, branch, ahead/behind
+    git.ts           diff hunks, status, branch, ahead/behind, plus async mutations
+                     (commit, push, pull, fetch, stash, branch actions)
     review.ts        persisted local review notes
     forge.ts         read-only pull-request discovery/comments for review
     markdown.ts      markdown path detection for rendered document tabs
@@ -266,10 +267,13 @@ vim mode).
   filesystem-level source of truth. The single unconditional exception is `VCS_DIRS`: a
   `.git` store is not project content and would swamp the tree, the fuzzy picker and
   project search.
-- **git is read-only.** `core/git.ts` runs queries and nothing else: `diff` for the gutter
-  marks, `status` for the tree marks, `rev-parse`/`rev-list` for the branch and
-  ahead/behind. There is no commit, push, stash, checkout or discard, and adding one would
-  bring back the whole problem of a subprocess rewriting files under open buffers.
+- **git mutations run async, queries run sync.** `core/git.ts` queries (`diff` for the
+  gutter marks, `status` for the tree marks, `rev-parse`/`rev-list` for the branch and
+  ahead/behind) sit behind UI that renders every frame, so they use `spawnSync`. Commit,
+  push, pull, fetch, stash and branch actions go through `mutate()`, which uses async
+  `spawn` instead — a slow `push` must not freeze the terminal. A mutation can rewrite a
+  file a buffer still has open; the mtime check under "Conflicts" below is what catches
+  that, not any read-only boundary on this file.
 - **git output is not capped at 1 MB.** `spawnSync` truncates there by default and
   reports ENOBUFS, which every caller in `core/git.ts` reads as "no output" — `status` in a
   repository with thousands of changed files would silently become "nothing changed" and
