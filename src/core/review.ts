@@ -45,6 +45,25 @@ export interface ReviewNote {
 	body: string;
 	/** Epoch ms — the order notes were written in, which is the order they read in. */
 	at: number;
+	/**
+	 * The note this one answers. Always the *thread's* id, never another
+	 * reply's — a reply to a reply still points at the root, so the thread
+	 * never nests more than one level deep regardless of how it was answered.
+	 */
+	parent?: string;
+}
+
+/**
+ * The id a note's thread is keyed by: itself, unless it is a reply, in which
+ * case its own `parent` — which by construction is always a root, not another
+ * reply. Missing from the list (its root was deleted) answers with the note's
+ * own id, so a reply whose parent is gone still stands as its own thread
+ * rather than disappearing.
+ */
+export function rootIdOf(notes: readonly ReviewNote[], id: string): string {
+	const note = notes.find((held) => held.id === id);
+	if (!note?.parent) return id;
+	return notes.some((held) => held.id === note.parent) ? note.parent : id;
 }
 
 const isKind = (raw: unknown): raw is NoteKind => NOTE_KINDS.includes(raw as NoteKind);
@@ -66,6 +85,7 @@ function parseNote(raw: unknown): ReviewNote | null {
 		kind: note.kind,
 		body: note.body,
 		at: typeof note.at === 'number' ? note.at : 0,
+		...(typeof note.parent === 'string' ? { parent: note.parent } : {}),
 	};
 }
 

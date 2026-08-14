@@ -297,6 +297,43 @@ test('a note needs a file, and says so from the tree', async () => {
 	expect(t.captureCharFrame()).toContain('No file to review');
 });
 
+test('r answers the note under the cursor, and the row counts the thread', async () => {
+	const t = await launch(fixture(PROJECT), {}, { width: 100, height: 24 });
+	await openFile(t, 'a.ts');
+	await noteLine(t, 'issue', 'this should be const');
+
+	await runCommand(t, 'Open review panel');
+	await press(t, (i) => i.pressArrow('down'));
+	await press(t, (i) => i.pressKey('r'));
+	expect(t.captureCharFrame()).toContain('Reply');
+	await press(t, (i) => void i.typeText('agreed, fixing it'));
+	await press(t, (i) => i.pressEnter());
+
+	const frame = t.captureCharFrame();
+	expect(frame).toContain('ISSUE 1 ↳1');
+	// The reply itself is not a separate row — it only ever shows through the count.
+	expect(frame).not.toContain('agreed, fixing it');
+});
+
+test('a reply to a reply still joins the same thread', async () => {
+	const t = await launch(fixture(PROJECT), {}, { width: 100, height: 24 });
+	await openFile(t, 'a.ts');
+	await noteLine(t, 'question', 'why two?');
+
+	await runCommand(t, 'Open review panel');
+	await press(t, (i) => i.pressArrow('down'));
+	await press(t, (i) => i.pressKey('r'));
+	await press(t, (i) => void i.typeText('first answer'));
+	await press(t, (i) => i.pressEnter());
+
+	// Still on the same row: replying again answers the thread, not the reply.
+	await press(t, (i) => i.pressKey('r'));
+	await press(t, (i) => void i.typeText('second answer'));
+	await press(t, (i) => i.pressEnter());
+
+	expect(t.captureCharFrame()).toContain('QUESTION 1 ↳2');
+});
+
 test('Backspace in the panel drops the note under the cursor', async () => {
 	const t = await launch(fixture(PROJECT), {}, { width: 100, height: 24 });
 	await openFile(t, 'a.ts');
@@ -308,6 +345,23 @@ test('Backspace in the panel drops the note under the cursor', async () => {
 	await press(t, (i) => i.pressBackspace());
 	await settle(t);
 	expect(t.captureCharFrame()).toContain('Removed the question');
+	expect(t.captureCharFrame()).toContain('No notes yet');
+});
+
+test('removing a note removes the replies answering it', async () => {
+	const t = await launch(fixture(PROJECT), {}, { width: 100, height: 24 });
+	await openFile(t, 'a.ts');
+	await noteLine(t, 'question', 'why two?');
+
+	await runCommand(t, 'Open review panel');
+	await press(t, (i) => i.pressArrow('down'));
+	await press(t, (i) => i.pressKey('r'));
+	await press(t, (i) => void i.typeText('an answer'));
+	await press(t, (i) => i.pressEnter());
+	expect(t.captureCharFrame()).toContain('QUESTION 1 ↳1');
+
+	await press(t, (i) => i.pressBackspace());
+	await settle(t);
 	expect(t.captureCharFrame()).toContain('No notes yet');
 });
 

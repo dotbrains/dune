@@ -17,9 +17,10 @@ import type { Config } from '../core/config';
 import { fetchComments, findPullRequest, forgeFor } from '../core/forge';
 import type { ForgeComment, PullRequest } from '../core/forge';
 import { remoteUrl } from '../core/git';
-import { loadNotes, NOTE_LABELS, saveNotes } from '../core/review';
+import { loadNotes, NOTE_LABELS, rootIdOf, saveNotes } from '../core/review';
 import type { NoteKind, ReviewNote } from '../core/review';
 import type { Tone } from '../ui/StatusBar';
+import type { Prompt } from './types';
 
 /** A comment with the absolute path it belongs to, once one could be worked out. */
 export interface AnchoredComment {
@@ -59,10 +60,21 @@ export function createReview(deps: {
 	) => void;
 	setGitPanel: (open: boolean) => void;
 	setReviewPanel: (open: boolean) => void;
+	setPrompt: (prompt: Prompt) => void;
 	say: (msg: string, tone?: Tone) => void;
 }) {
-	const { rootDir, config, activePath, activeRepo, branch, openFile, setFocus, setGoto, say } =
-		deps;
+	const {
+		rootDir,
+		config,
+		activePath,
+		activeRepo,
+		branch,
+		openFile,
+		setFocus,
+		setGoto,
+		setPrompt,
+		say,
+	} = deps;
 
 	const [notes, setNotes] = createSignal<ReviewNote[]>(loadNotes(rootDir));
 	const [comments, setComments] = createSignal<AnchoredComment[]>([]);
@@ -88,10 +100,34 @@ export function createReview(deps: {
 		say(`${NOTE_LABELS[note.kind]} noted on ${where} — ${notes().length} in this review`);
 	};
 
+	/**
+	 * Answers the remark `parentId` names. A reply to a reply still points at
+	 * the thread's root — `rootIdOf` resolves that — so a thread never nests
+	 * more than one level regardless of which reply was answered.
+	 */
+	const reply = (parentId: string, body: string) => {
+		const current = notes();
+		const root = current.find((note) => note.id === rootIdOf(current, parentId));
+		if (!root) return say('That note is gone', 'warn');
+		const full: ReviewNote = {
+			id: nextId(),
+			path: root.path,
+			line: root.line,
+			endLine: root.endLine,
+			kind: 'note',
+			body,
+			at: Date.now(),
+			parent: root.id,
+		};
+		writeNotes([...current, full]);
+		say(`Replied on ${basename(root.path)}:${root.line + 1}`);
+	};
+
 	const removeNote = (id: string) => {
 		const held = notes().find((note) => note.id === id);
 		if (!held) return;
-		writeNotes(notes().filter((note) => note.id !== id));
+		// Its replies answer a remark that is about to stop existing.
+		writeNotes(notes().filter((note) => note.id !== id && note.parent !== id));
 		say(`Removed the ${NOTE_LABELS[held.kind].toLowerCase()} on ${basename(held.path)}`);
 	};
 
@@ -104,6 +140,12 @@ export function createReview(deps: {
 
 	/** Draft notes of one file, by line — the gutter marks and the inline text. */
 	const notesFor = (path: string) => notes().filter((note) => note.path === path);
+
+	/** A reply shares its root's line, so only the root gets its own inline mark. */
+	const rootsFor = (path: string) => notesFor(path).filter((note) => !note.parent);
+
+	/** How many replies a thread has, for the "ISSUE ↳2" suffix on its row. */
+	const replyCountOf = (id: string) => notes().filter((note) => note.parent === id).length;
 
 	/** Fetched comments of one file, by line, for the same two. */
 	const commentsFor = (path: string) =>
@@ -126,7 +168,7 @@ export function createReview(deps: {
 				text: oneLine(entry.comment.body),
 			});
 		}
-		for (const note of notesFor(path)) {
+		for (const note of rootsFor(path)) {
 			byLine.set(note.line, {
 				draft: true,
 				label: NOTE_LABELS[note.kind],
@@ -170,12 +212,17 @@ export function createReview(deps: {
 				collapsed: shut,
 			});
 			if (shut) continue;
-			for (const note of entry.notes.toSorted((a, b) => a.line - b.line)) {
+			// A reply joins its root's thread rather than listing as its own row —
+			// the root's own row is where its count shows instead.
+			for (const note of entry.notes
+				.filter((held) => !held.parent)
+				.toSorted((a, b) => a.line - b.line)) {
+				const replies = replyCountOf(note.id);
 				out.push({
 					kind: 'note',
 					id: note.id,
 					note,
-					label: `${NOTE_LABELS[note.kind]} ${note.line + 1}`,
+					label: `${NOTE_LABELS[note.kind]} ${note.line + 1}${replies > 0 ? ` ↳${replies}` : ''}`,
 					text: oneLine(note.body),
 				});
 			}
@@ -310,6 +357,14 @@ export function createReview(deps: {
 		removeNote(current.note.id);
 	};
 
+	/** r: answer the remark under the cursor. Only a draft note has a thread to join. */
+	const promptReply = () => {
+		const current = row();
+		if (current?.kind === 'comment') return say('That comment is on the forge, not here', 'warn');
+		if (current?.kind !== 'note') return say('Select a note first', 'warn');
+		setPrompt({ kind: 'reviewReply', parentId: current.note.id });
+	};
+
 	/**
 	 * The pull request open for this branch, and everything said on it.
 	 *
@@ -396,7 +451,9 @@ export function createReview(deps: {
 		fold,
 		collapseAll,
 		remove,
+		promptReply,
 		add,
+		reply,
 		removeNote,
 		clear,
 		fetchPullRequest: () => void fetchPullRequest(),

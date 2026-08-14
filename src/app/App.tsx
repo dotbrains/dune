@@ -317,6 +317,7 @@ export function App(props: AppTypes.AppProps) {
 		setGoto,
 		setGitPanel: gitCommands.setPanel,
 		setReviewPanel,
+		setPrompt,
 		say,
 	});
 	const documentActions = createDocumentActions({
@@ -354,6 +355,7 @@ export function App(props: AppTypes.AppProps) {
 		patchConfig: (patch) => patchConfig(patch, settingsPage() ?? 'user'),
 		reloadAppearancePlugins: reloadUi,
 		addReviewNote: review.add,
+		addReviewReply: review.reply,
 		whileFree,
 		rootDir,
 	});
