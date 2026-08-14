@@ -547,6 +547,75 @@ test('force delete branch command deletes an unmerged branch after confirmation'
 	);
 });
 
+test('create tag command tags HEAD', async () => {
+	const dir = repo('one\n');
+
+	const t = await launch(dir);
+	await runCommand(t, 'Create tag');
+	expect(t.captureCharFrame()).toContain('New tag name');
+	await press(t, (input) => void input.typeText('v1.0.0'));
+	await press(t, (input) => input.pressEnter());
+
+	await until(
+		t,
+		() => execFileSync('git', ['tag', '--list', 'v1.0.0'], { cwd: dir }).toString().trim() === 'v1.0.0',
+	);
+});
+
+test('delete tag command removes the selected tag', async () => {
+	const dir = repo('one\n');
+	runGit(dir, 'tag', 'v1.0.0');
+
+	const t = await launch(dir);
+	await runCommand(t, 'Delete tag');
+	expect(t.captureCharFrame()).toContain('v1.0.0');
+	await press(t, (input) => input.pressEnter());
+	expect(t.captureCharFrame()).toContain('Delete tag');
+	await press(t, (input) => input.pressEnter());
+
+	await until(
+		t,
+		() => execFileSync('git', ['tag', '--list', 'v1.0.0'], { cwd: dir }).toString().trim() === '',
+	);
+});
+
+test('add remote command asks for a name then a URL', async () => {
+	const dir = repo('one\n');
+
+	const t = await launch(dir);
+	await runCommand(t, 'Add remote');
+	expect(t.captureCharFrame()).toContain('New remote name');
+	await press(t, (input) => void input.typeText('upstream'));
+	await press(t, (input) => input.pressEnter());
+	expect(t.captureCharFrame()).toContain('Remote URL for upstream');
+	await press(t, (input) => void input.typeText('https://example.test/repo.git'));
+	await press(t, (input) => input.pressEnter());
+
+	await until(
+		t,
+		() =>
+			execFileSync('git', ['remote', 'get-url', 'upstream'], { cwd: dir }).toString().trim() ===
+			'https://example.test/repo.git',
+	);
+});
+
+test('remove remote command removes the selected remote', async () => {
+	const dir = repo('one\n');
+	runGit(dir, 'remote', 'add', 'upstream', 'https://example.test/repo.git');
+
+	const t = await launch(dir);
+	await runCommand(t, 'Remove remote');
+	expect(t.captureCharFrame()).toContain('upstream');
+	await press(t, (input) => input.pressEnter());
+	expect(t.captureCharFrame()).toContain('Remove remote');
+	await press(t, (input) => input.pressEnter());
+
+	await until(
+		t,
+		() => !execFileSync('git', ['remote'], { cwd: dir }).toString().includes('upstream'),
+	);
+});
+
 test('outside a repository git commands warn instead of mutating', async () => {
 	const t = await launch(fixture({ 'a.ts': 'x\n' }));
 	await runCommand(t, 'Commit');

@@ -2,16 +2,21 @@ import { relative } from 'node:path';
 import { createSignal } from 'solid-js';
 
 import {
+	addRemote,
 	commitPaths,
 	createBranch,
+	createTag,
 	defaultBranch,
 	deleteBranch,
+	deleteTag,
 	diffFiles,
 	discardChanges,
 	fetch as gitFetch,
 	inRepository,
 	lastCommitSubject,
 	listBranches,
+	listRemotes,
+	listTags,
 	localBranchName,
 	mergeBranch,
 	pullAndPush,
@@ -19,6 +24,7 @@ import {
 	push as gitPush,
 	PUSH_REJECTED,
 	recentCommitMessages,
+	removeRemote,
 	renameBranch,
 	stagedPaths,
 	stashApply,
@@ -66,19 +72,51 @@ export function createGitCommands(deps: {
 	const [diff, setDiff] = createSignal<DiffFile[] | null>(null);
 	const [diffTitle, setDiffTitle] = createSignal<string | null>(null);
 	const [panel, setPanel] = createSignal(false);
-	const [branchMode, setBranchMode] = createSignal<
+	type BranchMode =
 		| 'commitDiff'
 		| 'commits'
 		| 'compare'
 		| 'delete'
 		| 'deleteForce'
+		| 'deleteTag'
 		| 'diffBase'
 		| 'from'
 		| 'merge'
+		| 'removeRemote'
 		| 'rename'
 		| 'stash'
-		| 'switch'
-	>('compare');
+		| 'switch';
+	const [branchMode, setBranchMode] = createSignal<BranchMode>('compare');
+	const BRANCH_CHOICE_COPY: Record<BranchMode, { title: string; message: string }> = {
+		switch: { title: 'Switch to branch', message: 'Enter checks out the selected branch.' },
+		commits: {
+			title: 'Compare commits against branch',
+			message: 'Enter lists commits ahead of the selected branch.',
+		},
+		commitDiff: { title: 'Open commit diff', message: 'Enter opens the selected commit diff.' },
+		merge: {
+			title: 'Merge into current branch',
+			message: 'Enter chooses a branch to merge into the current branch.',
+		},
+		rename: { title: 'Rename branch', message: 'Enter chooses a branch to rename.' },
+		delete: { title: 'Delete branch', message: 'Enter chooses a branch to delete.' },
+		deleteForce: {
+			title: 'Delete branch (force)',
+			message: 'Enter chooses a branch to force delete.',
+		},
+		diffBase: {
+			title: 'Compare against branch',
+			message: 'Enter makes the editor compare changes against this branch.',
+		},
+		from: { title: 'New branch from', message: 'Enter chooses the start point for a new branch.' },
+		stash: { title: 'Stashes', message: 'Enter applies the selected stash; Backspace drops it.' },
+		deleteTag: { title: 'Delete tag', message: 'Enter chooses a tag to delete.' },
+		removeRemote: { title: 'Remove remote', message: 'Enter chooses a remote to remove.' },
+		compare: {
+			title: 'Compare against branch',
+			message: 'Enter compares the current branch against the selected branch.',
+		},
+	};
 	const [branchChoices, setBranchChoices] = createSignal<{ id: string; label: string }[] | null>(
 		null,
 	);
@@ -138,6 +176,46 @@ export function createGitCommands(deps: {
 		setBranchMode('stash');
 		setBranchChoices(stashes.map((entry) => ({ id: entry.ref, label: entry.message })));
 	};
+
+	const openTagCreate = () => {
+		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
+		deps.setPrompt({ kind: 'newTag' });
+	};
+
+	const openTagDelete = () => {
+		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
+		const tags = listTags(deps.rootDir);
+		if (tags.length === 0) return deps.say('No tags');
+		setBranchMode('deleteTag');
+		setBranchChoices(tags.map((name) => ({ id: name, label: name })));
+	};
+
+	const submitTag = (name: string) =>
+		runGit('Creating tag', () => createTag(deps.rootDir, name), `Tagged ${name}`);
+
+	const removeTag = (name: string) =>
+		runGit('Deleting tag', () => deleteTag(deps.rootDir, name), `Deleted tag ${name}`);
+
+	const openRemoteAdd = () => {
+		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
+		deps.setPrompt({ kind: 'newRemoteName' });
+	};
+
+	const openRemoteRemove = () => {
+		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
+		const remotes = listRemotes(deps.rootDir);
+		if (remotes.length === 0) return deps.say('No remotes');
+		setBranchMode('removeRemote');
+		setBranchChoices(remotes.map((name) => ({ id: name, label: name })));
+	};
+
+	const submitRemoteName = (name: string) => deps.setPrompt({ kind: 'newRemoteUrl', name });
+
+	const submitRemote = (name: string, url: string) =>
+		runGit('Adding remote', () => addRemote(deps.rootDir, name, url), `Added remote ${name}`);
+
+	const removeRemoteConfirmed = (name: string) =>
+		runGit('Removing remote', () => removeRemote(deps.rootDir, name), `Removed remote ${name}`);
 
 	const compareWith = (base: string) => {
 		const files = branchDiffFiles(deps.rootDir, base);
@@ -359,50 +437,8 @@ export function createGitCommands(deps: {
 		},
 		cancelCommit: () => setCommitFiles(null),
 		closeBranchChoices: () => setBranchChoices(null),
-		branchChoiceTitle: () =>
-			branchMode() === 'switch'
-				? 'Switch to branch'
-				: branchMode() === 'commits'
-					? 'Compare commits against branch'
-					: branchMode() === 'commitDiff'
-						? 'Open commit diff'
-						: branchMode() === 'merge'
-							? 'Merge into current branch'
-							: branchMode() === 'rename'
-								? 'Rename branch'
-								: branchMode() === 'delete'
-									? 'Delete branch'
-									: branchMode() === 'deleteForce'
-										? 'Delete branch (force)'
-										: branchMode() === 'diffBase'
-											? 'Compare against branch'
-											: branchMode() === 'from'
-												? 'New branch from'
-												: branchMode() === 'stash'
-													? 'Stashes'
-													: 'Compare against branch',
-		branchChoiceMessage: () =>
-			branchMode() === 'switch'
-				? 'Enter checks out the selected branch.'
-				: branchMode() === 'commits'
-					? 'Enter lists commits ahead of the selected branch.'
-					: branchMode() === 'commitDiff'
-						? 'Enter opens the selected commit diff.'
-						: branchMode() === 'merge'
-							? 'Enter chooses a branch to merge into the current branch.'
-							: branchMode() === 'rename'
-								? 'Enter chooses a branch to rename.'
-								: branchMode() === 'delete'
-									? 'Enter chooses a branch to delete.'
-									: branchMode() === 'deleteForce'
-										? 'Enter chooses a branch to force delete.'
-										: branchMode() === 'diffBase'
-											? 'Enter makes the editor compare changes against this branch.'
-											: branchMode() === 'from'
-												? 'Enter chooses the start point for a new branch.'
-												: branchMode() === 'stash'
-													? 'Enter applies the selected stash; Backspace drops it.'
-													: 'Enter compares the current branch against the selected branch.',
+		branchChoiceTitle: () => BRANCH_CHOICE_COPY[branchMode()].title,
+		branchChoiceMessage: () => BRANCH_CHOICE_COPY[branchMode()].message,
 		pickBranch: (name: string) => {
 			setBranchChoices(null);
 			if (branchMode() === 'commits') return showCommitChoices(name);
@@ -422,6 +458,9 @@ export function createGitCommands(deps: {
 			if (branchMode() === 'from') return deps.setPrompt({ kind: 'newBranch', from: name });
 			if (branchMode() === 'stash')
 				return runGit('Applying stash', () => stashApply(deps.rootDir, name), 'Applied stash');
+			if (branchMode() === 'deleteTag') return deps.setPrompt({ kind: 'deleteTag', name });
+			if (branchMode() === 'removeRemote')
+				return deps.setPrompt({ kind: 'removeRemote', name });
 			const branch = listBranches(deps.rootDir).find((item) => item.name === name);
 			runGit(
 				'Switching branch',
@@ -439,6 +478,15 @@ export function createGitCommands(deps: {
 			});
 		},
 		openStashList,
+		openTagCreate,
+		openTagDelete,
+		submitTag,
+		removeTag,
+		openRemoteAdd,
+		openRemoteRemove,
+		submitRemoteName,
+		submitRemote,
+		removeRemoteConfirmed,
 		startCommit,
 		submitCommit,
 		submitBranch,

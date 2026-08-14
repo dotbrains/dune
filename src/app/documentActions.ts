@@ -47,6 +47,11 @@ export function createDocumentActions(deps: {
 		pullPush: (branch: string, hasUpstream: boolean) => void;
 		undoCommit: () => void;
 		discard: (path: string, status: FileStatus) => void;
+		submitTag: (name: string) => void;
+		removeTag: (name: string) => void;
+		submitRemoteName: (name: string) => void;
+		submitRemote: (name: string, url: string) => void;
+		removeRemoteConfirmed: (name: string) => void;
 	};
 	installLspServer: (
 		id: string,
@@ -390,6 +395,18 @@ export function createDocumentActions(deps: {
 		if (p.kind === 'commitMessage') return deps.gitCommands.submitCommit(name);
 		if (p.kind === 'newBranch') return deps.gitCommands.submitBranch(name, p.from);
 		if (p.kind === 'renameBranch') return deps.gitCommands.rename(p.from, name);
+		if (p.kind === 'newTag') {
+			if (!name) return deps.say('Nothing entered', 'warn');
+			return deps.gitCommands.submitTag(name);
+		}
+		if (p.kind === 'newRemoteName') {
+			if (!name) return deps.say('Nothing entered', 'warn');
+			return deps.gitCommands.submitRemoteName(name);
+		}
+		if (p.kind === 'newRemoteUrl') {
+			if (!name) return deps.say('Nothing entered', 'warn');
+			return deps.gitCommands.submitRemote(p.name, name);
+		}
 		if (p.kind === 'typescriptTsdk') {
 			deps.patchConfig({ typescriptTsdk: name });
 			return deps.say(name ? `TypeScript SDK: ${name}` : 'TypeScript SDK: server default');
@@ -586,6 +603,10 @@ export function createDocumentActions(deps: {
 				return deps.gitCommands.undoCommit();
 			case 'discardChanges':
 				return deps.gitCommands.discard(p.path, p.status);
+			case 'deleteTag':
+				return deps.gitCommands.removeTag(p.name);
+			case 'removeRemote':
+				return deps.gitCommands.removeRemoteConfirmed(p.name);
 			case 'deleteBranch':
 				return deps.gitCommands.remove(p.name, p.force);
 			case 'mergeBranch':

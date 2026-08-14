@@ -75,6 +75,11 @@ export type Prompt =
 	| { kind: 'quitDirty'; names: string[] }
 	| { kind: 'undoCommit'; subject: string }
 	| { kind: 'discardChanges'; path: string; status: FileStatus }
+	| { kind: 'newTag' }
+	| { kind: 'deleteTag'; name: string }
+	| { kind: 'newRemoteName' }
+	| { kind: 'newRemoteUrl'; name: string }
+	| { kind: 'removeRemote'; name: string }
 	| { kind: 'renameBranch'; from: string }
 	| { kind: 'deleteBranch'; name: string; force: boolean }
 	| { kind: 'mergeBranch'; name: string }
