@@ -97,6 +97,7 @@ interface AppViewProps {
 	busy: { label: string; done: number; total: number } | null;
 	promptTitle: string | undefined;
 	promptValue: string;
+	promptHistory: string[];
 	confirmation: Confirmation | null;
 	search: { scope: SearchScope; replacing?: boolean } | null;
 	picker: 'files' | 'tabs' | null;
@@ -403,6 +404,7 @@ export function AppView(props: AppViewProps) {
 					<PromptModal
 						title={title()}
 						initialValue={props.promptValue}
+						history={props.promptHistory}
 						onSubmit={props.onSubmitPrompt}
 						onCancel={() => props.onCancelPrompt()}
 					/>

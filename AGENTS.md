@@ -14,7 +14,7 @@ Features: file tree with bulk file operations and optional unicode/local-plugin 
 gitignored dimming across opened folders that hold multiple repositories, tree-sitter syntax highlighting, rendered markdown tabs with Mermaid fences,
 image/PDF viewer tabs, search and replace (current file and
 project-wide), command palette, built-in and local-plugin themes with transparent-background mode, vim mode, configurable cursor shape and word wrap, git marks in tree/gutter/status bar,
-review notes plus read-only pull-request comment fetching from common forges,
+commit-message history recall, review notes plus read-only pull-request comment fetching from common forges,
 file watching with conflict prompts, in-editor merge-conflict resolution commands, language server diagnostics/completion/status,
 per-project session restore, and a startup update check.
 

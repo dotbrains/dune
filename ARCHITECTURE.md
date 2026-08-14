@@ -28,6 +28,7 @@ scripts/
     search.ts        in-file/project search, fuzzy matching, replace
     git.ts           diff hunks, status, branch, ahead/behind, plus async mutations
                      (commit, push, pull, fetch, stash, branch actions)
+    messageHistory.ts shared one-line prompt history walking for commit subjects
     review.ts        persisted local review notes
     forge.ts         read-only pull-request discovery/comments for review
     markdown.ts      markdown path detection for rendered document tabs

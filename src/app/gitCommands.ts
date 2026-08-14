@@ -17,6 +17,7 @@ import {
 	pull as gitPull,
 	push as gitPush,
 	PUSH_REJECTED,
+	recentCommitMessages,
 	renameBranch,
 	stagedPaths,
 	stashPop,
@@ -48,6 +49,7 @@ export function createGitCommands(deps: {
 	setDiffBase: (base: string | null) => void;
 	setBusy: (busy: { label: string; done: number; total: number } | null) => void;
 	setGitRevision: (update: (n: number) => number) => void;
+	setCommitMessageHistory: (history: string[]) => void;
 	setPrompt: (prompt: Prompt) => void;
 	say: (msg: string, tone?: Tone) => void;
 	whileFree: (run: () => void) => void;
@@ -258,6 +260,7 @@ export function createGitCommands(deps: {
 	const startCommit = (paths: string[]) => {
 		setCommitFiles(null);
 		setCommitSelection(paths);
+		deps.setCommitMessageHistory(recentCommitMessages(deps.rootDir));
 		deps.setPrompt({ kind: 'commitMessage' });
 	};
 

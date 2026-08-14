@@ -26,6 +26,7 @@ export interface Branch {
  * here reads as "no output" — `status` would lose files in a large repository.
  */
 const MAX_OUTPUT = 128 * 1024 * 1024;
+const MESSAGE_LOG_CAP = 50;
 
 function git(cwd: string, args: string[], timeout = 5000, input?: string) {
 	return spawnSync('git', args, { cwd, encoding: 'utf8', timeout, maxBuffer: MAX_OUTPUT, input });
@@ -457,6 +458,17 @@ export async function commitPaths(
 	const add = await mutate(cwd, ['add', '-A', '--', ...paths]);
 	if (!add.ok) return add;
 	return mutate(cwd, ['commit', '-m', message, '--', ...paths]);
+}
+
+export function recentCommitMessages(cwd: string): string[] {
+	const run = git(cwd, ['log', '-n', String(MESSAGE_LOG_CAP), '--format=%s'], 5000);
+	if (run.status !== 0) return [];
+	const seen = new Set<string>();
+	for (const line of run.stdout.split('\n')) {
+		const subject = line.trim();
+		if (subject) seen.add(subject);
+	}
+	return [...seen];
 }
 
 export function undoLastCommit(cwd: string): Promise<GitResult> {

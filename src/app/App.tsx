@@ -61,6 +61,7 @@ export function App(props: AppTypes.AppProps) {
 	const [sidebar, setSidebar] = createSignal(restored.sidebar);
 	const [focus, setFocus] = createSignal<AppTypes.Focus>(restored.sidebar ? 'tree' : 'editor');
 	const [prompt, setPrompt] = createSignal<AppTypes.Prompt>(null);
+	const [commitMessageHistory, setCommitMessageHistory] = createSignal<string[]>([]);
 	const [help, setHelp] = createSignal(false);
 	const [peek, setPeek] = createSignal(false);
 	const [palette, setPalette] = createSignal(false);
@@ -295,6 +296,7 @@ export function App(props: AppTypes.AppProps) {
 		setDiffBase,
 		setBusy,
 		setGitRevision,
+		setCommitMessageHistory,
 		setPrompt,
 		say,
 		whileFree,
@@ -658,6 +660,7 @@ export function App(props: AppTypes.AppProps) {
 				busy={busy()}
 				promptTitle={controls.promptTitle()}
 				promptValue={controls.promptValue()}
+				promptHistory={prompt()?.kind === 'commitMessage' ? commitMessageHistory() : []}
 				confirmation={controls.confirmation()}
 				search={search()}
 				picker={picker()}
