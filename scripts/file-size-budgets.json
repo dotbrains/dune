@@ -8,7 +8,9 @@
 		"src/core/forge.ts": 515,
 		"src/core/git.ts": 530,
 		"src/ui/EditorPane.tsx": 540,
-		"src/ui/SearchPanel.tsx": 530
+		"src/ui/SearchPanel.tsx": 530,
+		"src/ui/overlays/DiffView.tsx": 380,
+		"test/git.test.tsx": 545
 	},
 	"exclude": ["^bun\\.lock$"]
 }
