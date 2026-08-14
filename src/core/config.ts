@@ -127,6 +127,8 @@ export interface Config {
 	pluginUpdates: boolean;
 	/** Local plugin ids to list but not register. */
 	disabledAppearancePlugins: string[];
+	/** Show a shortcut hint after the pointer rests on a tab-bar icon. */
+	tooltips: boolean;
 }
 
 export const DEFAULTS: Config = {
@@ -165,6 +167,7 @@ export const DEFAULTS: Config = {
 	pluginRegistry: 'https://dune.dotbrains.dev/plugins/',
 	pluginUpdates: true,
 	disabledAppearancePlugins: [],
+	tooltips: true,
 };
 
 function parsePartial(raw: unknown): Partial<Config> {
@@ -253,6 +256,7 @@ function parsePartial(raw: unknown): Partial<Config> {
 		config.pluginRegistry = obj.pluginRegistry;
 	}
 	if (typeof obj.pluginUpdates === 'boolean') config.pluginUpdates = obj.pluginUpdates;
+	if (typeof obj.tooltips === 'boolean') config.tooltips = obj.tooltips;
 	if (Array.isArray(obj.disabledAppearancePlugins)) {
 		config.disabledAppearancePlugins = obj.disabledAppearancePlugins.filter(
 			(entry): entry is string => typeof entry === 'string' && /^[\w.-]+$/.test(entry),

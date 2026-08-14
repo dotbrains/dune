@@ -4,6 +4,8 @@ import { useTerminalDimensions } from '@opentui/solid';
 import { createMemo, For, Show } from 'solid-js';
 
 import { ui } from '../themes';
+import { ALT } from './keys';
+import { createHoverTooltip } from './tooltip';
 
 export interface TabInfo {
 	path: string;
@@ -23,6 +25,8 @@ export interface TabsProps {
 	onForward: () => void;
 	/** Clicking an overflow counter asks for the full list of open tabs. */
 	onOverflow: () => void;
+	tooltipsEnabled: boolean;
+	keybindings: Record<string, string>;
 }
 
 const MAX_LABEL = 18;
@@ -35,6 +39,8 @@ const shorten = (name: string) =>
 
 export function Tabs(props: TabsProps) {
 	const dimensions = useTerminalDimensions();
+	const tooltip = createHoverTooltip(() => props.tooltipsEnabled);
+	const shortcut = (id: string, fallback: string) => props.keybindings[id] ?? fallback;
 
 	/**
 	 * Only the tabs that fit are rendered, scrolled to keep the active one in
@@ -83,7 +89,13 @@ export function Tabs(props: TabsProps) {
 					fallback={<text fg={ui.faint} bg={ui.barBg} content=" no open files" />}
 				>
 					<Show when={visible().before > 0}>
-						<box paddingLeft={1} backgroundColor={ui.barBg} onMouseDown={() => props.onOverflow()}>
+						<box
+							paddingLeft={1}
+							backgroundColor={ui.barBg}
+							onMouseDown={() => props.onOverflow()}
+							onMouseOver={() => tooltip.onOver('overflow', `Switch tabs (${shortcut('tabs.switch', 'Ctrl+T')})`)}
+							onMouseOut={() => tooltip.onOut('overflow')}
+						>
 							<text fg={ui.dim} bg={ui.barBg} content={`‹${visible().before}`} />
 						</box>
 					</Show>
@@ -118,6 +130,13 @@ export function Tabs(props: TabsProps) {
 											e.stopPropagation();
 											props.onClose(tab.path);
 										}}
+										onMouseOver={() =>
+											tooltip.onOver(
+												`close:${tab.path}`,
+												`Close tab (${shortcut('tabs.close', 'Ctrl+W')})`,
+											)
+										}
+										onMouseOut={() => tooltip.onOut(`close:${tab.path}`)}
 									>
 										<text
 											fg={tab.dirty ? ui.dirty : active() ? ui.dim : ui.barBg}
@@ -135,11 +154,21 @@ export function Tabs(props: TabsProps) {
 							paddingRight={1}
 							backgroundColor={ui.barBg}
 							onMouseDown={() => props.onOverflow()}
+							onMouseOver={() => tooltip.onOver('overflow', `Switch tabs (${shortcut('tabs.switch', 'Ctrl+T')})`)}
+							onMouseOut={() => tooltip.onOut('overflow')}
 						>
 							<text fg={ui.dim} bg={ui.barBg} content={`${visible().after}›`} />
 						</box>
 					</Show>
-					<box paddingLeft={1} backgroundColor={ui.barBg} onMouseDown={() => props.onBack()}>
+					<box
+						paddingLeft={1}
+						backgroundColor={ui.barBg}
+						onMouseDown={() => props.onBack()}
+						onMouseOver={() =>
+							tooltip.onOver('back', `Go back (${shortcut('navigation.back', `Ctrl+${ALT}+Z`)})`)
+						}
+						onMouseOut={() => tooltip.onOut('back')}
+					>
 						<text fg={props.canBack ? ui.dim : ui.faint} bg={ui.barBg} content="‹" />
 					</box>
 					<box
@@ -147,11 +176,24 @@ export function Tabs(props: TabsProps) {
 						paddingRight={1}
 						backgroundColor={ui.barBg}
 						onMouseDown={() => props.onForward()}
+						onMouseOver={() =>
+							tooltip.onOver(
+								'forward',
+								`Go forward (${shortcut('navigation.forward', `Ctrl+${ALT}+Y`)})`,
+							)
+						}
+						onMouseOut={() => tooltip.onOut('forward')}
 					>
 						<text fg={props.canForward ? ui.dim : ui.faint} bg={ui.barBg} content="›" />
 					</box>
 				</Show>
-				<box flexGrow={1} backgroundColor={ui.barBg} />
+				<box flexGrow={1} flexDirection="row" justifyContent="flex-end" backgroundColor={ui.barBg}>
+					<Show when={tooltip.label()}>
+						{(label: () => string) => (
+							<text fg={ui.dim} bg={ui.barBg} content={`${label().slice(0, dimensions().width)} `} />
+						)}
+					</Show>
+				</box>
 			</box>
 		</box>
 	);

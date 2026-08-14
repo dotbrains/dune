@@ -46,6 +46,7 @@ test('invalid project settings are ignored', async () => {
 	const t = await launch(project({ tabSize: 'huge', vim: true }), { tabSize: 8 });
 	await runCommand(t, 'Settings: this project');
 
+	await gotoRow(t, 'Vim mode');
 	expect(t.captureCharFrame()).toContain('Vim mode');
 	await press(t, (input) => void input.typeText('/'));
 	await press(t, (input) => void input.typeText('tab'));
@@ -99,6 +100,7 @@ test('settings rows can be filtered before changing one', async () => {
 	frame = t.captureCharFrame();
 	expect(frame).toContain('No matching settings');
 	await pressEscape(t);
+	await gotoRow(t, 'Vim mode');
 	expect(t.captureCharFrame()).toContain('Vim mode');
 	await pressEscape(t);
 	expect(t.captureCharFrame()).not.toContain('Filter settings');

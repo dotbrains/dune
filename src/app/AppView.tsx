@@ -201,6 +201,8 @@ export function AppView(props: AppViewProps) {
 				onBack={props.onNavigateBack}
 				onForward={props.onNavigateForward}
 				onOverflow={() => props.onOverflowTabs()}
+				tooltipsEnabled={props.config.tooltips}
+				keybindings={props.config.keybindings}
 			/>
 			{/* Drag capture lives on the row, not the divider: the pointer leaves a
           one-column target immediately, and each drag event is delivered to
