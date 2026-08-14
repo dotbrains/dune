@@ -52,6 +52,7 @@ export function createDocumentActions(deps: {
 		submitRemoteName: (name: string) => void;
 		submitRemote: (name: string, url: string) => void;
 		removeRemoteConfirmed: (name: string) => void;
+		submitAmend: (message: string) => void;
 	};
 	installLspServer: (
 		id: string,
@@ -393,6 +394,10 @@ export function createDocumentActions(deps: {
 			});
 		}
 		if (p.kind === 'commitMessage') return deps.gitCommands.submitCommit(name);
+		if (p.kind === 'commitAmend') {
+			if (!name) return deps.say('Nothing entered', 'warn');
+			return deps.gitCommands.submitAmend(name);
+		}
 		if (p.kind === 'newBranch') return deps.gitCommands.submitBranch(name, p.from);
 		if (p.kind === 'renameBranch') return deps.gitCommands.rename(p.from, name);
 		if (p.kind === 'newTag') {

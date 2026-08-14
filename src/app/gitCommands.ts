@@ -3,6 +3,7 @@ import { createSignal } from 'solid-js';
 
 import {
 	addRemote,
+	amendCommit,
 	commitPaths,
 	createBranch,
 	createTag,
@@ -69,6 +70,8 @@ export function createGitCommands(deps: {
 	const setDiffBase = deps.setDiffBase;
 	const [commitFiles, setCommitFiles] = createSignal<CommitFile[] | null>(null);
 	const [commitSelection, setCommitSelection] = createSignal<string[]>([]);
+	/** What "Commit & push"/"Commit & sync" asked for, remembered across the file picker. */
+	const [commitVariant, setCommitVariant] = createSignal<'plain' | 'push' | 'sync'>('plain');
 	const [commitMessageHistory, setCommitMessageHistory] = createSignal<string[]>([]);
 	const [diff, setDiff] = createSignal<DiffFile[] | null>(null);
 	const [diffTitle, setDiffTitle] = createSignal<string | null>(null);
@@ -145,10 +148,11 @@ export function createGitCommands(deps: {
 		);
 	};
 
-	const openCommitPicker = () => {
+	const openCommitPicker = (variant: 'plain' | 'push' | 'sync' = 'plain') => {
 		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
 		const statuses = statusMap(deps.rootDir, null, deps.gitScanDepth());
 		if (statuses.size === 0) return deps.say('Nothing to commit', 'warn');
+		setCommitVariant(variant);
 		const staged = stagedPaths(deps.rootDir);
 		setCommitFiles(
 			[...statuses]
@@ -388,10 +392,44 @@ export function createGitCommands(deps: {
 
 	const submitCommit = (message: string) => {
 		const paths = commitSelection();
+		const variant = commitVariant();
 		setCommitSelection([]);
+		setCommitVariant('plain');
 		if (paths.length === 0) return deps.say('Nothing selected', 'warn');
-		runGit('Committing', () => commitPaths(deps.rootDir, message, paths), 'Committed');
+		if (variant === 'plain') {
+			return runGit('Committing', () => commitPaths(deps.rootDir, message, paths), 'Committed');
+		}
+		const name = deps.branch();
+		const hasUpstream = !!deps.upstream()?.name;
+		runGit(
+			variant === 'push' ? 'Committing and pushing' : 'Committing and syncing',
+			async () => {
+				if (!name) return { ok: false, detail: 'No branch to push' };
+				const committed = await commitPaths(deps.rootDir, message, paths);
+				if (!committed.ok) return committed;
+				if (variant === 'push') {
+					const pushed = await gitPush(deps.rootDir, name, hasUpstream);
+					if (!pushed.ok && pushed.detail === PUSH_REJECTED) {
+						deps.setPrompt({ kind: 'pullPush', branch: name, hasUpstream });
+					}
+					return pushed;
+				}
+				return pullAndPush(deps.rootDir, name, hasUpstream);
+			},
+			variant === 'push' ? 'Committed and pushed' : 'Committed and synced',
+		);
 	};
+
+	const promptAmend = () => {
+		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
+		const subject = lastCommitSubject(deps.rootDir);
+		if (!subject) return deps.say('No commit to amend', 'warn');
+		setCommitMessageHistory(recentCommitMessages(deps.rootDir));
+		deps.setPrompt({ kind: 'commitAmend', subject });
+	};
+
+	const submitAmend = (message: string) =>
+		runGit('Amending commit', () => amendCommit(deps.rootDir, message), 'Amended commit');
 
 	const submitBranch = (name: string, from?: string | null) => {
 		runGit('Creating branch', () => createBranch(deps.rootDir, name, from), `On ${name}`);
@@ -512,6 +550,8 @@ export function createGitCommands(deps: {
 		submitRemote,
 		removeRemoteConfirmed,
 		startCommit,
+		promptAmend,
+		submitAmend,
 		submitCommit,
 		submitBranch,
 		rename,

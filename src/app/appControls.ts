@@ -116,6 +116,7 @@ export function createAppControls(deps: {
 		const p = deps.prompt();
 		if (p?.kind === 'rename') return basename(p.target);
 		if (p?.kind === 'renameBranch') return p.from;
+		if (p?.kind === 'commitAmend') return p.subject;
 		return '';
 	};
 	const confirmation = createMemo(() => confirmationForPrompt(deps.prompt()));

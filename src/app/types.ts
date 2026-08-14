@@ -57,6 +57,7 @@ export interface Conflict {
 export type Prompt =
 	| { kind: 'gotoLine' }
 	| { kind: 'commitMessage' }
+	| { kind: 'commitAmend'; subject: string }
 	| { kind: 'newBranch'; from?: string | null }
 	| { kind: 'newFile'; dir: string }
 	| { kind: 'newFolder'; dir: string }

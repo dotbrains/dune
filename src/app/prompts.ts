@@ -15,6 +15,7 @@ const PROMPT_TITLES: Partial<Record<NonNullable<Prompt>['kind'], string>> = {
 	reviewNote: 'Review note',
 	gotoLine: 'Go to line',
 	commitMessage: 'Commit message',
+	commitAmend: 'Amend commit message',
 	newBranch: 'New branch name',
 	renameBranch: 'Rename branch to',
 	newTag: 'New tag name',

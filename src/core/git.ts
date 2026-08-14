@@ -460,6 +460,10 @@ export async function commitPaths(
 	return mutate(cwd, ['commit', '-m', message, '--', ...paths]);
 }
 
+export function amendCommit(cwd: string, message: string): Promise<GitResult> {
+	return mutate(cwd, ['commit', '--amend', '-m', message]);
+}
+
 /**
  * Reverts one file's working-tree changes. A path git has never committed has
  * nothing to restore to — discarding it means removing it, the way an

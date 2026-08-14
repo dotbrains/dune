@@ -658,7 +658,11 @@ export function App(props: AppTypes.AppProps) {
 				busy={busy()}
 				promptTitle={controls.promptTitle()}
 				promptValue={controls.promptValue()}
-				promptHistory={prompt()?.kind === 'commitMessage' ? gitCommands.commitMessageHistory() : []}
+				promptHistory={
+					prompt()?.kind === 'commitMessage' || prompt()?.kind === 'commitAmend'
+						? gitCommands.commitMessageHistory()
+						: []
+				}
 				confirmation={controls.confirmation()}
 				search={search()}
 				picker={picker()}
