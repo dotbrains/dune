@@ -3,6 +3,7 @@ import { createMemo, createSignal } from 'solid-js';
 import type { Config } from '../core/config';
 import type { AppearancePluginLoad } from '../core/localThemes';
 import { loadLocalLspServers } from '../core/plugins/localLspServers';
+import type { ConflictSide } from '../core/git/conflicts';
 import {
 	fetchCatalog,
 	fetchPlugin,
@@ -87,6 +88,9 @@ export function createAppCommands(deps: {
 	reloadAppearancePlugins: () => void;
 	appearanceVersion: () => AppearancePluginLoad;
 	setLineOp: (update: (prev: LineOpRequest) => NonNullable<LineOpRequest>) => void;
+	resolveMergeConflict: () => void;
+	acceptMergeConflict: (side: ConflictSide) => void;
+	nextMergeConflict: (direction: 1 | -1) => void;
 	patchConfig: (patch: Partial<Config>) => void;
 	gitCommands: {
 		openCommitPicker: () => void;
@@ -261,6 +265,12 @@ export function createAppCommands(deps: {
 				previewTheme: deps.previewTheme,
 				cancelThemePreview: deps.cancelThemePreview,
 				lineOp: (op) => deps.setLineOp((prev) => ({ op, key: (prev?.key ?? 0) + 1 })),
+				resolveMergeConflict: deps.resolveMergeConflict,
+				acceptCurrentChange: () => deps.acceptMergeConflict('ours'),
+				acceptIncomingChange: () => deps.acceptMergeConflict('theirs'),
+				acceptBothChanges: () => deps.acceptMergeConflict('both'),
+				nextMergeConflict: () => deps.nextMergeConflict(1),
+				prevMergeConflict: () => deps.nextMergeConflict(-1),
 				toggleTrim: deps.toggleTrim,
 				toggleFormat: deps.toggleFormat,
 				toggleAutoSave: deps.toggleAutoSave,

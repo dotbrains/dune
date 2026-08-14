@@ -1,7 +1,7 @@
 {
 	"default_lines": 500,
 	"files": {
-		"src/app/App.tsx": 765,
+		"src/app/App.tsx": 777,
 		"src/app/AppView.tsx": 555,
 		"src/app/commands.ts": 585,
 		"src/app/documentActions.ts": 625,

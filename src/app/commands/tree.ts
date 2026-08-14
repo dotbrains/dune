@@ -16,6 +16,7 @@ import type {
 	PickerState,
 	Prompt,
 } from '../types';
+import type { ConflictSide } from '../../core/git/conflicts';
 
 export function createAppCommandTree(deps: {
 	config: Config;
@@ -28,6 +29,9 @@ export function createAppCommandTree(deps: {
 	setHistory: Setter<HistoryRequest>;
 	setSearch: Setter<{ scope: 'file' | 'project'; replacing?: boolean } | null>;
 	setLineOp: Setter<LineOpRequest>;
+	resolveMergeConflict: () => void;
+	acceptMergeConflict: (side: ConflictSide) => void;
+	nextMergeConflict: (direction: 1 | -1) => void;
 	setHelp: Setter<boolean>;
 	patchConfig: (patch: Partial<Config>, scope?: 'user' | 'project') => void;
 	saveActive: () => void;
@@ -162,6 +166,9 @@ export function createAppCommandTree(deps: {
 			},
 		},
 		setLineOp: deps.setLineOp,
+		resolveMergeConflict: deps.resolveMergeConflict,
+		acceptMergeConflict: deps.acceptMergeConflict,
+		nextMergeConflict: deps.nextMergeConflict,
 		patchConfig: deps.patchConfig,
 		gitCommands: deps.gitCommands,
 		setHelp: deps.setHelp,

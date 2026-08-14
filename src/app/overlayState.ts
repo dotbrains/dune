@@ -6,6 +6,7 @@ export function isOverlayOpen(deps: {
 	prompt: Accessor<Prompt>;
 	palette: Accessor<boolean>;
 	conflict: Accessor<Conflict | null>;
+	mergeConflictChoice: Accessor<unknown>;
 	help: Accessor<boolean>;
 	search: Accessor<SearchState>;
 	settingsPage: Accessor<boolean>;
@@ -21,6 +22,7 @@ export function isOverlayOpen(deps: {
 		deps.prompt() ||
 		deps.palette() ||
 		deps.conflict() ||
+		deps.mergeConflictChoice() ||
 		deps.help() ||
 		deps.search() ||
 		deps.settingsPage() ||

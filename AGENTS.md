@@ -15,7 +15,7 @@ gitignored dimming across opened folders that hold multiple repositories, tree-s
 image/PDF viewer tabs, search and replace (current file and
 project-wide), command palette, built-in and local-plugin themes with transparent-background mode, vim mode, configurable cursor shape and word wrap, git marks in tree/gutter/status bar,
 review notes plus read-only pull-request comment fetching from common forges,
-file watching with conflict prompts, language server diagnostics/completion/status,
+file watching with conflict prompts, in-editor merge-conflict resolution commands, language server diagnostics/completion/status,
 per-project session restore, and a startup update check.
 
 Plugin catalog/cache/install primitives live in `src/core/market/`; catalog entries may
@@ -157,6 +157,10 @@ dependency rule, and recipes for the extension points:
 
 `ui/` and the feature folders (`core/`, `languages/`, `themes/`, `editor/`) must never
 import from `app/`. State lives in `App.tsx` and flows down as props.
+
+Merge conflict marker parsing and one-side resolution live in `src/core/conflicts.ts`.
+Editor commands wire that into the active buffer only; do not shell out to
+`git checkout --ours/--theirs`, because that would discard unsaved edits in the buffer.
 
 ## Rules
 

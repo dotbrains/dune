@@ -13,6 +13,7 @@ import { THEME_ENTRIES, themeLabels } from '../themes';
 import type { ThemeName } from '../themes';
 import { isNewer } from '../core/update';
 import { ALT } from '../ui/keys';
+import { conflictCommands } from './commands/conflicts';
 import type { LineOpRequest } from './types';
 
 export interface Command {
@@ -85,6 +86,12 @@ export interface CommandActions {
 	previewTheme: (name: ThemeName) => void;
 	cancelThemePreview: () => void;
 	lineOp: (op: NonNullable<LineOpRequest>['op']) => void;
+	resolveMergeConflict: () => void;
+	acceptCurrentChange: () => void;
+	acceptIncomingChange: () => void;
+	acceptBothChanges: () => void;
+	nextMergeConflict: () => void;
+	prevMergeConflict: () => void;
 	toggleTrim: () => void;
 	toggleFormat: () => void;
 	toggleAutoSave: () => void;
@@ -403,6 +410,7 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 					hint: `Ctrl+${ALT}+B`,
 					run: () => actions.lineOp('lineHome'),
 				},
+				...conflictCommands(actions),
 				{
 					id: 'editor.vimOn',
 					label: `${check(ctx.vimEnabled)}Vim mode on`,

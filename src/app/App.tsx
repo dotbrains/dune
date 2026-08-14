@@ -25,6 +25,7 @@ import { createCompletionActions } from './lsp/completionActions';
 import { createDuneAppLsp } from './lsp/pluginSuggestion';
 import { createProblemUi } from './lsp/view';
 import { createMarkdownView } from './markdown/view';
+import { createMergeConflictActions } from './commands/mergeConflicts';
 import { createNavigation } from './navigation';
 import { createFileOpener } from './openFile';
 import { openPathUnderCursor as openPathUnderCursorAction } from './openPathUnderCursor';
@@ -229,6 +230,15 @@ export function App(props: AppTypes.AppProps) {
 		setBuffers(path, { ...(buffers[path] ?? { mtime: 0 }), content: next, dirty: true });
 		if (path === activePath()) pushEdit(next);
 	};
+	const mergeConflicts = createMergeConflictActions({
+		activePath,
+		activeBuffer,
+		cursor,
+		applyBufferReplacement,
+		setFocus,
+		setGoto,
+		say,
+	});
 	const jumpTo = (match: { path: string | null; line: number; col: number }) => {
 		setSearch(null);
 		if (match.path && match.path !== activePath()) openFile(match.path);
@@ -361,6 +371,7 @@ export function App(props: AppTypes.AppProps) {
 		prompt,
 		palette,
 		conflict,
+		mergeConflictChoice: mergeConflicts.open,
 		help,
 		search,
 		settingsPage: () => settingsPage() !== null,
@@ -460,6 +471,9 @@ export function App(props: AppTypes.AppProps) {
 		reviewClear: review.clear,
 		completion,
 		setLineOp,
+		resolveMergeConflict: mergeConflicts.choose,
+		acceptMergeConflict: mergeConflicts.accept,
+		nextMergeConflict: mergeConflicts.next,
 		patchConfig,
 		gitCommands,
 		setHelp,
@@ -756,6 +770,7 @@ export function App(props: AppTypes.AppProps) {
 					setUpdate(null);
 				}}
 			/>
+			{mergeConflicts.view()}
 			{appearancePluginUi.view()}
 		</>
 	);

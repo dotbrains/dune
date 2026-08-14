@@ -162,6 +162,9 @@ The command palette includes Git actions for viewing diffs, committing selected 
 undoing the last commit, stashing, popping a stash, fetching, and pushing. If files
 are already staged, the commit picker starts from the index selection; otherwise it
 selects all changed files. Diff overlays can be shown inline or split from Settings.
+When a merge leaves conflict markers in a file, the Editor commands can jump between
+conflicts and accept the current change, incoming change, or both sides without leaving
+the buffer.
 
 `Ctrl+Opt+G` swaps the sidebar to a compact source-control panel with changed files
 and status marks. Click a changed file there to open its diff.
