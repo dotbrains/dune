@@ -12,7 +12,7 @@
 		"src/ui/SearchPanel.tsx": 530,
 		"src/ui/overlays/DiffView.tsx": 380,
 		"test/git.test.tsx": 545,
-		"test/git-commands.test.tsx": 735
+		"test/git-commands.test.tsx": 755
 	},
 	"exclude": ["^bun\\.lock$"]
 }

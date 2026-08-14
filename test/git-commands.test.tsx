@@ -86,6 +86,22 @@ test('commit and push commits then pushes to the remote', async () => {
 	expect(subject(dir)).toBe('push this');
 });
 
+test('commit and push on a detached HEAD fails without committing', async () => {
+	const dir = repo('one\n');
+	runGit(dir, 'checkout', '-q', '--detach', 'HEAD');
+	writeFileSync(join(dir, 'a.ts'), 'two\n');
+	const before = subject(dir);
+
+	const t = await launch(dir);
+	await runCommand(t, 'Commit & push');
+	await press(t, (input) => input.pressEnter());
+	await press(t, (input) => void input.typeText('should not land'));
+	await press(t, (input) => input.pressEnter());
+
+	await until(t, () => t.captureCharFrame().includes('No branch to push'));
+	expect(subject(dir)).toBe(before);
+});
+
 test('commit and sync pulls the remote before pushing', async () => {
 	const dir = repo('one\n');
 	const bare = mkdtempSync(join(tmpdir(), 'dune-commit-sync-'));

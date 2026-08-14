@@ -404,8 +404,9 @@ export function createGitCommands(deps: {
 		runGit(
 			variant === 'push' ? 'Committing and pushing' : 'Committing and syncing',
 			async () => {
+				if (!name) return { ok: false, detail: 'No branch to push' };
 				const committed = await commitPaths(deps.rootDir, message, paths);
-				if (!committed.ok || !name) return committed;
+				if (!committed.ok) return committed;
 				if (variant === 'push') {
 					const pushed = await gitPush(deps.rootDir, name, hasUpstream);
 					if (!pushed.ok && pushed.detail === PUSH_REJECTED) {
