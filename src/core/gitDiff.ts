@@ -58,8 +58,10 @@ export function branchDiffFiles(cwd: string, baseBranch = defaultBranch(cwd)): D
 	return refDiffFiles(cwd, base, mergeBase.stdout.trim(), 'HEAD');
 }
 
-function refDiffFiles(cwd: string, base: string, from: string, to: string): DiffFile[] {
-	const names = git(cwd, ['diff', '--name-status', '-M', '-z', from, to], 5000);
+function refDiffFiles(cwd: string, base: string, from: string, to: string, path?: string): DiffFile[] {
+	const args = ['diff', '--name-status', '-M', '-z', from, to];
+	if (path) args.push('--', path);
+	const names = git(cwd, args, 5000);
 	if (names.status !== 0 || !names.stdout) return [];
 	const parts = names.stdout.split('\0');
 	const files: DiffFile[] = [];
@@ -106,6 +108,33 @@ export function branchDiffCommits(cwd: string, baseBranch = defaultBranch(cwd)):
 	return commits;
 }
 
+/** A file's own history, newest first — capped at 50 the way the commit box's message recall is. */
+const FILE_HISTORY_CAP = 50;
+
+export function commitsForFile(cwd: string, path: string): BranchCommit[] {
+	const base = keyBase(cwd);
+	if (base === null) return [];
+	const format = '%H%x00%h%x00%s%x00%an';
+	const run = git(
+		cwd,
+		['log', '--follow', '-n', String(FILE_HISTORY_CAP), '-z', `--format=${format}`, '--', path],
+		5000,
+	);
+	if (run.status !== 0 || !run.stdout) return [];
+	const fields = run.stdout.split('\0');
+	if (fields.at(-1) === '') fields.pop();
+	const commits: BranchCommit[] = [];
+	for (let i = 0; i + 3 < fields.length; i += 4) {
+		commits.push({
+			oid: fields[i]!,
+			shortOid: fields[i + 1]!,
+			subject: fields[i + 2]!,
+			authorName: fields[i + 3]!,
+		});
+	}
+	return commits;
+}
+
 export function commitSummary(cwd: string, oid: string): BranchCommit | null {
 	const format = '%H%x00%h%x00%s%x00%an';
 	const run = git(cwd, ['show', '-s', `--format=${format}`, oid], 5000);
@@ -121,12 +150,12 @@ export function branchBehindCount(cwd: string, baseBranch = defaultBranch(cwd)):
 	return run.status === 0 ? Number(run.stdout.trim()) || 0 : 0;
 }
 
-export function commitDiffFiles(cwd: string, oid: string): DiffFile[] {
+export function commitDiffFiles(cwd: string, oid: string, path?: string): DiffFile[] {
 	const base = keyBase(cwd);
 	if (base === null) return [];
 	const commit = git(cwd, ['rev-parse', '--verify', `${oid}^{commit}`], 5000);
 	if (commit.status !== 0) return [];
 	const parent = git(cwd, ['rev-parse', '--verify', `${commit.stdout.trim()}^`], 5000);
 	const emptyTree = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
-	return refDiffFiles(cwd, base, parent.status === 0 ? parent.stdout.trim() : emptyTree, oid);
+	return refDiffFiles(cwd, base, parent.status === 0 ? parent.stdout.trim() : emptyTree, oid, path);
 }

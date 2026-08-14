@@ -4,7 +4,7 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { fixture, launch, press, runCommand, settle } from './helpers';
+import { fixture, launch, openFile, press, runCommand, settle } from './helpers';
 import { git as runGit } from './git-fixture';
 import type { Harness } from './helpers';
 
@@ -290,6 +290,38 @@ test('branch commit comparison opens a selected commit diff', async () => {
 	expect(frame).toContain(`${shortOid} change a by Test`);
 	expect(frame).toContain('- one');
 	expect(frame).toContain('+ two');
+});
+
+test('file history lists the open file\'s past commits and opens one scoped to it', async () => {
+	const dir = repo('one\n');
+	writeFileSync(join(dir, 'a.ts'), 'two\n');
+	runGit(dir, 'commit', '-qam', 'change to two');
+	writeFileSync(join(dir, 'a.ts'), 'three\n');
+	runGit(dir, 'commit', '-qam', 'change to three');
+	const middleOid = execFileSync(
+		'git',
+		['log', '--format=%h', '--grep=change to two'],
+		{ cwd: dir },
+	)
+		.toString()
+		.trim();
+
+	const t = await launch(dir);
+	await openFile(t, 'a.ts');
+	await runCommand(t, 'File history');
+	const frame = t.captureCharFrame();
+	expect(frame).toContain('File history');
+	expect(frame).toContain('change to two');
+	expect(frame).toContain('change to three');
+
+	// Newest lists first; arrow down to the older commit and open its diff.
+	await press(t, (input) => input.pressArrow('down'));
+	await press(t, (input) => input.pressEnter());
+
+	const diffFrame = t.captureCharFrame();
+	expect(diffFrame).toContain(`${middleOid} change to two`);
+	expect(diffFrame).toContain('- one');
+	expect(diffFrame).toContain('+ two');
 });
 
 test('branch comparison reports commit and file totals', async () => {
