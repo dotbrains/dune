@@ -93,9 +93,11 @@ describe('lines a diagnostic covers', () => {
 	});
 
 	test('an unreasonably large range is capped rather than filling the whole map', () => {
-		const lines = activeProblemLines([problem({ line: 0, endLine: 1_000_000 })]);
-		expect(lines.size).toBeLessThan(3000);
-		expect(lines.has(0)).toBe(true);
+		const lines = activeProblemLines([problem({ line: 50, endLine: 1_000_000 })]);
+		expect(lines.has(50)).toBe(true);
+		expect(lines.has(50 + 2000)).toBe(true);
+		expect(lines.has(50 + 2001)).toBe(false);
+		expect(lines.size).toBe(2001);
 	});
 
 	test('an inverted range still marks its own start line', () => {
