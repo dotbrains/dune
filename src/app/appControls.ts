@@ -4,6 +4,7 @@ import { createMemo } from 'solid-js';
 
 import type { Config } from '../core/config';
 import type { TreeNode } from '../core/fs';
+import { recentCommitMessages } from '../core/git';
 import { invalidateSyntaxStyle } from '../languages/highlight';
 import { setTheme, setTransparency, themeLabels } from '../themes';
 import type { ThemeName } from '../themes';
@@ -21,6 +22,7 @@ export function createAppControls(deps: {
 	config: Config;
 	configScope: () => 'user' | 'project';
 	currentAppearance: () => 'dark' | 'light' | null;
+	rootDir: string;
 	prompt: () => Prompt;
 	selectedNode: () => TreeNode | undefined;
 	setVimMode: (mode: 'normal' | null) => void;
@@ -118,6 +120,11 @@ export function createAppControls(deps: {
 		if (p?.kind === 'renameBranch') return p.from;
 		return '';
 	};
+	/** Past commit messages Up walks back through, for the commit message prompt alone. */
+	const promptHistory = (): string[] | undefined => {
+		if (deps.prompt()?.kind !== 'commitMessage') return undefined;
+		return recentCommitMessages(deps.rootDir);
+	};
 	const confirmation = createMemo(() => confirmationForPrompt(deps.prompt()));
 	return {
 		applyTheme,
@@ -134,6 +141,7 @@ export function createAppControls(deps: {
 		editSidebarWidth,
 		promptTitle,
 		promptValue,
+		promptHistory,
 		toggleDotfiles,
 		toggleGitignored,
 		toggleWrap,

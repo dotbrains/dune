@@ -61,6 +61,43 @@ test('commit picker commits selected changes', async () => {
 	expect(porcelain(dir)).toBe('');
 });
 
+test('the commit message prompt recalls past subjects with Up/Down', async () => {
+	const dir = repo('one\n');
+	runGit(dir, 'commit', '--allow-empty', '-qm', 'second thoughts');
+	writeFileSync(join(dir, 'a.ts'), 'two\n');
+
+	const t = await launch(dir);
+	await runCommand(t, 'Commit');
+	await press(t, (input) => input.pressEnter());
+	await press(t, (input) => void input.typeText('half a thought'));
+	expect(t.captureCharFrame()).toContain('half a thought');
+
+	await press(t, (input) => input.pressArrow('up'));
+	expect(t.captureCharFrame()).toContain('second thoughts');
+	await press(t, (input) => input.pressArrow('up'));
+	expect(t.captureCharFrame()).toContain('init');
+
+	// Walking forward again ends on what was being typed, not on an empty box.
+	await press(t, (input) => input.pressArrow('down'));
+	expect(t.captureCharFrame()).toContain('second thoughts');
+	await press(t, (input) => input.pressArrow('down'));
+	expect(t.captureCharFrame()).toContain('half a thought');
+});
+
+test('a recalled commit subject commits as it stands', async () => {
+	const dir = repo('one\n');
+	writeFileSync(join(dir, 'a.ts'), 'two\n');
+
+	const t = await launch(dir);
+	await runCommand(t, 'Commit');
+	await press(t, (input) => input.pressEnter());
+	await press(t, (input) => input.pressArrow('up'));
+	expect(t.captureCharFrame()).toContain('init');
+	await press(t, (input) => input.pressEnter());
+
+	await until(t, () => subject(dir) === 'init');
+});
+
 test('staged paths prefill the commit picker', async () => {
 	const dir = repo('one\n');
 	writeFileSync(join(dir, 'a.ts'), 'two\n');

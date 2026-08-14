@@ -389,6 +389,26 @@ export function lastCommitSubject(cwd: string): string | null {
 	return subject.length > 0 ? subject : null;
 }
 
+/** How far back the commit prompt's Up can reach. */
+const MESSAGE_LOG_CAP = 50;
+
+/**
+ * Subjects of the last commits, newest first — the history the commit message
+ * prompt walks with Up/Down. Subjects rather than whole messages because the
+ * prompt is one line, and deduplicated because a log full of "wip" is a
+ * history that walks nowhere.
+ */
+export function recentCommitMessages(cwd: string): string[] {
+	const run = git(cwd, ['log', '-n', String(MESSAGE_LOG_CAP), '--format=%s'], 5000);
+	if (run.status !== 0) return [];
+	const seen = new Set<string>();
+	for (const line of run.stdout.split('\n')) {
+		const subject = line.trim();
+		if (subject.length > 0) seen.add(subject);
+	}
+	return [...seen];
+}
+
 export interface GitResult {
 	ok: boolean;
 	detail: string;

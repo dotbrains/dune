@@ -392,6 +392,7 @@ export function App(props: AppTypes.AppProps) {
 		config,
 		configScope: () => settingsPage() ?? 'user',
 		currentAppearance: appearance,
+		rootDir,
 		prompt,
 		selectedNode,
 		setVimMode,
@@ -658,6 +659,7 @@ export function App(props: AppTypes.AppProps) {
 				busy={busy()}
 				promptTitle={controls.promptTitle()}
 				promptValue={controls.promptValue()}
+				promptHistory={controls.promptHistory()}
 				confirmation={controls.confirmation()}
 				search={search()}
 				picker={picker()}
