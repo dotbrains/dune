@@ -289,6 +289,30 @@ test('diff commands show current file and all changed files', async () => {
 	expect(t.captureCharFrame()).toContain('a.ts');
 });
 
+test('diff all changes can stack every file in one scroll', async () => {
+	const dir = repo('one\ntwo\n');
+	writeFileSync(join(dir, 'a.ts'), 'one\nTWO\nthree\n');
+	writeFileSync(join(dir, 'fresh.ts'), 'new\n');
+
+	const t = await launch(dir, {}, { height: 30 });
+	await runCommand(t, 'Diff all changes');
+	expect(t.captureCharFrame()).toContain('file 1/2');
+	expect(t.captureCharFrame()).not.toContain('All changes');
+
+	await press(t, (i) => void i.typeText('a'));
+	expect(t.captureCharFrame()).toContain('All changes — 2');
+	expect(t.captureCharFrame()).toContain('a.ts +2 -1');
+	expect(t.captureCharFrame()).toContain('fresh.ts +1 -0');
+	expect(t.captureCharFrame()).toContain('- two');
+	expect(t.captureCharFrame()).toContain('+ new');
+
+	// Toggling back returns to the single-file pager, unaffected by having
+	// stacked and unstacked.
+	await press(t, (i) => void i.typeText('a'));
+	expect(t.captureCharFrame()).not.toContain('All changes');
+	expect(t.captureCharFrame()).toContain('file 1/2');
+});
+
 test('compare against branch changes source-control diffs', async () => {
 	const dir = repo('one\n');
 	const git = (...args: string[]) => runGit(dir, ...args);
