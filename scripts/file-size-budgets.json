@@ -1,18 +1,18 @@
 {
 	"default_lines": 500,
 	"files": {
-		"src/app/App.tsx": 780,
+		"src/app/App.tsx": 785,
 		"src/app/AppView.tsx": 565,
-		"src/app/commands.ts": 590,
-		"src/app/documentActions.ts": 640,
-		"src/app/gitCommands.ts": 555,
+		"src/app/commands.ts": 595,
+		"src/app/documentActions.ts": 645,
+		"src/app/gitCommands.ts": 595,
 		"src/core/forge.ts": 515,
 		"src/core/git.ts": 610,
 		"src/ui/EditorPane.tsx": 540,
 		"src/ui/SearchPanel.tsx": 530,
 		"src/ui/overlays/DiffView.tsx": 380,
 		"test/git.test.tsx": 545,
-		"test/git-commands.test.tsx": 660
+		"test/git-commands.test.tsx": 735
 	},
 	"exclude": ["^bun\\.lock$"]
 }

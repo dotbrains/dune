@@ -61,6 +61,85 @@ test('commit picker commits selected changes', async () => {
 	expect(porcelain(dir)).toBe('');
 });
 
+test('commit and push commits then pushes to the remote', async () => {
+	const dir = repo('one\n');
+	const bare = mkdtempSync(join(tmpdir(), 'dune-commit-push-'));
+	runGit(bare, 'init', '-q', '--bare');
+	runGit(dir, 'remote', 'add', 'origin', bare);
+	runGit(dir, 'push', '-q', '-u', 'origin', 'main');
+	writeFileSync(join(dir, 'a.ts'), 'two\n');
+
+	const t = await launch(dir);
+	await runCommand(t, 'Commit & push');
+	await press(t, (input) => input.pressEnter());
+	await press(t, (input) => void input.typeText('push this'));
+	await press(t, (input) => input.pressEnter());
+
+	await until(
+		t,
+		() =>
+			execFileSync('git', ['show', 'main:a.ts'], {
+				cwd: bare,
+				stdio: ['ignore', 'pipe', 'ignore'],
+			}).toString() === 'two\n',
+	);
+	expect(subject(dir)).toBe('push this');
+});
+
+test('commit and sync pulls the remote before pushing', async () => {
+	const dir = repo('one\n');
+	const bare = mkdtempSync(join(tmpdir(), 'dune-commit-sync-'));
+	runGit(bare, 'init', '-q', '--bare');
+	runGit(dir, 'remote', 'add', 'origin', bare);
+	runGit(dir, 'push', '-q', '-u', 'origin', 'main');
+
+	const peer = mkdtempSync(join(tmpdir(), 'dune-commit-sync-peer-'));
+	execFileSync('git', ['clone', '-q', '-b', 'main', bare, peer]);
+	runGit(peer, 'config', 'user.email', 'test@example.com');
+	runGit(peer, 'config', 'user.name', 'Test');
+	writeFileSync(join(peer, 'remote.ts'), 'remote\n');
+	runGit(peer, 'add', '.');
+	runGit(peer, 'commit', '-q', '-m', 'remote change');
+	runGit(peer, 'push', '-q');
+
+	writeFileSync(join(dir, 'a.ts'), 'local\n');
+
+	const t = await launch(dir);
+	await runCommand(t, 'Commit & sync');
+	await press(t, (input) => input.pressEnter());
+	await press(t, (input) => void input.typeText('local change'));
+	await press(t, (input) => input.pressEnter());
+
+	await until(
+		t,
+		() =>
+			execFileSync('git', ['show', 'main:a.ts'], {
+				cwd: bare,
+				stdio: ['ignore', 'pipe', 'ignore'],
+			}).toString() === 'local\n' &&
+			execFileSync('git', ['show', 'main:remote.ts'], {
+				cwd: bare,
+				stdio: ['ignore', 'pipe', 'ignore'],
+			}).toString() === 'remote\n',
+		10_000,
+	);
+});
+
+test('commit amend replaces the last commit, prefilled with its subject', async () => {
+	const dir = repo('one\n');
+
+	const t = await launch(dir);
+	await runCommand(t, 'Commit (amend)');
+	expect(t.captureCharFrame()).toContain('init');
+	await press(t, (input) => void input.typeText(' amended'));
+	await press(t, (input) => input.pressEnter());
+
+	await until(t, () => subject(dir) === 'init amended');
+	expect(
+		execFileSync('git', ['log', '--format=%s'], { cwd: dir }).toString().trim().split('\n').length,
+	).toBe(1);
+});
+
 test('staged paths prefill the commit picker', async () => {
 	const dir = repo('one\n');
 	writeFileSync(join(dir, 'a.ts'), 'two\n');

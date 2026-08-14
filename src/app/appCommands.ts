@@ -94,7 +94,8 @@ export function createAppCommands(deps: {
 	nextMergeConflict: (direction: 1 | -1) => void;
 	patchConfig: (patch: Partial<Config>) => void;
 	gitCommands: {
-		openCommitPicker: () => void;
+		openCommitPicker: (variant?: 'plain' | 'push' | 'sync') => void;
+		promptAmend: () => void;
 		togglePanel: () => void;
 		openDiff: (path?: string | null) => void;
 		promptDiscard: (path: string, status?: FileStatus) => void;
@@ -296,6 +297,9 @@ export function createAppCommands(deps: {
 				reviewNote: deps.reviewNote,
 				reviewClear: deps.reviewClear,
 				commit: deps.gitCommands.openCommitPicker,
+				commitPush: () => deps.gitCommands.openCommitPicker('push'),
+				commitSync: () => deps.gitCommands.openCommitPicker('sync'),
+				commitAmend: deps.gitCommands.promptAmend,
 				sourceControl: deps.gitCommands.togglePanel,
 				diffCurrent: () => deps.gitCommands.openDiff(deps.activePath()),
 				discardCurrent: () => {
