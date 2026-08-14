@@ -42,6 +42,7 @@ import {
 	branchDiffCommits,
 	branchDiffFiles,
 	commitDiffFiles,
+	commitsForFile,
 	commitSummary,
 } from '../core/gitDiff';
 import type { FileStatus, GitResult, Upstream } from '../core/git';
@@ -80,6 +81,7 @@ export function createGitCommands(deps: {
 		| 'deleteForce'
 		| 'deleteTag'
 		| 'diffBase'
+		| 'fileHistory'
 		| 'from'
 		| 'merge'
 		| 'removeRemote'
@@ -111,6 +113,10 @@ export function createGitCommands(deps: {
 		from: { title: 'New branch from', message: 'Enter chooses the start point for a new branch.' },
 		stash: { title: 'Stashes', message: 'Enter applies the selected stash; Backspace drops it.' },
 		deleteTag: { title: 'Delete tag', message: 'Enter chooses a tag to delete.' },
+		fileHistory: {
+			title: 'File history',
+			message: "Enter opens the selected commit's diff for this file.",
+		},
 		removeRemote: { title: 'Remove remote', message: 'Enter chooses a remote to remove.' },
 		compare: {
 			title: 'Compare against branch',
@@ -120,6 +126,8 @@ export function createGitCommands(deps: {
 	const [branchChoices, setBranchChoices] = createSignal<{ id: string; label: string }[] | null>(
 		null,
 	);
+	/** Which file "File history…" is listing commits for, so picking one scopes the diff to it. */
+	const [historyPath, setHistoryPath] = createSignal<string | null>(null);
 
 	const runGit = (label: string, action: () => Promise<GitResult>, success: string) => {
 		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
@@ -267,8 +275,8 @@ export function createGitCommands(deps: {
 		deps.say('Comparing against HEAD');
 	};
 
-	const openCommitDiff = (oid: string) => {
-		const files = commitDiffFiles(deps.rootDir, oid);
+	const openCommitDiff = (oid: string, path?: string) => {
+		const files = commitDiffFiles(deps.rootDir, oid, path);
 		if (files.length === 0) return deps.say('No files changed in that commit', 'warn');
 		const commit = commitSummary(deps.rootDir, oid);
 		setDiffTitle(
@@ -281,6 +289,20 @@ export function createGitCommands(deps: {
 		const commits = branchDiffCommits(deps.rootDir, base);
 		if (commits.length === 0) return deps.say(`No commits ahead of ${base}`, 'warn');
 		setBranchMode('commitDiff');
+		setBranchChoices(
+			commits.map((commit) => ({
+				id: commit.oid,
+				label: `${commit.shortOid}  ${commit.subject}  ${commit.authorName}`,
+			})),
+		);
+	};
+
+	const openFileHistory = (path: string) => {
+		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
+		const commits = commitsForFile(deps.rootDir, path);
+		if (commits.length === 0) return deps.say('No history for this file', 'warn');
+		setHistoryPath(path);
+		setBranchMode('fileHistory');
 		setBranchChoices(
 			commits.map((commit) => ({
 				id: commit.oid,
@@ -443,6 +465,7 @@ export function createGitCommands(deps: {
 			setBranchChoices(null);
 			if (branchMode() === 'commits') return showCommitChoices(name);
 			if (branchMode() === 'commitDiff') return openCommitDiff(name);
+			if (branchMode() === 'fileHistory') return openCommitDiff(name, historyPath() ?? undefined);
 			if (branchMode() === 'compare') return compareWith(name);
 			if (branchMode() === 'diffBase') {
 				setDiffBase(name);
@@ -478,6 +501,7 @@ export function createGitCommands(deps: {
 			});
 		},
 		openStashList,
+		openFileHistory,
 		openTagCreate,
 		openTagDelete,
 		submitTag,

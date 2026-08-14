@@ -98,6 +98,7 @@ export function createAppCommands(deps: {
 		togglePanel: () => void;
 		openDiff: (path?: string | null) => void;
 		promptDiscard: (path: string, status?: FileStatus) => void;
+		openFileHistory: (path: string) => void;
 		openBranchComparison: () => void;
 		openBranchCommitComparison: () => void;
 		openDiffBasePicker: () => void;
@@ -300,6 +301,11 @@ export function createAppCommands(deps: {
 				discardCurrent: () => {
 					const path = deps.activePath();
 					if (path) deps.gitCommands.promptDiscard(path);
+					else deps.say('No file open', 'warn');
+				},
+				fileHistory: () => {
+					const path = deps.activePath();
+					if (path) deps.gitCommands.openFileHistory(path);
 					else deps.say('No file open', 'warn');
 				},
 				diffAll: () => deps.gitCommands.openDiff(),

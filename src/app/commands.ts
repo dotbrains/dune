@@ -110,6 +110,7 @@ export interface CommandActions {
 	sourceControl: () => void;
 	diffCurrent: () => void;
 	discardCurrent: () => void;
+	fileHistory: () => void;
 	diffAll: () => void;
 	compareBranches: () => void;
 	compareBranchCommits: () => void;
@@ -524,6 +525,7 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 				{ id: 'git.sourceControl', label: 'Source control panel', run: actions.sourceControl },
 				{ id: 'git.diffCurrent', label: 'Diff current file', run: actions.diffCurrent },
 				{ id: 'git.discardCurrent', label: 'Discard changes', run: actions.discardCurrent },
+				{ id: 'git.fileHistory', label: 'File history…', run: actions.fileHistory },
 				{ id: 'git.diffAll', label: 'Diff all changes', run: actions.diffAll },
 				{
 					id: 'git.compareAgainstBranch',
