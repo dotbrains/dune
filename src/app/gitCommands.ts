@@ -21,6 +21,9 @@ import {
 	recentCommitMessages,
 	renameBranch,
 	stagedPaths,
+	stashApply,
+	stashDrop,
+	listStashes,
 	stashPop,
 	stashPush,
 	switchBranch,
@@ -73,6 +76,7 @@ export function createGitCommands(deps: {
 		| 'from'
 		| 'merge'
 		| 'rename'
+		| 'stash'
 		| 'switch'
 	>('compare');
 	const [branchChoices, setBranchChoices] = createSignal<{ id: string; label: string }[] | null>(
@@ -126,6 +130,14 @@ export function createGitCommands(deps: {
 
 	const discard = (path: string, status: FileStatus) =>
 		runGit('Discarding changes', () => discardChanges(path, status), 'Discarded changes');
+
+	const openStashList = () => {
+		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
+		const stashes = listStashes(deps.rootDir);
+		if (stashes.length === 0) return deps.say('No stashes');
+		setBranchMode('stash');
+		setBranchChoices(stashes.map((entry) => ({ id: entry.ref, label: entry.message })));
+	};
 
 	const compareWith = (base: string) => {
 		const files = branchDiffFiles(deps.rootDir, base);
@@ -366,7 +378,9 @@ export function createGitCommands(deps: {
 											? 'Compare against branch'
 											: branchMode() === 'from'
 												? 'New branch from'
-												: 'Compare against branch',
+												: branchMode() === 'stash'
+													? 'Stashes'
+													: 'Compare against branch',
 		branchChoiceMessage: () =>
 			branchMode() === 'switch'
 				? 'Enter checks out the selected branch.'
@@ -386,7 +400,9 @@ export function createGitCommands(deps: {
 											? 'Enter makes the editor compare changes against this branch.'
 											: branchMode() === 'from'
 												? 'Enter chooses the start point for a new branch.'
-												: 'Enter compares the current branch against the selected branch.',
+												: branchMode() === 'stash'
+													? 'Enter applies the selected stash; Backspace drops it.'
+													: 'Enter compares the current branch against the selected branch.',
 		pickBranch: (name: string) => {
 			setBranchChoices(null);
 			if (branchMode() === 'commits') return showCommitChoices(name);
@@ -404,6 +420,8 @@ export function createGitCommands(deps: {
 			if (branchMode() === 'deleteForce')
 				return deps.setPrompt({ kind: 'deleteBranch', name, force: true });
 			if (branchMode() === 'from') return deps.setPrompt({ kind: 'newBranch', from: name });
+			if (branchMode() === 'stash')
+				return runGit('Applying stash', () => stashApply(deps.rootDir, name), 'Applied stash');
 			const branch = listBranches(deps.rootDir).find((item) => item.name === name);
 			runGit(
 				'Switching branch',
@@ -411,6 +429,16 @@ export function createGitCommands(deps: {
 				`On ${localBranchName(name)}`,
 			);
 		},
+		deleteChoice: (id: string) => {
+			if (branchMode() !== 'stash') return;
+			void stashDrop(deps.rootDir, id).then((result) => {
+				deps.setGitRevision((n) => n + 1);
+				if (!result.ok) return deps.say(result.detail || 'Could not drop stash', 'error');
+				setBranchChoices((prev) => prev?.filter((choice) => choice.id !== id) ?? null);
+				deps.say('Dropped stash');
+			});
+		},
+		openStashList,
 		startCommit,
 		submitCommit,
 		submitBranch,

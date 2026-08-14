@@ -95,6 +95,48 @@ test('stash reverts the working tree and pop brings it back', async () => {
 	await until(t, () => readFileSync(join(dir, 'a.ts'), 'utf8') === 'CHANGED\ntwo\n');
 });
 
+test('the stash list applies a specific, non-latest stash', async () => {
+	const dir = repo('one\n');
+	writeFileSync(join(dir, 'a.ts'), 'first change\n');
+	runGit(dir, 'stash', 'push', '-m', 'first stash');
+	writeFileSync(join(dir, 'a.ts'), 'second change\n');
+	runGit(dir, 'stash', 'push', '-m', 'second stash');
+
+	const t = await launch(dir);
+	await runCommand(t, 'Stashes…');
+	const frame = t.captureCharFrame();
+	expect(frame).toContain('first stash');
+	expect(frame).toContain('second stash');
+
+	// The newest stash lists first; arrow down to the older one and apply it.
+	await press(t, (input) => input.pressArrow('down'));
+	await press(t, (input) => input.pressEnter());
+
+	await until(t, () => readFileSync(join(dir, 'a.ts'), 'utf8') === 'first change\n');
+	expect(
+		execFileSync('git', ['stash', 'list'], { cwd: dir })
+			.toString()
+			.split('\n')
+			.filter(Boolean).length,
+	).toBe(2);
+});
+
+test('backspace in the stash list drops the selected stash', async () => {
+	const dir = repo('one\n');
+	writeFileSync(join(dir, 'a.ts'), 'first change\n');
+	runGit(dir, 'stash', 'push', '-m', 'first stash');
+
+	const t = await launch(dir);
+	await runCommand(t, 'Stashes…');
+	await press(t, (input) => input.pressBackspace());
+
+	await until(
+		t,
+		() =>
+			execFileSync('git', ['stash', 'list'], { cwd: dir }).toString().trim().length === 0,
+	);
+});
+
 test('rejected push offers to merge origin and push again', async () => {
 	const dir = repo('one\n');
 	const bare = mkdtempSync(join(tmpdir(), 'dune-rejected-push-'));

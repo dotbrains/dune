@@ -125,6 +125,7 @@ export interface CommandActions {
 	undoCommit: () => void;
 	stash: () => void;
 	stashPop: () => void;
+	stashList: () => void;
 	fetch: () => void;
 	pull: () => void;
 	push: () => void;
@@ -550,6 +551,7 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 				{ id: 'git.undoCommit', label: 'Undo last commit…', run: actions.undoCommit },
 				{ id: 'git.stash', label: 'Stash changes', run: actions.stash },
 				{ id: 'git.stashPop', label: 'Stash pop', run: actions.stashPop },
+				{ id: 'git.stashList', label: 'Stashes…', run: actions.stashList },
 				{ id: 'git.fetch', label: 'Fetch', run: actions.fetch },
 				{ id: 'git.pull', label: 'Pull (fast-forward only)', run: actions.pull },
 				{ id: 'git.push', label: 'Push', run: actions.push },
