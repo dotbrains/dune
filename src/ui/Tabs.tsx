@@ -3,7 +3,10 @@ import type { MouseEvent } from '@opentui/core';
 import { useTerminalDimensions } from '@opentui/solid';
 import { createMemo, For, Show } from 'solid-js';
 
+import type { IconThemeName } from '../core/config';
+import type { IconTheme } from '../core/iconThemes';
 import { ui } from '../themes';
+import { builtinGlyph, themedGlyph } from './FileTree';
 import { ALT } from './keys';
 import { createHoverTooltip } from './tooltip';
 
@@ -27,6 +30,10 @@ export interface TabsProps {
 	onOverflow: () => void;
 	tooltipsEnabled: boolean;
 	keybindings: Record<string, string>;
+	/** Show each file's type icon beside its label, the tree's icon theme applied. */
+	tabIcons: boolean;
+	iconTheme: IconThemeName;
+	iconThemes: readonly IconTheme[];
 }
 
 const MAX_LABEL = 18;
@@ -37,10 +44,18 @@ const NAV_CHROME = 6;
 const shorten = (name: string) =>
 	name.length <= MAX_LABEL ? name : `${name.slice(0, MAX_LABEL - 1)}…`;
 
+/** The path's own file name, ignoring a rendered-markdown tab's `¶ ` label prefix. */
+const fileNameOf = (path: string) => path.slice(path.lastIndexOf('/') + 1);
+
 export function Tabs(props: TabsProps) {
 	const dimensions = useTerminalDimensions();
 	const tooltip = createHoverTooltip(() => props.tooltipsEnabled);
 	const shortcut = (id: string, fallback: string) => props.keybindings[id] ?? fallback;
+	const glyphFor = (path: string) => {
+		const node = { name: fileNameOf(path), isDir: false };
+		const theme = props.iconThemes.find((entry) => entry.id === props.iconTheme);
+		return theme ? themedGlyph(node, false, theme) : builtinGlyph(node, false, props.iconTheme);
+	};
 
 	/**
 	 * Only the tabs that fit are rendered, scrolled to keep the active one in
@@ -112,6 +127,19 @@ export function Tabs(props: TabsProps) {
 									paddingRight={1}
 									onMouseDown={() => props.onSelect(tab.path)}
 								>
+									<Show when={props.tabIcons && props.iconTheme !== 'none'}>
+										{() => {
+											const glyph = () => glyphFor(tab.path);
+											return (
+												<text
+													fg={glyph().color ?? ui.dim}
+													bg={bg()}
+													flexShrink={0}
+													content={`${glyph().glyph} `}
+												/>
+											);
+										}}
+									</Show>
 									<text
 										fg={active() ? ui.activeTabFg : ui.inactiveTabFg}
 										bg={bg()}

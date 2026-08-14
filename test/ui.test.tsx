@@ -103,7 +103,7 @@ function editorCursorStyle(t: Harness): CursorStyle {
 }
 
 async function gotoSettingsRow(t: Harness, label: string) {
-	for (let step = 0; step < 30; step++) {
+	for (let step = 0; step < 50; step++) {
 		const row = t
 			.captureCharFrame()
 			.split('\n')
