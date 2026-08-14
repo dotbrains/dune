@@ -289,6 +289,7 @@ export function AppView(props: AppViewProps) {
 								}}
 								onFetch={props.review.fetchPullRequest}
 								onRemove={props.review.remove}
+								onReply={props.review.promptReply}
 								onClose={props.onCloseReview}
 							/>
 						</Show>

@@ -36,6 +36,7 @@ export interface ReviewPanelProps {
 	onMove: (delta: number) => void;
 	onFetch: () => void;
 	onRemove: () => void;
+	onReply: () => void;
 	onClose: () => void;
 }
 
@@ -65,6 +66,7 @@ export function ReviewPanel(props: ReviewPanelProps) {
 		} else if (key.name === 'right') {
 			if (props.rows[cursor()]?.kind === 'file') props.onActivate(cursor());
 		} else if (key.name === 'f') props.onFetch();
+		else if (key.name === 'r') props.onReply();
 		else if (key.name === 'backspace') props.onRemove();
 		else if (key.name === 'escape') props.onClose();
 		else return;
@@ -206,7 +208,7 @@ export function ReviewPanel(props: ReviewPanelProps) {
 					fg={ui.faint}
 					bg={ui.panelBg}
 					wrapMode="none"
-					content="↑↓ · Enter · f fetch · Backspace · Esc"
+					content="↑↓ · Enter · f fetch · r reply · Backspace · Esc"
 				/>
 			</box>
 		</box>

@@ -95,6 +95,7 @@ export function createDocumentActions(deps: {
 		kind: import('../core/review').NoteKind;
 		body: string;
 	}) => void;
+	addReviewReply: (parentId: string, body: string) => void;
 	whileFree: (run: () => void) => void;
 	rootDir: string;
 }) {
@@ -392,6 +393,10 @@ export function createDocumentActions(deps: {
 				kind: p.noteKind,
 				body: name,
 			});
+		}
+		if (p.kind === 'reviewReply') {
+			if (!name) return deps.say('Nothing entered', 'warn');
+			return deps.addReviewReply(p.parentId, name);
 		}
 		if (p.kind === 'commitMessage') return deps.gitCommands.submitCommit(name);
 		if (p.kind === 'commitAmend') {

@@ -13,6 +13,7 @@ const PROMPT_TITLES: Partial<Record<NonNullable<Prompt>['kind'], string>> = {
 	appearancePluginRemoveId: 'Remove plugin id',
 	appearancePluginRegistry: 'Plugin registry URL',
 	reviewNote: 'Review note',
+	reviewReply: 'Reply',
 	gotoLine: 'Go to line',
 	commitMessage: 'Commit message',
 	commitAmend: 'Amend commit message',
