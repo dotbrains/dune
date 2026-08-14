@@ -190,6 +190,27 @@ export function latinKey(key: KeyEvent): string {
 	return JCUKEN_TO_QWERTY[key.name.toLowerCase()] ?? key.name;
 }
 
+/**
+ * What a key prints with Caps Lock on.
+ *
+ * A terminal speaking the kitty protocol reports Caps Lock as a modifier bit and sends
+ * the key's own, lowercase code — `CSI 97;65u` for a caps-locked A. The uppercase
+ * character reaches the app only through the protocol's associated-text flag, which is
+ * not every terminal's default, so without this the lock does nothing and letters type
+ * lowercase.
+ *
+ * Idempotent, which is what lets it run over every key: a terminal that did send the
+ * text already produced this character. Shift reverses the lock, as it does on the OS
+ * side, so a caps-locked Shift+A is `a` either way.
+ */
+export function capsChar(char: string, shift: boolean): string {
+	if (char.length !== 1) return char;
+	const upper = char.toUpperCase();
+	const lower = char.toLowerCase();
+	if (upper === lower || upper.length !== 1 || lower.length !== 1) return char;
+	return shift ? lower : upper;
+}
+
 export function matchesChord(chord: Chord, key: KeyEvent): boolean {
 	const actual = latinKey(key);
 	const name = actual === 'enter' ? 'return' : actual;

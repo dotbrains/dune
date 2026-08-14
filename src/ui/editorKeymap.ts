@@ -2,7 +2,7 @@ import type { KeyEvent, TextareaRenderable } from '@opentui/core';
 import { useKeyboard } from '@opentui/solid';
 
 import { copyToClipboard, readClipboard } from '../core/clipboard';
-import { latinKey } from '../core/keybindings';
+import { capsChar, latinKey } from '../core/keybindings';
 import { handleTyping } from '../editor/typing';
 import { handleVimKey } from '../editor/vim';
 import type { VimMode, VimState } from '../editor/vim';
@@ -31,6 +31,13 @@ export function useEditorKeymap(deps: {
 	useKeyboard((key: KeyEvent) => {
 		const editor = deps.editor();
 		if (key.defaultPrevented || deps.blocked() || !editor || !deps.focused()) return;
+		// Ahead of the textarea's own handling and everything below that reads
+		// key.sequence: a terminal speaking the kitty protocol reports Caps Lock as a
+		// modifier bit and sends the key's own lowercase code, so without this the lock
+		// does nothing and letters type lowercase.
+		if (key.capsLock && !key.ctrl && !key.meta && key.sequence) {
+			key.sequence = capsChar(key.sequence, key.shift);
+		}
 		const k = latinKey(key);
 		deps.scheduleCursorSync();
 		deps.setCursorBeforeEdit(editor.cursorOffset);
