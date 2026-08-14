@@ -65,7 +65,8 @@ export function Tabs(props: TabsProps) {
 		// The bar spans the terminal: the tree sits below it, not beside it. Taking
 		// the sidebar's width off the budget made tabs reflow on every resize.
 		const budget = Math.max(0, dimensions().width - NAV_CHROME);
-		const width = (tab: TabInfo) => shorten(tab.name).length + CHROME;
+		const iconWidth = props.tabIcons && props.iconTheme !== 'none' ? 2 : 0;
+		const width = (tab: TabInfo) => shorten(tab.name).length + CHROME + iconWidth;
 
 		const active = Math.max(
 			0,
