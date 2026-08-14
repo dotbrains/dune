@@ -38,6 +38,20 @@ export function confirmationForPrompt(prompt: Prompt): Confirmation | null {
 				danger: true,
 				message: `Undo "${prompt.subject}" and keep its changes staged?`,
 			};
+		case 'deleteTag':
+			return {
+				title: 'Delete tag',
+				verb: 'delete it',
+				danger: true,
+				message: `Delete tag "${prompt.name}"?`,
+			};
+		case 'removeRemote':
+			return {
+				title: 'Remove remote',
+				verb: 'remove it',
+				danger: true,
+				message: `Remove remote "${prompt.name}"?`,
+			};
 		case 'discardChanges': {
 			const removes = prompt.status === 'untracked' || prompt.status === 'added';
 			return {

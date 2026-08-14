@@ -17,11 +17,14 @@ const PROMPT_TITLES: Partial<Record<NonNullable<Prompt>['kind'], string>> = {
 	commitMessage: 'Commit message',
 	newBranch: 'New branch name',
 	renameBranch: 'Rename branch to',
+	newTag: 'New tag name',
+	newRemoteName: 'New remote name',
 };
 
 export function promptTitleFor(prompt: Prompt): string | undefined {
 	if (prompt?.kind === 'newBranch' && prompt.from) return `New branch from ${prompt.from}`;
 	if (prompt?.kind === 'reviewNote') return `${prompt.noteKind} on line ${prompt.line + 1}`;
+	if (prompt?.kind === 'newRemoteUrl') return `Remote URL for ${prompt.name}`;
 	return prompt ? PROMPT_TITLES[prompt.kind] : undefined;
 }
 

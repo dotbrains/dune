@@ -113,6 +113,10 @@ export function createAppCommands(deps: {
 		stash: () => void;
 		stashPop: () => void;
 		openStashList: () => void;
+		openTagCreate: () => void;
+		openTagDelete: () => void;
+		openRemoteAdd: () => void;
+		openRemoteRemove: () => void;
 		fetch: () => void;
 		pull: () => void;
 		push: () => void;
@@ -314,6 +318,10 @@ export function createAppCommands(deps: {
 				stash: deps.gitCommands.stash,
 				stashPop: deps.gitCommands.stashPop,
 				stashList: deps.gitCommands.openStashList,
+				newTag: deps.gitCommands.openTagCreate,
+				deleteTag: deps.gitCommands.openTagDelete,
+				addRemote: deps.gitCommands.openRemoteAdd,
+				removeRemote: deps.gitCommands.openRemoteRemove,
 				fetch: deps.gitCommands.fetch,
 				pull: deps.gitCommands.pull,
 				push: deps.gitCommands.push,

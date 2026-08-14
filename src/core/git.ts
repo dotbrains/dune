@@ -524,6 +524,40 @@ export function stashDrop(cwd: string, ref: string): Promise<GitResult> {
 	return mutate(cwd, ['stash', 'drop', ref]);
 }
 
+export function listTags(cwd: string): string[] {
+	const run = git(cwd, ['tag', '--list', '--sort=-creatordate']);
+	if (run.status !== 0) return [];
+	return run.stdout
+		.split('\n')
+		.map((line) => line.trim())
+		.filter(Boolean);
+}
+
+export function createTag(cwd: string, name: string): Promise<GitResult> {
+	return mutate(cwd, ['tag', name]);
+}
+
+export function deleteTag(cwd: string, name: string): Promise<GitResult> {
+	return mutate(cwd, ['tag', '-d', name]);
+}
+
+export function listRemotes(cwd: string): string[] {
+	const run = git(cwd, ['remote']);
+	if (run.status !== 0) return [];
+	return run.stdout
+		.split('\n')
+		.map((line) => line.trim())
+		.filter(Boolean);
+}
+
+export function addRemote(cwd: string, name: string, url: string): Promise<GitResult> {
+	return mutate(cwd, ['remote', 'add', name, url]);
+}
+
+export function removeRemote(cwd: string, name: string): Promise<GitResult> {
+	return mutate(cwd, ['remote', 'remove', name]);
+}
+
 export function fetch(cwd: string): Promise<GitResult> {
 	return mutate(cwd, ['fetch']);
 }

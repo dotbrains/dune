@@ -126,6 +126,10 @@ export interface CommandActions {
 	stash: () => void;
 	stashPop: () => void;
 	stashList: () => void;
+	newTag: () => void;
+	deleteTag: () => void;
+	addRemote: () => void;
+	removeRemote: () => void;
 	fetch: () => void;
 	pull: () => void;
 	push: () => void;
@@ -552,6 +556,10 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 				{ id: 'git.stash', label: 'Stash changes', run: actions.stash },
 				{ id: 'git.stashPop', label: 'Stash pop', run: actions.stashPop },
 				{ id: 'git.stashList', label: 'Stashes…', run: actions.stashList },
+				{ id: 'git.newTag', label: 'Create tag…', run: actions.newTag },
+				{ id: 'git.deleteTag', label: 'Delete tag…', run: actions.deleteTag },
+				{ id: 'git.addRemote', label: 'Add remote…', run: actions.addRemote },
+				{ id: 'git.removeRemote', label: 'Remove remote…', run: actions.removeRemote },
 				{ id: 'git.fetch', label: 'Fetch', run: actions.fetch },
 				{ id: 'git.pull', label: 'Pull (fast-forward only)', run: actions.pull },
 				{ id: 'git.push', label: 'Push', run: actions.push },
