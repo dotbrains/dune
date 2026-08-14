@@ -49,6 +49,8 @@ const SAMPLES: Record<string, string> = {
 	scala: '// c\nobject A { def go(x: Int): Int = x }\n',
 	terraform: '# c\nresource "aws_instance" "web" {\n  ami = var.ami_id\n}\n',
 	hcl: '# c\njob "web" {\n  type = "service"\n}\n',
+	solidity:
+		'// c\ncontract Token {\n  function totalSupply() public view returns (uint256) { return 1; }\n}\n',
 	yaml: '# c\na:\n  b: true\n',
 	svelte: '<!-- c -->\n<script>let x = 1</script>\n<div class="a">{x}</div>\n',
 	sql: '-- c\nSELECT id FROM users WHERE age > 18;\n',
@@ -109,6 +111,12 @@ describe('languages', () => {
 		expect(filetypeForPath('packer.hcl')).toBe('hcl');
 		expect(filetypeForPath('shelf.ts')).toBe('typescript');
 		expect(languageLabel('terraform')).toBe('tf');
+	});
+
+	test('solidity files route to the vendored grammar', () => {
+		expect(filetypeForPath('Token.sol')).toBe('solidity');
+		expect(filetypeForPath('contracts/Token.sol')).toBe('solidity');
+		expect(commentPrefix('solidity')).toBe('//');
 	});
 
 	test('jsonc files keep comments without loosening plain json', () => {
@@ -268,6 +276,31 @@ describe('languages', () => {
 		expect(has('local.common', variable)).toBe(true);
 		expect(has('merge', fn)).toBe(true);
 		expect(hasTrimmed('// trailing', comment)).toBe(true);
+	});
+
+	test('solidity highlights contracts, functions and comments', async () => {
+		const source = [
+			'// license',
+			'pragma solidity ^0.8.20;',
+			'contract Token {',
+			'  uint256 public totalSupply;',
+			'  function mint(address account, uint256 amount) external {',
+			'    emit Transfer(address(0), account, amount);',
+			'  }',
+			'}',
+		].join('\n');
+		const segs = await allSegments(source, 'solidity');
+		const keyword = getSyntaxStyle().getStyleId('keyword');
+		const type = getSyntaxStyle().getStyleId('type');
+		const fn = getSyntaxStyle().getStyleId('function');
+		const comment = getSyntaxStyle().getStyleId('comment');
+		const line = (n: number) => source.split('\n')[n]!;
+		const has = (text: string, styleId: number | null) =>
+			segs.some((s) => line(s.line).slice(s.start, s.end) === text && s.styleId === styleId);
+		expect(has('// license', comment)).toBe(true);
+		expect(has('pragma', keyword)).toBe(true);
+		expect(has('Token', type)).toBe(true);
+		expect(has('mint', fn)).toBe(true);
 	});
 
 	for (const [filetype, source] of Object.entries(SAMPLES)) {

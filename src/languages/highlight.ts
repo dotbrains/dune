@@ -72,6 +72,7 @@ export function filetypeForPath(path: string): string | undefined {
 	if (name.endsWith('.tsrx')) return 'tsrx';
 	if (name.endsWith('.tf') || name.endsWith('.tfvars')) return 'terraform';
 	if (name.endsWith('.hcl')) return 'hcl';
+	if (name.endsWith('.sol')) return 'solidity';
 	return pathToFiletype(path) ?? undefined;
 }
 

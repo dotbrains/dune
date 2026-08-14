@@ -19,6 +19,12 @@ test('language server resolution applies overrides and disables empty commands',
 	});
 	expect(resolveServer('typescriptreact', {})?.id).toBe('typescript');
 	expect(resolveServer('jsonc', {})?.id).toBe('json');
+	expect(resolveServer('solidity', {})).toEqual({
+		id: 'solidity',
+		command: ['nomicfoundation-solidity-language-server', '--stdio'],
+		install: { kind: 'npm', packages: ['@nomicfoundation/solidity-language-server'] },
+		settings: undefined,
+	});
 	expect(resolveServer('typescript', { typescript: ['deno', 'lsp'] })?.command).toEqual([
 		'deno',
 		'lsp',

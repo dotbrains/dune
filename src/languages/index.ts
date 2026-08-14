@@ -109,6 +109,7 @@ export const LANGUAGES: Language[] = [
 	{ id: 'swift', ...GRAMMARS.swift },
 	{ id: 'dart', ...GRAMMARS.dart },
 	{ id: 'lua', ...GRAMMARS.lua },
+	{ id: 'solidity', ...GRAMMARS.solidity },
 	{ id: 'bash', ...GRAMMARS.bash },
 	{ id: 'toml', ...GRAMMARS.toml },
 	// No usable grammar: tree-sitter-yaml hangs the query engine, and svelte/sql/ini
@@ -227,6 +228,7 @@ const LINE_COMMENTS: Record<string, string> = {
 	dotenv: '#',
 	ini: '#',
 	lua: '--',
+	solidity: '//',
 	sql: '--',
 };
 

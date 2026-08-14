@@ -88,6 +88,12 @@ export const DEFAULT_SERVERS: ServerSpec[] = [
 		filetypes: ['json', 'jsonc'],
 		install: npm('vscode-langservers-extracted'),
 	},
+	{
+		id: 'solidity',
+		command: ['nomicfoundation-solidity-language-server', '--stdio'],
+		filetypes: ['solidity'],
+		install: npm('@nomicfoundation/solidity-language-server'),
+	},
 ];
 
 export function serverSpecs(extraServers: readonly ServerSpec[] = []): ServerSpec[] {

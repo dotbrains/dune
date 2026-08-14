@@ -150,11 +150,7 @@ export function FilePicker(props: FilePickerProps) {
 					</For>
 				</Show>
 				<For each={fillRows()}>{() => <text fg={ui.panelBg} bg={ui.panelBg} content="" />}</For>
-				<text
-					fg={ui.dim}
-					bg={ui.panelBg}
-					content={`↑↓ move · Enter open${openAt()} · Esc close`}
-				/>
+				<text fg={ui.dim} bg={ui.panelBg} content={`↑↓ move · Enter open${openAt()} · Esc close`} />
 			</box>
 		</Overlay>
 	);

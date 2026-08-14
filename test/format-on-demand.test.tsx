@@ -83,7 +83,11 @@ test('Save without formatting skips the configured formatter for one save', asyn
 });
 
 test('Format open files formats every dirty tab with a matching formatter', async () => {
-	const dir = fixture({ 'a.ts': 'const a = 1\n', 'b.ts': 'const b = 2\n', 'upper.js': upperScript });
+	const dir = fixture({
+		'a.ts': 'const a = 1\n',
+		'b.ts': 'const b = 2\n',
+		'upper.js': upperScript,
+	});
 	const t = await launch(dir, {
 		formatOnSave: false,
 		formatters: { ts: [process.execPath, join(dir, 'upper.js')] },
