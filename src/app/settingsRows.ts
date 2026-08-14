@@ -111,6 +111,12 @@ export function settingsRows(
 				actions.patchConfig({ pluginUpdates: !config.pluginUpdates }, actions.configScope()),
 		},
 		{
+			section: 'Appearance',
+			label: 'Tab-bar tooltips',
+			value: onOff(config.tooltips),
+			change: () => actions.patchConfig({ tooltips: !config.tooltips }, actions.configScope()),
+		},
+		{
 			section: 'Editor',
 			label: 'Vim mode',
 			value: onOff(config.vim),
