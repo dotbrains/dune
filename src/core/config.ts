@@ -129,6 +129,8 @@ export interface Config {
 	disabledAppearancePlugins: string[];
 	/** Show a shortcut hint after the pointer rests on a tab-bar icon. */
 	tooltips: boolean;
+	/** Show each file's type icon in its tab, not just the tree. */
+	tabIcons: boolean;
 }
 
 export const DEFAULTS: Config = {
@@ -168,6 +170,7 @@ export const DEFAULTS: Config = {
 	pluginUpdates: true,
 	disabledAppearancePlugins: [],
 	tooltips: true,
+	tabIcons: false,
 };
 
 function parsePartial(raw: unknown): Partial<Config> {
@@ -257,6 +260,7 @@ function parsePartial(raw: unknown): Partial<Config> {
 	}
 	if (typeof obj.pluginUpdates === 'boolean') config.pluginUpdates = obj.pluginUpdates;
 	if (typeof obj.tooltips === 'boolean') config.tooltips = obj.tooltips;
+	if (typeof obj.tabIcons === 'boolean') config.tabIcons = obj.tabIcons;
 	if (Array.isArray(obj.disabledAppearancePlugins)) {
 		config.disabledAppearancePlugins = obj.disabledAppearancePlugins.filter(
 			(entry): entry is string => typeof entry === 'string' && /^[\w.-]+$/.test(entry),

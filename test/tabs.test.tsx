@@ -11,6 +11,20 @@ test('the tab bar is a single row above the editor', async () => {
 	expect(rows[1]).toContain('1 x'); // editor starts on the next row
 });
 
+test('tab-bar file icons are off by default', async () => {
+	const t = await launch(fixture({ 'a.ts': 'x\n' }), { iconTheme: 'unicode' });
+	await press(t, (i) => i.pressArrow('down'));
+	await press(t, (i) => i.pressEnter());
+	expect(t.captureCharFrame().split('\n')[0]).not.toContain('◆');
+});
+
+test('enabling tab-bar file icons paints the tree glyph beside the label', async () => {
+	const t = await launch(fixture({ 'a.ts': 'x\n' }), { tabIcons: true, iconTheme: 'unicode' });
+	await press(t, (i) => i.pressArrow('down'));
+	await press(t, (i) => i.pressEnter());
+	expect(t.captureCharFrame().split('\n')[0]).toContain('◆ a.ts');
+});
+
 test('long names are shortened, never clipped mid-word', async () => {
 	const t = await launch(fixture({ 'a-very-long-component-name.tsx': 'x\n', 'b.ts': 'y\n' }));
 	await press(t, (i) => i.pressArrow('down'));
@@ -31,6 +45,24 @@ test('many open tabs still fit the row', async () => {
 	}
 	const row = t.captureCharFrame().split('\n')[0]!;
 	// The row never wraps or overflows the terminal.
+	expect(row.length).toBeLessThanOrEqual(80);
+	// The tab opened last stays visible.
+	expect(row).toContain('file-number-11');
+});
+
+test('many open tabs with icons still fit the row', async () => {
+	const files = Object.fromEntries(
+		Array.from({ length: 12 }, (_, i) => [`file-number-${i}.ts`, `const a${i} = 1\n`]),
+	);
+	const t = await launch(fixture(files), { tabIcons: true, iconTheme: 'unicode' });
+	for (let i = 0; i < 12; i++) {
+		await press(t, (input) => input.pressKey('o', { ctrl: true }));
+		await press(t, (input) => void input.typeText(`file-number-${i}.ts`));
+		await press(t, (input) => input.pressEnter());
+	}
+	const row = t.captureCharFrame().split('\n')[0]!;
+	// The row never wraps or overflows the terminal, even with an icon and a
+	// space added ahead of every label.
 	expect(row.length).toBeLessThanOrEqual(80);
 	// The tab opened last stays visible.
 	expect(row).toContain('file-number-11');

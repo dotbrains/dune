@@ -117,6 +117,12 @@ export function settingsRows(
 			change: () => actions.patchConfig({ tooltips: !config.tooltips }, actions.configScope()),
 		},
 		{
+			section: 'Appearance',
+			label: 'Tab-bar file icons',
+			value: onOff(config.tabIcons),
+			change: () => actions.patchConfig({ tabIcons: !config.tabIcons }, actions.configScope()),
+		},
+		{
 			section: 'Editor',
 			label: 'Vim mode',
 			value: onOff(config.vim),

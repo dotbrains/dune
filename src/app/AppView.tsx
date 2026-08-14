@@ -204,6 +204,9 @@ export function AppView(props: AppViewProps) {
 				onOverflow={() => props.onOverflowTabs()}
 				tooltipsEnabled={props.config.tooltips}
 				keybindings={props.config.keybindings}
+				tabIcons={props.config.tabIcons}
+				iconTheme={props.config.iconTheme}
+				iconThemes={props.iconThemes}
 			/>
 			{/* Drag capture lives on the row, not the divider: the pointer leaves a
           one-column target immediately, and each drag event is delivered to

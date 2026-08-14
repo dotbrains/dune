@@ -124,7 +124,13 @@ const EXTENSION_ICONS: Record<string, IconRule> = {
 	lock: { glyph: '▪' },
 };
 
-function builtinGlyph(node: TreeNode, expanded: boolean, iconTheme: IconThemeName): IconRule {
+/** The two glyph resolvers only ever read a node's name and directory-ness. */
+export interface GlyphNode {
+	name: string;
+	isDir: boolean;
+}
+
+export function builtinGlyph(node: GlyphNode, expanded: boolean, iconTheme: IconThemeName): IconRule {
 	if (iconTheme === 'none') return { glyph: node.isDir ? (expanded ? '▾' : '▸') : '·' };
 	if (node.isDir) return { glyph: expanded ? '▾' : '▸' };
 	const name = node.name.toLowerCase();
@@ -137,7 +143,7 @@ function builtinGlyph(node: TreeNode, expanded: boolean, iconTheme: IconThemeNam
 	return { glyph: '·' };
 }
 
-function themedGlyph(node: TreeNode, expanded: boolean, theme: IconTheme): IconRule {
+export function themedGlyph(node: GlyphNode, expanded: boolean, theme: IconTheme): IconRule {
 	if (node.isDir)
 		return (
 			(expanded ? theme.foldersOpen[node.name.toLowerCase()] : undefined) ??
