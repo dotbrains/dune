@@ -13,6 +13,7 @@ import type { BufferState, Prompt } from '../src/app/types';
 import { DEFAULTS } from '../src/core/config';
 
 const FAKE = join(import.meta.dir, 'fixtures', 'fake-lsp.ts');
+const SYNC = join(import.meta.dir, 'fixtures', 'sync-lsp.ts');
 
 const disposers: Array<() => void> = [];
 
@@ -132,6 +133,48 @@ test('files can sync with every matching language server', async () => {
 			expect(lsp.statusRows().find((row) => row.id === 'typescript')?.problems).toBe(1);
 			expect(lsp.statusRows().find((row) => row.id === 'eslint')?.problems).toBe(1);
 		});
+	});
+});
+
+test('an edit still reaches a live server after a sibling dies', async () => {
+	const { dir, path } = project();
+	await createRoot((dispose) => {
+		disposers.push(dispose);
+		const warnings: string[] = [];
+		// A healthy server that refuses a duplicate didOpen, the way real ones
+		// do — beside a sibling whose binary does not exist, the shape of a
+		// plugin server installed without its command. The dead client used to
+		// make the next edit re-open the document into every server sharing the
+		// path instead of syncing it, which left the live server answering
+		// completions against a buffer one edit behind.
+		const config = { ...DEFAULTS, lsp: true, lspServers: { typescript: ['bun', SYNC] } };
+		const lsp = createAppLsp({
+			rootDir: dir,
+			config,
+			say: (msg) => warnings.push(msg),
+			servers: () => [
+				{ id: 'ghost', command: ['dune-test-missing-binary'], filetypes: ['typescript'] },
+			],
+		});
+		const [tabs] = createSignal([path]);
+		const [buffers, setBuffers] = createStore<Record<string, BufferState>>({
+			[path]: { content: 'const oops = 1\n', dirty: false, mtime: 0 },
+		});
+		wireAppLspEffects({ lsp, config, tabs, buffers });
+
+		// The death is what arms the bug, so it must land before the edit does.
+		return waitFor(() => warnings.some((warning) => warning.includes('dune-test-missing-binary')))
+			.then(() => waitFor(() => lsp.clientFor(path)?.ready() === true))
+			.then(() => {
+				setBuffers(path, 'content', 'const ab = 1\n');
+				return lsp.complete(path, 0, 8);
+			})
+			.then((reply) => {
+				// The label names the word at the cursor as the server sees it, and
+				// how many didOpens it took: stale text or a second didOpen would
+				// spell differently.
+				expect(reply?.items.map((item) => item.label)).toContain('abSync1');
+			});
 	});
 });
 

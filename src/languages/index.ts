@@ -24,7 +24,12 @@ export interface Language {
 	label?: string;
 	/**
 	 * Grammar shipped with OpenTUI — no wasm/query needed from us.
-	 * Bundled today: javascript, typescript, markdown, zig.
+	 * Bundled today: markdown, zig. Not javascript/typescript, deliberately:
+	 * OpenTUI's bundled query gates its identifier captures behind
+	 * `#lua-match?` predicates the parser worker never evaluates, so every
+	 * identifier also matched `@type` and `@constant` and painted as a
+	 * constant. Those two point at the vendored tsx grammar instead, the same
+	 * one `typescriptreact`/`javascriptreact` already use.
 	 */
 	bundled?: boolean;
 	/** Path to the grammar wasm, when we vendor it ourselves — see ./grammars.ts. */
@@ -70,8 +75,8 @@ const HCL_PATTERNS: NonNullable<Language['patterns']> = [
 ];
 
 export const LANGUAGES: Language[] = [
-	{ id: 'javascript', label: 'js', bundled: true },
-	{ id: 'typescript', label: 'ts', bundled: true },
+	{ id: 'javascript', label: 'js', ...GRAMMARS.tsx },
+	{ id: 'typescript', label: 'ts', ...GRAMMARS.tsx },
 	{ id: 'markdown', label: 'md', bundled: true },
 	{ id: 'zig', bundled: true },
 	{ id: 'json', ...GRAMMARS.json },
