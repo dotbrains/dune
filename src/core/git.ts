@@ -1,5 +1,6 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, realpathSync } from 'node:fs';
+import { rm } from 'node:fs/promises';
 import { dirname, join, relative } from 'node:path';
 
 import { BinaryFileError, readFile } from './fs';
@@ -457,6 +458,21 @@ export async function commitPaths(
 	const add = await mutate(cwd, ['add', '-A', '--', ...paths]);
 	if (!add.ok) return add;
 	return mutate(cwd, ['commit', '-m', message, '--', ...paths]);
+}
+
+/**
+ * Reverts one file's working-tree changes. A path git has never committed has
+ * nothing to restore to — discarding it means removing it, the way an
+ * untracked or newly staged file's "changes" are its whole existence.
+ */
+export async function discardChanges(path: string, status: FileStatus): Promise<GitResult> {
+	const cwd = dirname(path);
+	if (status === 'untracked' || status === 'added') {
+		await mutate(cwd, ['reset', '--', path]);
+		await rm(path, { force: true });
+		return { ok: true, detail: '' };
+	}
+	return mutate(cwd, ['checkout', 'HEAD', '--', path]);
 }
 
 export function recentCommitMessages(cwd: string): string[] {

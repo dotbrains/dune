@@ -4,6 +4,7 @@ import type { Config } from '../core/config';
 import type { AppearancePluginLoad } from '../core/localThemes';
 import { loadLocalLspServers } from '../core/plugins/localLspServers';
 import type { ConflictSide } from '../core/git/conflicts';
+import type { FileStatus } from '../core/git';
 import {
 	fetchCatalog,
 	fetchPlugin,
@@ -96,6 +97,7 @@ export function createAppCommands(deps: {
 		openCommitPicker: () => void;
 		togglePanel: () => void;
 		openDiff: (path?: string | null) => void;
+		promptDiscard: (path: string, status?: FileStatus) => void;
 		openBranchComparison: () => void;
 		openBranchCommitComparison: () => void;
 		openDiffBasePicker: () => void;
@@ -290,6 +292,11 @@ export function createAppCommands(deps: {
 				commit: deps.gitCommands.openCommitPicker,
 				sourceControl: deps.gitCommands.togglePanel,
 				diffCurrent: () => deps.gitCommands.openDiff(deps.activePath()),
+				discardCurrent: () => {
+					const path = deps.activePath();
+					if (path) deps.gitCommands.promptDiscard(path);
+					else deps.say('No file open', 'warn');
+				},
 				diffAll: () => deps.gitCommands.openDiff(),
 				compareBranches: deps.gitCommands.openBranchComparison,
 				compareBranchCommits: deps.gitCommands.openBranchCommitComparison,

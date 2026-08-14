@@ -38,6 +38,17 @@ export function confirmationForPrompt(prompt: Prompt): Confirmation | null {
 				danger: true,
 				message: `Undo "${prompt.subject}" and keep its changes staged?`,
 			};
+		case 'discardChanges': {
+			const removes = prompt.status === 'untracked' || prompt.status === 'added';
+			return {
+				title: 'Discard changes',
+				verb: removes ? 'delete it' : 'discard changes',
+				danger: true,
+				message: removes
+					? `Delete "${basename(prompt.path)}"? It has never been committed.`
+					: `Discard changes to "${basename(prompt.path)}"? This cannot be undone.`,
+			};
+		}
 		case 'mergeBranch':
 			return {
 				title: 'Merge branch',
