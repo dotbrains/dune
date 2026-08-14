@@ -1,6 +1,7 @@
 import type { Tone } from '../ui/StatusBar';
 import type { Config } from '../core/config';
 import type { TextEncoding } from '../core/fs';
+import type { FileStatus } from '../core/git';
 import type { SearchOptions } from '../core/search';
 import type { PackageManager } from '../lsp/install';
 import type { FetchableInstall } from '../lsp/servers';
@@ -73,6 +74,7 @@ export type Prompt =
 	| { kind: 'closeDirty'; paths: string[]; names: string[] }
 	| { kind: 'quitDirty'; names: string[] }
 	| { kind: 'undoCommit'; subject: string }
+	| { kind: 'discardChanges'; path: string; status: FileStatus }
 	| { kind: 'renameBranch'; from: string }
 	| { kind: 'deleteBranch'; name: string; force: boolean }
 	| { kind: 'mergeBranch'; name: string }

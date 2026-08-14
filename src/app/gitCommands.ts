@@ -7,6 +7,7 @@ import {
 	defaultBranch,
 	deleteBranch,
 	diffFiles,
+	discardChanges,
 	fetch as gitFetch,
 	inRepository,
 	lastCommitSubject,
@@ -34,7 +35,7 @@ import {
 	commitDiffFiles,
 	commitSummary,
 } from '../core/gitDiff';
-import type { GitResult, Upstream } from '../core/git';
+import type { FileStatus, GitResult, Upstream } from '../core/git';
 import type { DiffFile } from '../core/gitDiff';
 import type { CommitFile } from '../ui/CommitModal';
 import type { Tone } from '../ui/StatusBar';
@@ -116,6 +117,15 @@ export function createGitCommands(deps: {
 		setDiffTitle(null);
 		setDiff(files);
 	};
+
+	const promptDiscard = (path: string, status?: FileStatus) => {
+		const resolved = status ?? statusMap(deps.rootDir, null, deps.gitScanDepth()).get(path);
+		if (!resolved) return deps.say('No changes to discard', 'warn');
+		deps.setPrompt({ kind: 'discardChanges', path, status: resolved });
+	};
+
+	const discard = (path: string, status: FileStatus) =>
+		runGit('Discarding changes', () => discardChanges(path, status), 'Discarded changes');
 
 	const compareWith = (base: string) => {
 		const files = branchDiffFiles(deps.rootDir, base);
@@ -416,6 +426,8 @@ export function createGitCommands(deps: {
 		fetch: () => runGit('Fetching', () => gitFetch(deps.rootDir), 'Fetched'),
 		pull: () => runGit('Pulling', () => gitPull(deps.rootDir), 'Pulled'),
 		openDiff,
+		promptDiscard,
+		discard,
 		openBranchComparison,
 		openBranchCommitComparison,
 		openDiffBasePicker,

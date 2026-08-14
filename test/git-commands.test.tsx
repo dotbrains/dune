@@ -1,6 +1,6 @@
 import { expect, setDefaultTimeout, test } from 'bun:test';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -329,6 +329,32 @@ test('source control panel marks renamed files distinctly', async () => {
 		.split('\n')
 		.find((line) => line.includes('renamed.ts'))!;
 	expect(row).toContain('R');
+});
+
+test('discarding a modified file restores it from HEAD', async () => {
+	const dir = repo('one\n');
+	writeFileSync(join(dir, 'a.ts'), 'two\n');
+
+	const t = await launch(dir);
+	await runCommand(t, 'Source Control');
+	await press(t, (input) => void input.typeText('d'));
+	expect(t.captureCharFrame()).toContain('Discard changes');
+	await press(t, (input) => input.pressEnter());
+
+	await until(t, () => readFileSync(join(dir, 'a.ts'), 'utf8') === 'one\n');
+});
+
+test('discarding an untracked file deletes it', async () => {
+	const dir = repo('one\n');
+	writeFileSync(join(dir, 'b.ts'), 'new\n');
+
+	const t = await launch(dir);
+	await runCommand(t, 'Source Control');
+	await press(t, (input) => void input.typeText('d'));
+	expect(t.captureCharFrame()).toContain('Delete');
+	await press(t, (input) => input.pressEnter());
+
+	await until(t, () => !existsSync(join(dir, 'b.ts')));
 });
 
 test('branch comparison diff names both sides of a rename', async () => {

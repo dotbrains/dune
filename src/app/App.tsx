@@ -694,6 +694,7 @@ export function App(props: AppTypes.AppProps) {
 				onPinNode={(node) => pinTab(node.path)}
 				onTreeFocus={() => setFocus('tree')}
 				onGitDiff={gitCommands.openDiff}
+				onGitDiscard={gitCommands.promptDiscard}
 				onGitCommit={gitCommands.openCommitPicker}
 				onGitPush={gitCommands.push}
 				onGitBranchAction={gitCommands.openPanelBranchAction}

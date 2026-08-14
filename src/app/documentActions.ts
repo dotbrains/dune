@@ -9,6 +9,7 @@ import { fetchPlugin, MARKET_URL, removeFromDisk, writePlugin } from '../core/ma
 import { SIDEBAR_MAX, SIDEBAR_MIN } from '../core/config';
 import type { Config } from '../core/config';
 import { createDir, createFile, exists, mtimeOf, readTextFile, writeFile } from '../core/fs';
+import type { FileStatus } from '../core/git';
 import {
 	bindingProblem,
 	chordId,
@@ -45,6 +46,7 @@ export function createDocumentActions(deps: {
 		merge: (name: string) => void;
 		pullPush: (branch: string, hasUpstream: boolean) => void;
 		undoCommit: () => void;
+		discard: (path: string, status: FileStatus) => void;
 	};
 	installLspServer: (
 		id: string,
@@ -582,6 +584,8 @@ export function createDocumentActions(deps: {
 				return deps.quit(true);
 			case 'undoCommit':
 				return deps.gitCommands.undoCommit();
+			case 'discardChanges':
+				return deps.gitCommands.discard(p.path, p.status);
 			case 'deleteBranch':
 				return deps.gitCommands.remove(p.name, p.force);
 			case 'mergeBranch':

@@ -133,6 +133,7 @@ interface AppViewProps {
 	onPinNode: (node: TreeNode) => void;
 	onTreeFocus: () => void;
 	onGitDiff: (path: string) => void;
+	onGitDiscard: (path: string, status: FileStatus) => void;
 	onGitCommit: () => void;
 	onGitPush: () => void;
 	onGitBranchAction: (action: 'switch' | 'compare' | 'commits') => void;
@@ -257,6 +258,7 @@ export function AppView(props: AppViewProps) {
 									status={props.gitStatus}
 									onFocus={() => props.onTreeFocus()}
 									onDiff={props.onGitDiff}
+									onDiscard={props.onGitDiscard}
 									onCommit={props.onGitCommit}
 									onPush={props.onGitPush}
 									onBranchAction={props.onGitBranchAction}

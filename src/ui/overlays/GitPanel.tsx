@@ -22,6 +22,7 @@ export function GitPanel(props: {
 	status: Map<string, FileStatus>;
 	onFocus: () => void;
 	onDiff: (path: string) => void;
+	onDiscard: (path: string, status: FileStatus) => void;
 	onCommit: () => void;
 	onPush: () => void;
 	onBranchAction: (action: 'switch' | 'compare' | 'commits') => void;
@@ -105,6 +106,9 @@ export function GitPanel(props: {
 		} else if (plain && key.name === 'c') {
 			if (props.base) props.onBranchAction('commits');
 			else props.onCommit();
+		} else if (plain && key.name === 'd' && !props.base) {
+			const current = row();
+			if (current?.kind === 'file') props.onDiscard(current.change.path, current.change.status);
 		} else if (plain && key.name === 'p') props.onPush();
 		else if (plain && key.name === 'b' && !key.shift) props.onBranchAction('switch');
 		else if (plain && ((key.name === 'b' && key.shift) || key.name === 'B'))
@@ -225,7 +229,7 @@ export function GitPanel(props: {
 				<text
 					fg={ui.faint}
 					bg={ui.panelBg}
-					content={`b branch · B compare · c ${props.base ? 'commits' : 'commit'} · ${props.base ? '/ filter · ' : ''}p push · enter diff${props.view === 'tree' ? ' · ←→ fold' : ''}`}
+					content={`b branch · B compare · c ${props.base ? 'commits' : 'commit'} · ${props.base ? '/ filter · ' : 'd discard · '}p push · enter diff${props.view === 'tree' ? ' · ←→ fold' : ''}`}
 				/>
 			</box>
 		</box>
