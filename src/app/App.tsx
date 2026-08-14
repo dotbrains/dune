@@ -61,10 +61,9 @@ export function App(props: AppTypes.AppProps) {
 	const [sidebar, setSidebar] = createSignal(restored.sidebar);
 	const [focus, setFocus] = createSignal<AppTypes.Focus>(restored.sidebar ? 'tree' : 'editor');
 	const [prompt, setPrompt] = createSignal<AppTypes.Prompt>(null);
-	const [commitMessageHistory, setCommitMessageHistory] = createSignal<string[]>([]);
-	const [help, setHelp] = createSignal(false);
-	const [peek, setPeek] = createSignal(false);
-	const [palette, setPalette] = createSignal(false);
+	const [help, setHelp] = createSignal(false),
+		[peek, setPeek] = createSignal(false),
+		[palette, setPalette] = createSignal(false);
 	const [settingsPage, setSettingsPage] = createSignal<'user' | 'project' | null>(null);
 	const [lspStatusOpen, setLspStatusOpen] = createSignal(false);
 	const [appearance, setAppearance] = createSignal<'dark' | 'light' | null>(initialAppearance);
@@ -296,7 +295,6 @@ export function App(props: AppTypes.AppProps) {
 		setDiffBase,
 		setBusy,
 		setGitRevision,
-		setCommitMessageHistory,
 		setPrompt,
 		say,
 		whileFree,
@@ -660,7 +658,7 @@ export function App(props: AppTypes.AppProps) {
 				busy={busy()}
 				promptTitle={controls.promptTitle()}
 				promptValue={controls.promptValue()}
-				promptHistory={prompt()?.kind === 'commitMessage' ? commitMessageHistory() : []}
+				promptHistory={prompt()?.kind === 'commitMessage' ? gitCommands.commitMessageHistory() : []}
 				confirmation={controls.confirmation()}
 				search={search()}
 				picker={picker()}

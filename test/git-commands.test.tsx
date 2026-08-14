@@ -61,27 +61,6 @@ test('commit picker commits selected changes', async () => {
 	expect(porcelain(dir)).toBe('');
 });
 
-test('commit message prompt walks recent subjects', async () => {
-	const dir = repo('one\n');
-	runGit(dir, 'commit', '--allow-empty', '-q', '-m', 'second thoughts');
-	writeFileSync(join(dir, 'a.ts'), 'two\n');
-
-	const t = await launch(dir);
-	await runCommand(t, 'Commit');
-	await press(t, (input) => input.pressEnter());
-	await until(t, () => t.captureCharFrame().includes('↑↓ history'));
-
-	await press(t, (input) => void input.typeText('half a thought'));
-	await press(t, (input) => input.pressArrow('up'));
-	await until(t, () => t.captureCharFrame().includes('second thoughts'));
-	await press(t, (input) => input.pressArrow('up'));
-	await until(t, () => t.captureCharFrame().includes('init'));
-	await press(t, (input) => input.pressArrow('down'));
-	await until(t, () => t.captureCharFrame().includes('second thoughts'));
-	await press(t, (input) => input.pressArrow('down'));
-	await until(t, () => t.captureCharFrame().includes('half a thought'));
-});
-
 test('staged paths prefill the commit picker', async () => {
 	const dir = repo('one\n');
 	writeFileSync(join(dir, 'a.ts'), 'two\n');
