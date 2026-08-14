@@ -17,7 +17,9 @@ jobs:
     name: Hygiene
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: flox/install-flox-action@v2
       - run: flox activate -- bun install --frozen-lockfile
       - run: flox activate -- bun run check-types
@@ -32,7 +34,9 @@ jobs:
       matrix:
         os: [macos-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: flox/install-flox-action@v2
       - run: flox activate -- bun install --frozen-lockfile
       - run: flox activate -- bun run test:ci
@@ -49,7 +53,9 @@ jobs:
           - target: darwin-arm64
             os: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: flox/install-flox-action@v2
       - run: flox activate -- bun install --frozen-lockfile
       - run: flox activate -- bun run build ${{ matrix.target }}
@@ -58,7 +64,9 @@ jobs:
     name: Docs and Metadata
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: flox/install-flox-action@v2
       - run: test -s README.md
       - run: test -s LICENSE

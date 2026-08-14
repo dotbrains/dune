@@ -20,7 +20,9 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - id: version
         run: |
           version=v$(node -p "require('./package.json').version")
@@ -52,11 +54,13 @@ jobs:
             os: windows-latest
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun run build ${{ matrix.target }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: dune-${{ matrix.target }}
           path: dist/${{ matrix.target }}/
@@ -72,16 +76,16 @@ jobs:
     env:
       VERSION: ${{ needs.check.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
       # Node is here for GitHub Packages publication.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: latest
           registry-url: 'https://npm.pkg.github.com'
           scope: '@dotbrains'
       - run: bun install --frozen-lockfile
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           pattern: dune-*
@@ -144,7 +148,7 @@ jobs:
     steps:
       - name: Check out the tap
         if: env.TAP_TOKEN != ''
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: dotbrains/homebrew-tap
           token: ${{ secrets.TAP_TOKEN }}
