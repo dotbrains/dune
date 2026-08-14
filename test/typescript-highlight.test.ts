@@ -1,20 +1,22 @@
 import { describe, expect, test } from 'bun:test';
 
-import { getSyntaxStyle } from '../src/languages/highlight';
+import { styleIdForGroup } from '../src/languages/highlight';
 import { allSegments } from './syntax';
 
 /** What each group got painted on, as text, for a given filetype. */
 async function painted(source: string, filetype: string) {
 	const segments = await allSegments(source, filetype);
 	const lines = source.split('\n');
-	const style = getSyntaxStyle();
 	const byGroup = new Map<number, string[]>();
 	for (const segment of segments) {
 		const text = lines[segment.line]?.slice(segment.start, segment.end) ?? '';
 		if (!text.trim()) continue;
 		byGroup.set(segment.styleId, [...(byGroup.get(segment.styleId) ?? []), text]);
 	}
-	return (group: string) => byGroup.get(style.getStyleId(group)!) ?? [];
+	return (group: string) => {
+		const styleId = styleIdForGroup(group);
+		return styleId == null ? [] : (byGroup.get(styleId) ?? []);
+	};
 }
 
 // `typescript`/`javascript` used to be OpenTUI's own bundled grammar. Its query
