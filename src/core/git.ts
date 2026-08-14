@@ -498,6 +498,32 @@ export function stashPop(cwd: string): Promise<GitResult> {
 	return mutate(cwd, ['stash', 'pop']);
 }
 
+export interface StashEntry {
+	/** `stash@{0}` and so on — what every other stash subcommand addresses it by. */
+	ref: string;
+	message: string;
+}
+
+export function listStashes(cwd: string): StashEntry[] {
+	const run = git(cwd, ['stash', 'list', '--format=%gd%x00%s']);
+	if (run.status !== 0) return [];
+	return run.stdout
+		.split('\n')
+		.filter((line) => line.length > 0)
+		.map((line) => {
+			const [ref = '', message = ''] = line.split('\0');
+			return { ref, message };
+		});
+}
+
+export function stashApply(cwd: string, ref: string): Promise<GitResult> {
+	return mutate(cwd, ['stash', 'apply', ref]);
+}
+
+export function stashDrop(cwd: string, ref: string): Promise<GitResult> {
+	return mutate(cwd, ['stash', 'drop', ref]);
+}
+
 export function fetch(cwd: string): Promise<GitResult> {
 	return mutate(cwd, ['fetch']);
 }

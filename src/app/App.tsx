@@ -762,6 +762,7 @@ export function App(props: AppTypes.AppProps) {
 				onCommitFiles={gitCommands.startCommit}
 				onCancelCommit={gitCommands.cancelCommit}
 				onPickBranch={gitCommands.pickBranch}
+				onDeleteBranchChoice={gitCommands.deleteChoice}
 				onCloseBranchChoices={gitCommands.closeBranchChoices}
 				onResolveConflict={resolveConflict}
 				onCancelConflict={() => setConflict(null)}

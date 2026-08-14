@@ -112,6 +112,7 @@ export function createAppCommands(deps: {
 		confirmUndoCommit: () => void;
 		stash: () => void;
 		stashPop: () => void;
+		openStashList: () => void;
 		fetch: () => void;
 		pull: () => void;
 		push: () => void;
@@ -312,6 +313,7 @@ export function createAppCommands(deps: {
 				undoCommit: deps.gitCommands.confirmUndoCommit,
 				stash: deps.gitCommands.stash,
 				stashPop: deps.gitCommands.stashPop,
+				stashList: deps.gitCommands.openStashList,
 				fetch: deps.gitCommands.fetch,
 				pull: deps.gitCommands.pull,
 				push: deps.gitCommands.push,

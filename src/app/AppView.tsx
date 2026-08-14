@@ -167,6 +167,7 @@ interface AppViewProps {
 	onCommitFiles: (paths: string[]) => void;
 	onCancelCommit: () => void;
 	onPickBranch: (name: string) => void;
+	onDeleteBranchChoice: (id: string) => void;
 	onCloseBranchChoices: () => void;
 	onResolveConflict: (choice: string) => void;
 	onCancelConflict: () => void;
@@ -502,6 +503,7 @@ export function AppView(props: AppViewProps) {
 						message={props.branchChoiceMessage}
 						choices={choices()}
 						onPick={props.onPickBranch}
+					onDelete={props.onDeleteBranchChoice}
 						onCancel={props.onCloseBranchChoices}
 					/>
 				)}
