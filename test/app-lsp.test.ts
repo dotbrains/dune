@@ -83,6 +83,26 @@ test('language server status rows report state and diagnostics', async () => {
 	});
 });
 
+test('the built-in vue server spawns for .vue files', async () => {
+	const { dir, path } = project('App.vue');
+	await createRoot((dispose) => {
+		disposers.push(dispose);
+		const warnings: string[] = [];
+		const config = { ...DEFAULTS, lsp: true, lspServers: { vue: ['bun', FAKE] } };
+		const lsp = createAppLsp({ rootDir: dir, config, say: (msg) => warnings.push(msg) });
+
+		lsp.clientFor(path);
+
+		return waitFor(() => lsp.clientFor(path)?.ready() === true).then(() => {
+			expect(warnings).toEqual([]);
+			expect(lsp.statusRows().find((row) => row.id === 'vue')).toMatchObject({
+				command: `bun ${FAKE}`,
+				state: 'ready',
+			});
+		});
+	});
+});
+
 test('plugin language servers handle additional filetypes', async () => {
 	const { dir, path } = project('a.kt');
 	await createRoot((dispose) => {

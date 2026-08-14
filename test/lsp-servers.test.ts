@@ -25,6 +25,12 @@ test('language server resolution applies overrides and disables empty commands',
 		install: { kind: 'npm', packages: ['@nomicfoundation/solidity-language-server'] },
 		settings: undefined,
 	});
+	expect(resolveServer('vue', {})).toEqual({
+		id: 'vue',
+		command: ['vue-language-server', '--stdio'],
+		install: { kind: 'npm', packages: ['@vue/language-server', 'typescript@5'] },
+		settings: undefined,
+	});
 	expect(resolveServer('typescript', { typescript: ['deno', 'lsp'] })?.command).toEqual([
 		'deno',
 		'lsp',
