@@ -9,12 +9,23 @@ import type { Problem } from './index';
 export type ProblemLine = { severity: ProblemSeverity; message: string };
 export type ProblemChoice = Pick<Problem, 'path' | 'line' | 'col' | 'message' | 'severity'>;
 
+/**
+ * A range crossing lines used to mark only its start line, so a multi-line diagnostic (a
+ * missing brace, an unclosed type) left every line but the first looking clean. Capped so
+ * one diagnostic spanning an unreasonable number of lines can't blow up this map — VS Code
+ * has the same practical limit on how much of a giant range it bothers to mark.
+ */
+const MAX_PROBLEM_LINES = 2000;
+
 export function activeProblemLines(problems: readonly Problem[] | undefined) {
 	const lines = new Map<number, ProblemLine>();
 	for (const problem of problems ?? []) {
-		const held = lines.get(problem.line);
-		if (!held || SEVERITY_RANK[problem.severity] < SEVERITY_RANK[held.severity]) {
-			lines.set(problem.line, { severity: problem.severity, message: problem.message });
+		const end = Math.max(problem.line, Math.min(problem.endLine, problem.line + MAX_PROBLEM_LINES));
+		for (let line = problem.line; line <= end; line++) {
+			const held = lines.get(line);
+			if (!held || SEVERITY_RANK[problem.severity] < SEVERITY_RANK[held.severity]) {
+				lines.set(line, { severity: problem.severity, message: problem.message });
+			}
 		}
 	}
 	return lines;
