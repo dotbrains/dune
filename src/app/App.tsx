@@ -512,6 +512,7 @@ export function App(props: AppTypes.AppProps) {
 		saveDirtyOnBlur,
 		syncFromDisk,
 		dependenciesChanged: lsp.dependenciesChanged,
+		reloadNotes: review.reloadNotes,
 		say,
 		setGitRevision,
 		setGitLines,

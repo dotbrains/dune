@@ -9,6 +9,7 @@ import type { FileStatus, LineChange, Upstream } from '../core/git';
 import { currentBranch, diffLines, ignoredAmong, statusMap, upstreamOf } from '../core/git';
 import { fetchCatalog, missingConfiguredAppearancePlugins, updatesFor } from '../core/market';
 import { loadLocalLspServers } from '../core/plugins/localLspServers';
+import { watchNotes } from '../core/review';
 import { saveSession } from '../core/session';
 import { checkForUpdate } from '../core/update';
 import { watchTree } from '../core/fs';
@@ -59,6 +60,7 @@ export function useAppLifecycle(deps: {
 	saveDirtyOnBlur: () => void;
 	syncFromDisk: () => DiskSync;
 	dependenciesChanged: () => void;
+	reloadNotes: () => void;
 	say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
 	setGitRevision: (update: (n: number) => number) => void;
 	setGitLines: (lines: Map<number, LineChange>) => void;
@@ -130,6 +132,10 @@ export function useAppLifecycle(deps: {
 		const stop = watchAppearance(deps.onAppearance);
 		onCleanup(stop);
 	});
+	// Review notes written by another process — an agent editing review.json is
+	// the notes' documented interop — appear the way git state made in another
+	// terminal does: without a restart.
+	onMount(() => onCleanup(watchNotes(deps.reloadNotes)));
 	onMount(() => {
 		if (process.stdout.isTTY) process.stdout.write('\x1B[?1004h');
 		const onStdin = (chunk: BufferState | string) => {
