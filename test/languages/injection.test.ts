@@ -49,7 +49,12 @@ describe('vue highlighting', () => {
 
 	test('paints the template', async () => {
 		expect(await painted('tag')).toContain('div');
-		expect(await painted('property')).toContain('class');
+		// The sigil and the argument merge into one attribute-coloured span, the
+		// way VS Code paints the whole of `:class` — split, the argument half
+		// took whatever a theme gives `property`, plain text in several of them.
+		expect(await painted('attribute')).toContain(':class');
+		expect(await painted('attribute')).toContain('v-for');
+		expect(await painted('attribute')).toContain('stop');
 	});
 
 	// The whole point: the vue grammar reads a block body as one raw_text token,
