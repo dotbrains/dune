@@ -1,8 +1,10 @@
 import { basename } from 'node:path';
+import { createEffect, on } from 'solid-js';
 import type { Accessor, Setter } from 'solid-js';
 import { unwrap } from 'solid-js/store';
 import { resolveConfig, saveConfig, saveProjectConfig } from '../core/config';
 import type { Config } from '../core/config';
+import { progressFromBusy, reportProgress } from '../core/progress';
 import type { Tone } from '../ui/StatusBar';
 import type { BufferState, BusyState, Prompt } from './types';
 
@@ -22,6 +24,14 @@ export function createAppRuntime(deps: {
 }) {
 	const dirtyPaths = () =>
 		Object.keys(unwrap(deps.buffers)).filter((path) => deps.buffers[path]?.dirty);
+
+	// The terminal's own progress indicator tracks whatever bulk file op or git
+	// mutation is already reporting through `busy` — one signal, one place that
+	// turns it into the OSC 9;4 sequence, rather than a report call at every
+	// site that currently calls setBusy.
+	createEffect(
+		on(deps.busy, (state) => reportProgress(progressFromBusy(state)), { defer: true }),
+	);
 
 	const quit = (discardUnsaved = false) => {
 		const dirty = dirtyPaths();
