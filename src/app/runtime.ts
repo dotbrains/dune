@@ -29,9 +29,7 @@ export function createAppRuntime(deps: {
 	// mutation is already reporting through `busy` — one signal, one place that
 	// turns it into the OSC 9;4 sequence, rather than a report call at every
 	// site that currently calls setBusy.
-	createEffect(
-		on(deps.busy, (state) => reportProgress(progressFromBusy(state)), { defer: true }),
-	);
+	createEffect(on(deps.busy, (state) => reportProgress(progressFromBusy(state)), { defer: true }));
 
 	const quit = (discardUnsaved = false) => {
 		const dirty = dirtyPaths();

@@ -6,6 +6,14 @@ import type { ProblemSeverity } from '../lsp/protocol';
 
 const selectionHosts = new WeakMap<object, unknown>();
 const DOUBLE_CLICK_MS = 400;
+const SCROLL_MARGIN = 0.2;
+
+type EditorScrollEvent = {
+	scroll: { direction: 'down' | 'up'; delta: number };
+};
+
+const pastScrollEnd = (offset: number, total: number, height: number) =>
+	offset > Math.max(0, total - height);
 
 export function allowSelectionOnlyInEditor(el: TextareaRenderable) {
 	const renderer = useRenderer() as unknown as {
@@ -39,6 +47,50 @@ export function ignoreScrollOutsideBounds(el: TextareaRenderable) {
 			if (!inside) return;
 		}
 		handle(event);
+	};
+}
+
+export function allowScrollPastEnd(el: TextareaRenderable, active: () => boolean) {
+	const view = el.editorView;
+	const setMargin = (next: number) => {
+		view.setScrollMargin(next);
+	};
+
+	const host = el as unknown as {
+		handleScroll: (event: EditorScrollEvent) => void;
+		onResize: (width: number, height: number) => void;
+	};
+	const scroll = host.handleScroll.bind(host);
+	host.handleScroll = (event: EditorScrollEvent) => {
+		if (!active()) {
+			scroll(event);
+			return;
+		}
+		const port = view.getViewport();
+		const wanted =
+			event.scroll.direction === 'down' ? port.offsetY + event.scroll.delta : port.offsetY;
+		if (pastScrollEnd(wanted, view.getTotalVirtualLineCount(), port.height)) setMargin(0);
+		scroll(event);
+		const next = view.getViewport();
+		if (pastScrollEnd(next.offsetY, view.getTotalVirtualLineCount(), next.height)) return;
+		setMargin(SCROLL_MARGIN);
+		el.requestRender();
+	};
+
+	const resize = host.onResize.bind(host);
+	host.onResize = (width: number, height: number) => {
+		const port = view.getViewport();
+		const wanted = port.offsetY;
+		const wasPastEnd =
+			active() && pastScrollEnd(wanted, view.getTotalVirtualLineCount(), port.height);
+		resize(width, height);
+		if (!wasPastEnd) return;
+		const next = view.getViewport();
+		const offset = Math.min(wanted, Math.max(0, view.getTotalVirtualLineCount() - 1));
+		if (next.offsetY === offset) return;
+		setMargin(0);
+		view.setViewport(next.offsetX, offset, next.width, next.height, true);
+		el.requestRender();
 	};
 }
 

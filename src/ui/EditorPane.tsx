@@ -18,6 +18,7 @@ import type { GutterHost } from './EditorPaneBody';
 import { EditorPaneContent } from './EditorPaneContent';
 import {
 	afterResize,
+	allowScrollPastEnd,
 	allowSelectionOnlyInEditor,
 	createEditorLayout,
 	ignoreScrollOutsideBounds,
@@ -504,6 +505,7 @@ export function EditorPane(props: EditorPaneProps) {
 				setEditorEl(el);
 				editor.cursorStyle = { style: effectiveCursorStyle(), blinking: true };
 				ignoreScrollOutsideBounds(el);
+				allowScrollPastEnd(el, () => props.focused);
 				afterResize(el, () => {
 					applyLineSigns();
 					syncViewport();
