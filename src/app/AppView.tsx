@@ -504,7 +504,7 @@ export function AppView(props: AppViewProps) {
 						message={props.branchChoiceMessage}
 						choices={choices()}
 						onPick={props.onPickBranch}
-					onDelete={props.onDeleteBranchChoice}
+						onDelete={props.onDeleteBranchChoice}
 						onCancel={props.onCloseBranchChoices}
 					/>
 				)}

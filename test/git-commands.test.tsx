@@ -209,10 +209,8 @@ test('the stash list applies a specific, non-latest stash', async () => {
 
 	await until(t, () => readFileSync(join(dir, 'a.ts'), 'utf8') === 'first change\n');
 	expect(
-		execFileSync('git', ['stash', 'list'], { cwd: dir })
-			.toString()
-			.split('\n')
-			.filter(Boolean).length,
+		execFileSync('git', ['stash', 'list'], { cwd: dir }).toString().split('\n').filter(Boolean)
+			.length,
 	).toBe(2);
 });
 
@@ -227,8 +225,7 @@ test('backspace in the stash list drops the selected stash', async () => {
 
 	await until(
 		t,
-		() =>
-			execFileSync('git', ['stash', 'list'], { cwd: dir }).toString().trim().length === 0,
+		() => execFileSync('git', ['stash', 'list'], { cwd: dir }).toString().trim().length === 0,
 	);
 });
 
@@ -387,17 +384,15 @@ test('branch commit comparison opens a selected commit diff', async () => {
 	expect(frame).toContain('+ two');
 });
 
-test('file history lists the open file\'s past commits and opens one scoped to it', async () => {
+test("file history lists the open file's past commits and opens one scoped to it", async () => {
 	const dir = repo('one\n');
 	writeFileSync(join(dir, 'a.ts'), 'two\n');
 	runGit(dir, 'commit', '-qam', 'change to two');
 	writeFileSync(join(dir, 'a.ts'), 'three\n');
 	runGit(dir, 'commit', '-qam', 'change to three');
-	const middleOid = execFileSync(
-		'git',
-		['log', '--format=%h', '--grep=change to two'],
-		{ cwd: dir },
-	)
+	const middleOid = execFileSync('git', ['log', '--format=%h', '--grep=change to two'], {
+		cwd: dir,
+	})
 		.toString()
 		.trim();
 
@@ -685,7 +680,8 @@ test('create tag command tags HEAD', async () => {
 
 	await until(
 		t,
-		() => execFileSync('git', ['tag', '--list', 'v1.0.0'], { cwd: dir }).toString().trim() === 'v1.0.0',
+		() =>
+			execFileSync('git', ['tag', '--list', 'v1.0.0'], { cwd: dir }).toString().trim() === 'v1.0.0',
 	);
 });
 

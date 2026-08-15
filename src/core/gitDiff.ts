@@ -58,7 +58,13 @@ export function branchDiffFiles(cwd: string, baseBranch = defaultBranch(cwd)): D
 	return refDiffFiles(cwd, base, mergeBase.stdout.trim(), 'HEAD');
 }
 
-function refDiffFiles(cwd: string, base: string, from: string, to: string, path?: string): DiffFile[] {
+function refDiffFiles(
+	cwd: string,
+	base: string,
+	from: string,
+	to: string,
+	path?: string,
+): DiffFile[] {
 	const args = ['diff', '--name-status', '-M', '-z', from, to];
 	if (path) args.push('--', path);
 	const names = git(cwd, args, 5000);

@@ -520,8 +520,7 @@ export function createGitCommands(deps: {
 			if (branchMode() === 'stash')
 				return runGit('Applying stash', () => stashApply(deps.rootDir, name), 'Applied stash');
 			if (branchMode() === 'deleteTag') return deps.setPrompt({ kind: 'deleteTag', name });
-			if (branchMode() === 'removeRemote')
-				return deps.setPrompt({ kind: 'removeRemote', name });
+			if (branchMode() === 'removeRemote') return deps.setPrompt({ kind: 'removeRemote', name });
 			const branch = listBranches(deps.rootDir).find((item) => item.name === name);
 			runGit(
 				'Switching branch',

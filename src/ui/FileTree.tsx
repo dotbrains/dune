@@ -130,7 +130,11 @@ export interface GlyphNode {
 	isDir: boolean;
 }
 
-export function builtinGlyph(node: GlyphNode, expanded: boolean, iconTheme: IconThemeName): IconRule {
+export function builtinGlyph(
+	node: GlyphNode,
+	expanded: boolean,
+	iconTheme: IconThemeName,
+): IconRule {
 	if (iconTheme === 'none') return { glyph: node.isDir ? (expanded ? '▾' : '▸') : '·' };
 	if (node.isDir) return { glyph: expanded ? '▾' : '▸' };
 	const name = node.name.toLowerCase();
