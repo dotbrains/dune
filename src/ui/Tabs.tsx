@@ -109,7 +109,9 @@ export function Tabs(props: TabsProps) {
 							paddingLeft={1}
 							backgroundColor={ui.barBg}
 							onMouseDown={() => props.onOverflow()}
-							onMouseOver={() => tooltip.onOver('overflow', `Switch tabs (${shortcut('tabs.switch', 'Ctrl+T')})`)}
+							onMouseOver={() =>
+								tooltip.onOver('overflow', `Switch tabs (${shortcut('tabs.switch', 'Ctrl+T')})`)
+							}
 							onMouseOut={() => tooltip.onOut('overflow')}
 						>
 							<text fg={ui.dim} bg={ui.barBg} content={`‹${visible().before}`} />
@@ -183,7 +185,9 @@ export function Tabs(props: TabsProps) {
 							paddingRight={1}
 							backgroundColor={ui.barBg}
 							onMouseDown={() => props.onOverflow()}
-							onMouseOver={() => tooltip.onOver('overflow', `Switch tabs (${shortcut('tabs.switch', 'Ctrl+T')})`)}
+							onMouseOver={() =>
+								tooltip.onOver('overflow', `Switch tabs (${shortcut('tabs.switch', 'Ctrl+T')})`)
+							}
 							onMouseOut={() => tooltip.onOut('overflow')}
 						>
 							<text fg={ui.dim} bg={ui.barBg} content={`${visible().after}›`} />
@@ -219,7 +223,11 @@ export function Tabs(props: TabsProps) {
 				<box flexGrow={1} flexDirection="row" justifyContent="flex-end" backgroundColor={ui.barBg}>
 					<Show when={tooltip.label()}>
 						{(label: () => string) => (
-							<text fg={ui.dim} bg={ui.barBg} content={`${label().slice(0, dimensions().width)} `} />
+							<text
+								fg={ui.dim}
+								bg={ui.barBg}
+								content={`${label().slice(0, dimensions().width)} `}
+							/>
 						)}
 					</Show>
 				</box>

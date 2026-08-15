@@ -43,7 +43,9 @@ test('a pointer only passing through says nothing at all', async () => {
 });
 
 test('leaving hides it, and a custom shortcut is what shows', async () => {
-	const t = await launch(fixture({ 'a.ts': 'x\n' }), { keybindings: { 'tabs.close': 'Ctrl+Alt+W' } });
+	const t = await launch(fixture({ 'a.ts': 'x\n' }), {
+		keybindings: { 'tabs.close': 'Ctrl+Alt+W' },
+	});
 	await openFile(t, 'a.ts');
 	const x = closeColumn(t);
 	await rest(t, x, 0);
