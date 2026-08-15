@@ -1,4 +1,5 @@
 import type { KeyEvent, TextareaRenderable } from '@opentui/core';
+import { latinKey } from '../core/keylayout';
 import {
 	lineEnd,
 	lineStart,
@@ -10,6 +11,7 @@ import {
 
 export type VimMode = 'normal' | 'insert' | 'visual';
 type VisualKind = 'char' | 'line';
+type FindKind = 'f' | 'F' | 't' | 'T';
 
 export const MODE_LABELS: Record<VimMode, string> = {
 	normal: 'NORMAL',
@@ -29,6 +31,9 @@ export interface VimState {
 	visualKind: VisualKind;
 	pendingTextObject: 'i' | 'a' | null;
 	textObjectOp: string;
+	pendingFind: FindKind | null;
+	findOp: '' | 'd' | 'c' | 'y';
+	lastFind: { kind: FindKind; char: string } | null;
 }
 
 export function initialVimState(): VimState {
@@ -42,6 +47,9 @@ export function initialVimState(): VimState {
 		visualKind: 'char',
 		pendingTextObject: null,
 		textObjectOp: '',
+		pendingFind: null,
+		findOp: '',
+		lastFind: null,
 	};
 }
 
@@ -80,7 +88,12 @@ const MOTION_KEYS = new Set([
 	'G',
 	'{',
 	'}',
+	';',
+	',',
 ]);
+
+const FIND_KEYS = new Set(['f', 'F', 't', 'T']);
+const OPPOSITE: Record<FindKind, FindKind> = { f: 'F', F: 'f', t: 'T', T: 't' };
 
 function motion(editor: Editor, k: string, state: VimState, count: number, counted: boolean) {
 	if (!MOTION_KEYS.has(k)) return false;
@@ -130,6 +143,22 @@ function motion(editor: Editor, k: string, state: VimState, count: number, count
 		case '}':
 			moveParagraphDown(editor, count);
 			return true;
+		case ';':
+		case ',': {
+			const last = state.lastFind;
+			if (last) {
+				runFind(
+					editor,
+					state,
+					k === ';' ? last.kind : OPPOSITE[last.kind],
+					last.char,
+					count,
+					true,
+					'',
+				);
+			}
+			return true;
+		}
 		default:
 			return false;
 	}
@@ -167,6 +196,62 @@ const OPERATOR_TARGETS: Record<string, (editor: Editor, count: number) => void> 
 	$: (e) => e.deleteToLineEnd(),
 	0: (e) => e.deleteToLineStart(),
 };
+
+function findTarget(
+	text: string,
+	cursor: number,
+	kind: FindKind,
+	char: string,
+	count: number,
+	repeat: boolean,
+): number | null {
+	const forward = kind === 'f' || kind === 't';
+	const from = lineStart(text, cursor);
+	const to = lineEnd(text, cursor);
+	const skip = repeat && (kind === 't' || kind === 'T') ? 1 : 0;
+	let left = count;
+	for (let i = forward ? cursor + 1 + skip : cursor - 1 - skip; forward ? i <= to : i >= from;) {
+		if (text[i] === char && --left === 0) {
+			if (kind === 'f' || kind === 'F') return i;
+			const target = kind === 't' ? i - 1 : i + 1;
+			return target === cursor ? null : target;
+		}
+		i += forward ? 1 : -1;
+	}
+	return null;
+}
+
+function runFind(
+	editor: Editor,
+	state: VimState,
+	kind: FindKind,
+	char: string,
+	count: number,
+	repeat: boolean,
+	op: '' | 'd' | 'c' | 'y',
+): void {
+	const cursor = editor.cursorOffset;
+	const target = findTarget(editor.plainText, cursor, kind, char, count, repeat);
+	if (target === null) return;
+	if (state.mode === 'visual') editor.clearSelection();
+	if (!op) {
+		editor.cursorOffset = target;
+		return;
+	}
+	const forward = kind === 'f' || kind === 't';
+	const start = forward ? cursor : target;
+	const end = forward ? target : cursor - 1;
+	if (end < start) return;
+	editor.setSelectionInclusive(start, end);
+	yankSelection(editor, state);
+	if (op === 'y') {
+		editor.clearSelection();
+		editor.cursorOffset = start;
+		return;
+	}
+	editor.deleteSelection();
+	state.mode = op === 'c' ? 'insert' : 'normal';
+}
 
 function atLineEnd(editor: Editor): boolean {
 	const { row, col } = editor.logicalCursor;
@@ -216,7 +301,8 @@ export function handleVimKey(
 }
 
 function dispatch(editor: Editor, key: KeyEvent, state: VimState, actions: VimActions): boolean {
-	const k = key.shift && /^[a-z]$/.test(key.name) ? key.name.toUpperCase() : key.name;
+	const pressed = latinKey(key);
+	const k = key.shift && /^[a-z]$/.test(pressed) ? pressed.toUpperCase() : pressed;
 	if (state.mode === 'insert') {
 		if (k === 'escape') {
 			state.mode = 'normal';
@@ -224,6 +310,20 @@ function dispatch(editor: Editor, key: KeyEvent, state: VimState, actions: VimAc
 			return true;
 		}
 		return false;
+	}
+
+	if (state.pendingFind) {
+		const kind = state.pendingFind;
+		const op = state.findOp;
+		const digits = state.count;
+		state.pendingFind = null;
+		state.findOp = '';
+		state.count = '';
+		if (key.ctrl || k.length !== 1) return true;
+		const char = key.sequence.length === 1 ? key.sequence : key.name;
+		state.lastFind = { kind, char };
+		runFind(editor, state, kind, char, Math.max(1, Number.parseInt(digits || '1', 10)), false, op);
+		return true;
 	}
 
 	if (key.ctrl) {
@@ -257,6 +357,27 @@ function dispatch(editor: Editor, key: KeyEvent, state: VimState, actions: VimAc
 			state.pendingTextObject = k;
 			state.count = digits;
 			return true;
+		}
+		if (op === 'd' || op === 'c' || op === 'y') {
+			if (FIND_KEYS.has(k)) {
+				state.pendingFind = k as FindKind;
+				state.findOp = op;
+				state.count = digits;
+				return true;
+			}
+			if ((k === ';' || k === ',') && state.lastFind) {
+				const last = state.lastFind;
+				runFind(
+					editor,
+					state,
+					k === ';' ? last.kind : OPPOSITE[last.kind],
+					last.char,
+					count,
+					true,
+					op,
+				);
+				return true;
+			}
 		}
 		if (op === 'g') {
 			if (k === 'g') {
@@ -322,6 +443,12 @@ function dispatch(editor: Editor, key: KeyEvent, state: VimState, actions: VimAc
 		}
 		state.textObjectOp = '';
 		state.pendingTextObject = null;
+	}
+
+	if (FIND_KEYS.has(k)) {
+		state.pendingFind = k as FindKind;
+		state.count = digits;
+		return true;
 	}
 
 	if (motion(editor, k, state, count, digits !== '')) {
