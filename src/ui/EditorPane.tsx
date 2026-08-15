@@ -38,7 +38,10 @@ export interface EditorPaneProps extends EditorCompletionProps {
 	goto: { line: number; col: number; key: number } | null;
 	history: { kind: 'undo' | 'redo'; key: number } | null;
 	edit: { content: string; key: number } | null;
-	lineOp: { op: 'comment' | 'up' | 'down' | 'duplicate' | 'lineHome'; key: number } | null;
+	lineOp: {
+		op: 'comment' | 'up' | 'down' | 'duplicate' | 'delete' | 'lineHome';
+		key: number;
+	} | null;
 	vim: boolean;
 	cursorStyle: CursorStyle;
 	wrap: boolean;
@@ -235,15 +238,20 @@ export function EditorPane(props: EditorPaneProps) {
 		segmented.clear();
 		void runHighlight(text);
 	};
-	const { duplicateSelectedLines, moveSelectedLines, stepHistory, toggleCommentLines } =
-		createEditorLineActions({
-			editor: () => editor,
-			filetype: () => props.filetype,
-			history,
-			onChange: props.onChange,
-			rehighlight,
-			scheduleCursorSync,
-		});
+	const {
+		deleteSelectedLines,
+		duplicateSelectedLines,
+		moveSelectedLines,
+		stepHistory,
+		toggleCommentLines,
+	} = createEditorLineActions({
+		editor: () => editor,
+		filetype: () => props.filetype,
+		history,
+		onChange: props.onChange,
+		rehighlight,
+		scheduleCursorSync,
+	});
 	createEffect(
 		on(
 			() => props.history?.key,
@@ -267,6 +275,8 @@ export function EditorPane(props: EditorPaneProps) {
 						return moveSelectedLines(1);
 					case 'duplicate':
 						return duplicateSelectedLines(true);
+					case 'delete':
+						return deleteSelectedLines();
 					case 'lineHome':
 						return void editor?.gotoLineHome();
 				}
@@ -355,6 +365,7 @@ export function EditorPane(props: EditorPaneProps) {
 		toggleCommentLines,
 		moveSelectedLines,
 		duplicateSelectedLines,
+		deleteSelectedLines,
 		scrollPage,
 	});
 	createEffect(

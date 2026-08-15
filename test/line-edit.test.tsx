@@ -89,6 +89,22 @@ test('the caret follows a moved line', async () => {
 	expect(t.captureCharFrame()).toContain('Ln 2, Col 1');
 });
 
+test('Ctrl+Opt+D deletes the line, and undo brings it back', async () => {
+	const { t, saved } = await open('one\ntwo\nthree\n');
+	await press(t, (i) => i.pressArrow('down'));
+	await press(t, (i) => i.pressKey('d', { ctrl: true, meta: true }));
+	expect(await saved()).toBe('one\nthree\n');
+
+	await undo(t);
+	expect(await saved()).toBe('one\ntwo\nthree\n');
+});
+
+test('Ctrl+Opt+D deleting the only line leaves an empty file', async () => {
+	const { t, saved } = await open('one\n');
+	await press(t, (i) => i.pressKey('d', { ctrl: true, meta: true }));
+	expect(await saved()).toBe('');
+});
+
 test('Ctrl+Opt+B jumps the caret to the start of the line', async () => {
 	const { t } = await open('const a = 1\n');
 	await press(t, (i) => i.pressArrow('right'));
@@ -119,4 +135,9 @@ test('the palette can comment and move lines without any chord', async () => {
 	await press(t, (i) => void i.typeText('Duplicate line'));
 	await press(t, (i) => i.pressEnter());
 	expect(await saved()).toBe('two\n// one\n// one\n');
+
+	await press(t, (i) => i.pressKey('p', { ctrl: true }));
+	await press(t, (i) => void i.typeText('Delete line'));
+	await press(t, (i) => i.pressEnter());
+	expect(await saved()).toBe('two\n// one\n');
 });

@@ -415,6 +415,12 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 					run: () => actions.lineOp('duplicate'),
 				},
 				{
+					id: 'editor.deleteLine',
+					label: 'Delete line',
+					hint: `Ctrl+${ALT}+D`,
+					run: () => actions.lineOp('delete'),
+				},
+				{
 					id: 'editor.lineStart',
 					label: 'Go to beginning of line',
 					hint: `Ctrl+${ALT}+B`,

@@ -1,5 +1,5 @@
 import type { TextareaRenderable } from '@opentui/core';
-import { duplicateLines, moveLines, toggleComment } from '../editor/lines';
+import { deleteLines, duplicateLines, moveLines, toggleComment } from '../editor/lines';
 import type { History } from '../editor/history';
 import { commentPrefix } from '../languages';
 
@@ -70,6 +70,16 @@ export function createEditorLineActions(deps: {
 		applyLineEdit(duplicateLines(text, from, to), follow ? row + (to - from + 1) : row, col);
 	};
 
+	const deleteSelectedLines = () => {
+		const editor = deps.editor();
+		if (!editor) return;
+		const text = editor.plainText;
+		const { from, to } = editRange(text);
+		const next = deleteLines(text, from, to);
+		const lastRow = next.split('\n').length - 1;
+		applyLineEdit(next, Math.min(from, lastRow), 0);
+	};
+
 	const stepHistory = (kind: 'undo' | 'redo') => {
 		const editor = deps.editor();
 		if (!editor) return;
@@ -82,5 +92,11 @@ export function createEditorLineActions(deps: {
 		deps.scheduleCursorSync();
 	};
 
-	return { duplicateSelectedLines, moveSelectedLines, stepHistory, toggleCommentLines };
+	return {
+		deleteSelectedLines,
+		duplicateSelectedLines,
+		moveSelectedLines,
+		stepHistory,
+		toggleCommentLines,
+	};
 }

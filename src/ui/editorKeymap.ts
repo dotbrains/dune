@@ -26,6 +26,7 @@ export function useEditorKeymap(deps: {
 	toggleCommentLines: () => void;
 	moveSelectedLines: (delta: -1 | 1) => void;
 	duplicateSelectedLines: (follow: boolean) => void;
+	deleteSelectedLines: () => void;
 	scrollPage: (delta: -1 | 1) => void;
 }) {
 	useKeyboard((key: KeyEvent) => {
@@ -102,6 +103,11 @@ export function useEditorKeymap(deps: {
 		if (key.ctrl && (key.option || key.meta) && k === 'b') {
 			key.preventDefault();
 			editor.gotoLineHome();
+			return;
+		}
+		if (key.ctrl && (key.option || key.meta) && k === 'd') {
+			key.preventDefault();
+			deps.deleteSelectedLines();
 			return;
 		}
 		if ((key.option || key.meta) && !key.ctrl && (key.name === 'up' || key.name === 'down')) {

@@ -16,7 +16,7 @@ export type GotoRequest = { line: number; col: number; key: number } | null;
 export type EditRequest = { content: string; key: number } | null;
 export type CompletionRequest = { key: number } | null;
 export type LineOpRequest = {
-	op: 'comment' | 'up' | 'down' | 'duplicate' | 'lineHome';
+	op: 'comment' | 'up' | 'down' | 'duplicate' | 'delete' | 'lineHome';
 	key: number;
 } | null;
 export type BusyState = { label: string; done: number; total: number } | null;

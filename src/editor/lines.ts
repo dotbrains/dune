@@ -53,6 +53,13 @@ export function duplicateLines(text: string, from: number, to: number): string {
 	return lines.join('\n');
 }
 
+/** Remove lines `from`..`to`. Deleting every line leaves a single empty line. */
+export function deleteLines(text: string, from: number, to: number): string {
+	const lines = text.split('\n');
+	lines.splice(from, to - from + 1);
+	return lines.join('\n');
+}
+
 /** Strip trailing spaces and tabs from every line and end with one newline. */
 export function trimTrailing(text: string): string {
 	const trimmed = text
