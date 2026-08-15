@@ -37,6 +37,21 @@
 (jsx_opening_element name: (member_expression) @tag)
 (jsx_closing_element name: (member_expression) @tag)
 (jsx_self_closing_element name: (member_expression) @tag)
+; A dotted tag (`<Slider.Root>`) is one `member_expression`, and the broad
+; `(identifier) @variable` / `(property_identifier) @variable.member` rules above
+; capture its halves too. Groups are painted most-specific-last regardless of query
+; order (more dots wins a tie only breaks equal specificity), so plain `@tag` on the
+; property half loses outright to `variable.member`'s two segments — `@tag.member`
+; matches its specificity and falls back to the same tag colour wherever a theme
+; does not give it its own.
+(jsx_opening_element name: (member_expression object: (identifier) @tag property: (property_identifier) @tag.member))
+(jsx_closing_element name: (member_expression object: (identifier) @tag property: (property_identifier) @tag.member))
+(jsx_self_closing_element name: (member_expression object: (identifier) @tag property: (property_identifier) @tag.member))
+; The three-deep form (`<A.B.C>`) is the same rule one level down: the outer
+; member_expression's object is itself one.
+(jsx_opening_element name: (member_expression object: (member_expression object: (identifier) @tag property: (property_identifier) @tag.member) property: (property_identifier) @tag.member))
+(jsx_closing_element name: (member_expression object: (member_expression object: (identifier) @tag property: (property_identifier) @tag.member) property: (property_identifier) @tag.member))
+(jsx_self_closing_element name: (member_expression object: (member_expression object: (identifier) @tag property: (property_identifier) @tag.member) property: (property_identifier) @tag.member))
 (jsx_attribute (property_identifier) @attribute.jsx)
 ; Bare "<"/">" are covered by the general operator list above already — a
 ; comparison in a Vue/HTML injection is not inside any jsx_* node, but an

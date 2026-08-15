@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
-import { getSyntaxStyle } from '../src/languages/highlight';
-import { allSegments } from './syntax';
+import { getSyntaxStyle, segmentsIn, styleIdForGroup } from '../src/languages/highlight';
+import { allSegments, parseHighlights, WHOLE } from './syntax';
 
 const SOURCE = `import { useState } from 'react'
 
@@ -38,6 +38,35 @@ describe('jsx', () => {
 
 		expect(group('tag')).toContain('section');
 		expect(group('tag')).toContain('hr');
+	});
+
+	// A dotted tag is one `member_expression`, whose halves the generic
+	// `(identifier) @variable` / `(property_identifier) @variable.member` rules
+	// capture as well. Groups paint most-specific-last regardless of query order
+	// (more dot-segments wins), so a plain `@tag` on the property half loses
+	// outright to `variable.member`'s two segments — left `Header.Title` painted
+	// as a variable and a property.
+	test('a dotted tag name paints as a tag on both sides of the dot', async () => {
+		const group = await painted('typescriptreact');
+
+		expect(group('tag')).toContain('Header');
+		expect(group('tag')).toContain('Title');
+		expect(group('variable')).not.toContain('Header');
+		expect(group('variable.member')).not.toContain('Title');
+	});
+
+	test('a three-deep dotted tag paints as a tag all the way down', async () => {
+		const source = '<Radix.Slider.Thumb />\n';
+		const line = source.split('\n')[0]!;
+		const parsed = await parseHighlights(source, 'typescriptreact');
+		const tagId = styleIdForGroup('tag');
+		const tagged = segmentsIn(parsed, 0, WHOLE)
+			.filter((segment) => segment.styleId === tagId)
+			.map((segment) => line.slice(segment.start, segment.end));
+
+		expect(tagged).toContain('Radix');
+		expect(tagged).toContain('Slider');
+		expect(tagged).toContain('Thumb');
 	});
 
 	test('attributes read as attributes', async () => {
