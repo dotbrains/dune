@@ -3,7 +3,7 @@
 	"files": {
 		"src/app/App.tsx": 790,
 		"src/app/AppView.tsx": 565,
-		"src/app/commands.ts": 595,
+		"src/app/commands.ts": 605,
 		"src/app/documentActions.ts": 655,
 		"src/app/gitCommands.ts": 595,
 		"src/core/forge.ts": 515,

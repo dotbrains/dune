@@ -1,6 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 
-import { duplicateLines, moveLines, toggleComment, trimTrailing } from '../src/editor/lines';
+import {
+	deleteLines,
+	duplicateLines,
+	moveLines,
+	toggleComment,
+	trimTrailing,
+} from '../src/editor/lines';
 
 describe('toggleComment', () => {
 	test('comments a line and uncomments it back', () => {
@@ -53,6 +59,20 @@ describe('duplicateLines', () => {
 
 	test('copies a block below the block', () => {
 		expect(duplicateLines('a\nb\nc\n', 0, 1)).toBe('a\nb\na\nb\nc\n');
+	});
+});
+
+describe('deleteLines', () => {
+	test('removes a line', () => {
+		expect(deleteLines('a\nb\nc\n', 1, 1)).toBe('a\nc\n');
+	});
+
+	test('removes a block as one unit', () => {
+		expect(deleteLines('a\nb\nc\nd\n', 1, 2)).toBe('a\nd\n');
+	});
+
+	test('deleting every line leaves a single empty line', () => {
+		expect(deleteLines('a\nb\n', 0, 1)).toBe('');
 	});
 });
 
