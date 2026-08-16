@@ -51,10 +51,22 @@ export interface InsertReplaceEdit {
 	newText: string;
 }
 
+export interface MarkupContent {
+	kind: 'markdown' | 'plaintext';
+	value: string;
+}
+
 export interface CompletionItem {
 	label: string;
 	kind?: number;
 	detail?: string;
+	/** The signature and origin a server wants drawn beside the label. */
+	labelDetails?: { detail?: string; description?: string };
+	/** Usually withheld from the list and only filled in by `completionItem/resolve`. */
+	documentation?: string | MarkupContent;
+	/** CompletionItemTag; 1 is Deprecated. `deprecated` is the older spelling. */
+	tags?: number[];
+	deprecated?: boolean;
 	filterText?: string;
 	sortText?: string;
 	insertText?: string;

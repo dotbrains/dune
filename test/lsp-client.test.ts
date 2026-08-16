@@ -73,7 +73,12 @@ describe('LSP client', () => {
 		client.openDocument(path, 'typescript', 'const x = dune\n');
 		await deliveries.atLeast(1);
 		const result = (await client.complete(path, { line: 0, character: 14 })) as CompletionList;
-		expect(result.items.map((item) => item.label)).toEqual(['duneAlpha', 'duneBeta', 'duneLazy']);
+		expect(result.items.map((item) => item.label)).toEqual([
+			'duneAlpha',
+			'duneBeta',
+			'duneLazy',
+			'duneDocs',
+		]);
 
 		const resolved = await client.resolveCompletion(result.items[2]!);
 		expect(resolved?.additionalTextEdits?.[0]?.newText).toBe('import { duneLazy } from "dune"\n');

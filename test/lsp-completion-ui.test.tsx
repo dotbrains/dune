@@ -71,4 +71,23 @@ describe('LSP completions in the editor', () => {
 
 		expect(frame(t)).not.toContain('duneAlpha');
 	});
+
+	test('resolves the selected item into a detail panel below the list', async () => {
+		const dir = fixture({ 'a.ts': '' });
+		const t = await launch(
+			dir,
+			lspConfig,
+			{ width: 100, height: 30 },
+			{ openFile: join(dir, 'a.ts') },
+		);
+
+		await press(t, (input) => void input.typeText('duneD'));
+		await runCommand(t, 'Show completions');
+		await until(t, () => frame(t).includes('duneDocs'));
+
+		await until(t, () => frame(t).includes('Does a thing.'), 40);
+		expect(frame(t)).toContain('() => void');
+		expect(frame(t)).toContain('Does a thing.');
+		expect(frame(t)).toContain('dune/alpha');
+	});
 });

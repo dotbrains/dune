@@ -1,6 +1,6 @@
 import '../core/assets';
 import { getTreeSitterClient, pathToFiletype, SyntaxStyle } from '@opentui/core';
-import type { TreeSitterClient } from '@opentui/core';
+import type { StyleDefinition, TreeSitterClient } from '@opentui/core';
 
 import { syntaxTheme, ui } from '../themes';
 import { languageFor, languageGeneration, localFiletypeForName, vendoredLanguages } from './index';
@@ -12,6 +12,7 @@ const INDENT_GUIDE = 'indent.guide';
 let clientDead = false;
 let initPromise: Promise<TreeSitterClient | null> | null = null;
 let syntaxStyle: SyntaxStyle | null = null;
+let styleById: Map<number, StyleDefinition> | null = null;
 let registeredGeneration = -1;
 
 function registerVendoredParsers(client: TreeSitterClient): void {
@@ -42,6 +43,26 @@ export function getSyntaxStyle(): SyntaxStyle {
 
 export function invalidateSyntaxStyle(): void {
 	syntaxStyle = null;
+	styleById = null;
+}
+
+/**
+ * The style a capture's `styleId` resolves to, for a caller that has to paint
+ * it itself (a completion signature, split across several `<text>` runs) rather
+ * than hand the id to the editor's own native highlight table. Built once per
+ * theme by inverting `getStyleId`, since `SyntaxStyle` only offers the forward
+ * direction.
+ */
+export function styleForId(id: number): StyleDefinition | null {
+	if (!styleById) {
+		const style = getSyntaxStyle();
+		styleById = new Map();
+		for (const [name, def] of style.getAllStyles()) {
+			const styleId = style.getStyleId(name);
+			if (styleId != null) styleById.set(styleId, def);
+		}
+	}
+	return styleById.get(id) ?? null;
 }
 
 /**

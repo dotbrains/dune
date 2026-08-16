@@ -34,6 +34,7 @@ const COMPLETIONS: CompletionItem[] = [
 	{ label: 'duneAlpha', kind: 3, detail: '() => void', insertText: 'duneAlpha()' },
 	{ label: 'duneBeta', kind: 6, detail: 'number' },
 	{ label: 'duneLazy', kind: 7, detail: 'resolve-import' },
+	{ label: 'duneDocs', kind: 3, detail: '() => void' },
 ];
 const MEMBER_COMPLETIONS: CompletionItem[] = [
 	{ label: 'memberTable', kind: 10 },
@@ -125,7 +126,13 @@ process.stdin.on(
 								},
 							],
 						}
-					: item;
+					: item.label === 'duneDocs'
+						? {
+								...item,
+								documentation: { kind: 'markdown', value: 'Does a **thing**.' },
+								labelDetails: { description: 'dune/alpha' },
+							}
+						: item;
 			send({ jsonrpc: '2.0', id: message.id, result });
 		} else if (message.method === 'shutdown') {
 			send({ jsonrpc: '2.0', id: message.id, result: null });

@@ -1,4 +1,4 @@
-import type { CompletionItem, CompletionList, Position, Range } from './protocol';
+import type { CompletionItem, CompletionList, MarkupContent, Position, Range } from './protocol';
 
 export interface CompletionReply {
 	items: CompletionItem[];
@@ -244,4 +244,59 @@ export function matchRuns(
 		at = end;
 	}
 	return runs;
+}
+
+export function isDeprecated(item: CompletionItem): boolean {
+	return item.deprecated === true || item.tags?.includes(1) === true;
+}
+
+/**
+ * Markdown flattened for a terminal panel. Only the inline marks a doc comment
+ * actually carries are undone — fences, code spans, emphasis, headings, list
+ * bullets — because the panel draws one colour and anything left is read as
+ * literal text by the user. Line structure survives: the wrapper needs the
+ * paragraph breaks the server wrote.
+ */
+export function plainMarkup(doc: string | MarkupContent | undefined): string {
+	const raw = typeof doc === 'string' ? doc : doc?.value;
+	if (!raw) return '';
+	return raw
+		.replaceAll(/^[ \t]*```[^\n]*$/gm, '')
+		.replaceAll(/^[ \t]{0,3}#{1,6}[ \t]*/gm, '')
+		.replaceAll(/^[ \t]*[-*+][ \t]+/gm, '• ')
+		.replaceAll(/`([^`]+)`/g, '$1')
+		.replaceAll(/\*\*([^*]+)\*\*/g, '$1')
+		.replaceAll(/(?<![*\w])\*([^*\n]+)\*/g, '$1')
+		.replaceAll(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+		.replaceAll(/\n{3,}/g, '\n\n')
+		.trim();
+}
+
+/** The signature and documentation the menu's detail panel shows for one item. */
+export interface ItemInfo {
+	detail: string;
+	documentation: string;
+	/** Where the symbol comes from — the module a row shows cut, if it shows it at all. */
+	source: string;
+	deprecated: boolean;
+}
+
+export function itemInfo(item: CompletionItem): ItemInfo {
+	const detail = item.detail ?? item.labelDetails?.detail ?? '';
+	return {
+		// Servers send the signature with the newlines they format it over; the
+		// panel wraps it itself, so they are only extra blank rows here. The single
+		// spaces left behind are what let the panel colour it: the highlighter parses
+		// this string and the panel slices the spans onto the rows it wrapped into,
+		// which only lines up while a break costs exactly one character.
+		detail: detail.replaceAll(/\s+/g, ' ').trim(),
+		documentation: plainMarkup(item.documentation),
+		source: item.labelDetails?.description ?? '',
+		deprecated: isDeprecated(item),
+	};
+}
+
+/** Nothing to show yet — the panel stays out of the way rather than drawing empty. */
+export function hasInfo(info: ItemInfo | null): info is ItemInfo {
+	return info !== null && (info.detail.length > 0 || info.documentation.length > 0);
 }
