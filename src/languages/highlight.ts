@@ -1,5 +1,6 @@
 import '../core/assets';
 import { getTreeSitterClient, pathToFiletype, SyntaxStyle } from '@opentui/core';
+import type { StyleDefinitionInput } from '@opentui/core';
 import type { TreeSitterClient } from '@opentui/core';
 
 import { syntaxTheme, ui } from '../themes';
@@ -112,6 +113,14 @@ export function styleIdForGroup(group: string): number | null {
 		if (dot < 0) break;
 		g = g.slice(0, dot);
 	}
+	return null;
+}
+
+export function styleForId(styleId: number): StyleDefinitionInput | null {
+	for (const group of Object.keys(syntaxTheme)) {
+		if (styleIdForGroup(group) === styleId) return syntaxTheme[group] ?? null;
+	}
+	if (styleIdForGroup(INDENT_GUIDE) === styleId) return { bg: ui.indentGuide };
 	return null;
 }
 

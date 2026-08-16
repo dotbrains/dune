@@ -32,6 +32,9 @@ describe('LSP completions in the editor', () => {
 		await until(t, () => frame(t).includes('duneAlpha'));
 
 		expect(frame(t)).toContain('duneAlpha');
+		await until(t, () => frame(t).includes('Runs the alpha completion.'));
+		expect(frame(t)).toContain('function duneAlpha(): void');
+		expect(frame(t)).toContain('dune/fake');
 		await press(t, (input) => input.pressEnter());
 		await until(t, () => frame(t).includes('duneAlpha()'));
 	});

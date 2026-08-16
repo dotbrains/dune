@@ -55,12 +55,16 @@ export interface CompletionItem {
 	label: string;
 	kind?: number;
 	detail?: string;
+	documentation?: string | { kind?: string; value?: string };
+	labelDetails?: { detail?: string; description?: string };
 	filterText?: string;
 	sortText?: string;
 	insertText?: string;
 	insertTextFormat?: number;
 	textEdit?: TextEdit | InsertReplaceEdit;
 	additionalTextEdits?: TextEdit[];
+	tags?: number[];
+	deprecated?: boolean;
 }
 
 export interface CompletionList {

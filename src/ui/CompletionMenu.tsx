@@ -1,21 +1,22 @@
-import { createMemo, For, Show } from 'solid-js';
+import { TextAttributes } from '@opentui/core';
+import { createEffect, createMemo, createSignal, For, on, onCleanup, Show } from 'solid-js';
 
+import { computeHighlights, segmentsIn, STALE, styleForId } from '../languages/highlight';
+import type { Highlighted } from '../languages/highlight';
 import { kindInfo, matchRuns } from '../lsp/completion';
 import type { CompletionMatch, KindGroup } from '../lsp/completion';
 import { ui } from '../themes';
-
-export const COMPLETION_MENU_ROWS = 8;
-
-const LABEL_MAX = 40;
-const DETAIL_MAX = 28;
-const MIN_WIDTH = 22;
+import type { CompletionMenuLayout, SignatureLine } from './completionLayout';
+import { completionSignature } from './completionLayout';
 
 export interface CompletionMenuProps {
 	matches: CompletionMatch[];
 	selected: number;
+	layout: CompletionMenuLayout;
+	detail: string;
+	filetype?: string;
 	top: number;
 	left: number;
-	width: number;
 }
 
 const GROUP_COLORS: Record<KindGroup, () => string> = {
@@ -27,14 +28,10 @@ const GROUP_COLORS: Record<KindGroup, () => string> = {
 	text: () => ui.dim,
 };
 
-export function completionMenuWidth(matches: CompletionMatch[]): number {
-	let label = 0;
-	let detail = 0;
-	for (const match of matches.slice(0, COMPLETION_MENU_ROWS)) {
-		label = Math.max(label, Math.min(match.item.label.length, LABEL_MAX));
-		detail = Math.max(detail, Math.min(match.item.detail?.length ?? 0, DETAIL_MAX));
-	}
-	return Math.max(MIN_WIDTH, 1 + 2 + label + (detail > 0 ? 2 + detail : 0) + 1 + 2);
+interface Span {
+	text: string;
+	fg: string;
+	attributes: number;
 }
 
 const truncate = (text: string, room: number) =>
@@ -44,21 +41,64 @@ export function CompletionMenu(props: CompletionMenuProps) {
 	const windowed = createMemo(() => {
 		const start = Math.max(
 			0,
-			Math.min(
-				props.selected - COMPLETION_MENU_ROWS + 1,
-				props.matches.length - COMPLETION_MENU_ROWS,
-			),
+			Math.min(props.selected - props.layout.rows + 1, props.matches.length - props.layout.rows),
 		);
-		return { start, rows: props.matches.slice(start, start + COMPLETION_MENU_ROWS) };
+		return { start, rows: props.matches.slice(start, start + props.layout.rows) };
 	});
-	const inner = () => props.width - 2;
+	const inner = () => props.layout.width - 2;
+	const filler = () =>
+		props.layout.panelRows -
+		props.layout.signature.length -
+		props.layout.documentation.length -
+		(props.layout.origin ? 1 : 0);
+	const [parsed, setParsed] = createSignal<Highlighted | null>(null);
+	createEffect(
+		on([() => props.detail, () => props.filetype], ([detail, filetype]) => {
+			setParsed(null);
+			if (!detail || !filetype) return;
+			let dropped = false;
+			onCleanup(() => {
+				dropped = true;
+			});
+			void (async () => {
+				const doc = await computeHighlights(detail, filetype, 2, () => dropped);
+				if (!dropped && doc !== STALE) setParsed(doc);
+			})();
+		}),
+	);
+	const captures = createMemo(() => {
+		const doc = parsed();
+		return doc ? segmentsIn(doc, 0, 0) : [];
+	});
+	const painted = (line: SignatureLine): Span[] => {
+		const out: Span[] = [];
+		let col = 0;
+		for (const segment of captures()) {
+			const start = Math.max(segment.start - line.start, col);
+			const end = Math.min(segment.end - line.start, line.text.length);
+			if (end <= start) continue;
+			const style = styleForId(segment.styleId);
+			if (!style || typeof style.fg !== 'string') continue;
+			if (start > col) out.push({ text: line.text.slice(col, start), fg: ui.text, attributes: 0 });
+			out.push({
+				text: line.text.slice(start, end),
+				fg: style.fg,
+				attributes:
+					(style.bold ? TextAttributes.BOLD : 0) | (style.italic ? TextAttributes.ITALIC : 0),
+			});
+			col = end;
+		}
+		if (col < line.text.length)
+			out.push({ text: line.text.slice(col), fg: ui.text, attributes: 0 });
+		return out;
+	};
 
 	return (
 		<box
 			position="absolute"
 			top={props.top}
 			left={props.left}
-			width={props.width}
+			width={props.layout.width}
 			zIndex={30}
 			flexDirection="column"
 			backgroundColor={ui.panelBg}
@@ -77,6 +117,7 @@ export function CompletionMenu(props: CompletionMenuProps) {
 						const kind = kindInfo(match.item.kind);
 						const labelRoom = Math.min(Math.max(match.item.label.length, 1), inner() - 4);
 						const detailRoom = () => inner() - 4 - labelRoom - 2;
+						const detail = () => completionSignature(match.item);
 						return (
 							<box flexDirection="row" backgroundColor={bg()}>
 								<text fg={ui.accent} bg={bg()} flexShrink={0} content={active() ? '▌' : ' '} />
@@ -97,19 +138,19 @@ export function CompletionMenu(props: CompletionMenuProps) {
 										)}
 									</For>
 								</box>
-								<Show when={match.item.detail && detailRoom() >= 4}>
+								<Show when={detail() && detailRoom() >= 4}>
 									<text
 										fg={ui.faint}
 										bg={bg()}
 										flexShrink={0}
-										content={` ${truncate(match.item.detail!.replaceAll(/\s+/g, ' '), detailRoom())} `}
+										content={` ${truncate(detail(), detailRoom())} `}
 									/>
 								</Show>
 							</box>
 						);
 					}}
 				</For>
-				<Show when={props.matches.length > COMPLETION_MENU_ROWS}>
+				<Show when={props.matches.length > props.layout.rows}>
 					<box flexDirection="row" backgroundColor={ui.panelBg}>
 						<box flexGrow={1} backgroundColor={ui.panelBg} />
 						<text
@@ -118,6 +159,46 @@ export function CompletionMenu(props: CompletionMenuProps) {
 							content={`${props.selected + 1}/${props.matches.length} `}
 						/>
 					</box>
+				</Show>
+				<Show when={props.layout.panelRows > 0}>
+					<text
+						fg={ui.scrollbar}
+						bg={ui.panelBg}
+						wrapMode="none"
+						content={'─'.repeat(Math.max(0, inner()))}
+					/>
+					<For each={props.layout.signature}>
+						{(line) => (
+							<box flexDirection="row" backgroundColor={ui.panelBg}>
+								<text fg={ui.text} bg={ui.panelBg} flexShrink={0} content=" " />
+								<For each={painted(line)}>
+									{(span) => (
+										<text
+											fg={span.fg}
+											bg={ui.panelBg}
+											flexShrink={0}
+											wrapMode="none"
+											attributes={span.attributes}
+											content={span.text}
+										/>
+									)}
+								</For>
+								<box flexGrow={1} backgroundColor={ui.panelBg} />
+							</box>
+						)}
+					</For>
+					<For each={props.layout.documentation}>
+						{(line) => <text fg={ui.dim} bg={ui.panelBg} wrapMode="none" content={` ${line}`} />}
+					</For>
+					<Show when={props.layout.origin}>
+						<text
+							fg={ui.faint}
+							bg={ui.panelBg}
+							wrapMode="none"
+							content={` ${props.layout.origin}`}
+						/>
+					</Show>
+					<box height={Math.max(0, filler())} backgroundColor={ui.panelBg} />
 				</Show>
 			</Show>
 		</box>

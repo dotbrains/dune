@@ -11,7 +11,8 @@ import {
 } from '../lsp/completion';
 import type { CompletionReply } from '../lsp/completion';
 import type { CompletionItem } from '../lsp/protocol';
-import { CompletionMenu, completionMenuWidth } from './CompletionMenu';
+import { CompletionMenu } from './CompletionMenu';
+import { completionInfo, completionMenuLayout } from './completionLayout';
 
 const COMPLETION_DEBOUNCE_MS = 80;
 const TRIGGER_CHARS = new Set(['.', ':', '/', '@']);
@@ -26,6 +27,7 @@ export interface EditorCompletionProps {
 	blocked: boolean;
 	focused: boolean;
 	path: string | null;
+	filetype?: string;
 	content: string;
 	completion: { key: number } | null;
 	complete: ((line: number, col: number) => Promise<CompletionReply | null>) | null;
@@ -45,7 +47,9 @@ export function createEditorCompletion(
 	const [items, setItems] = createSignal<CompletionItem[]>([]);
 	const [anchor, setAnchor] = createSignal<CompletionAnchor | null>(null);
 	const [selected, setSelected] = createSignal(0);
+	const [resolved, setResolved] = createSignal<CompletionItem | null>(null);
 	let requestGeneration = 0;
+	let resolveGeneration = 0;
 	let autoTimer: ReturnType<typeof setTimeout> | null = null;
 
 	const prefix = () => {
@@ -57,11 +61,13 @@ export function createEditorCompletion(
 	const matches = createMemo(() => filterCompletions(items(), prefix()));
 	const close = () => {
 		requestGeneration++;
+		resolveGeneration++;
 		if (autoTimer) clearTimeout(autoTimer);
 		autoTimer = null;
 		setItems([]);
 		setAnchor(null);
 		setSelected(0);
+		setResolved(null);
 	};
 	const request = async () => {
 		const editor = deps.editor();
@@ -81,6 +87,7 @@ export function createEditorCompletion(
 		setAnchor({ row: at.row, col: at.col, start });
 		setItems(reply.items);
 		setSelected(0);
+		setResolved(null);
 	};
 	const accept = async () => {
 		const editor = deps.editor();
@@ -88,12 +95,15 @@ export function createEditorCompletion(
 		const match = matches()[selected()];
 		if (!editor || !a || !match) return close();
 		const at = editor.logicalCursor;
-		const resolved = (await props.resolveCompletion?.(match.item)) ?? match.item;
+		const resolvedItem =
+			resolved()?.label === match.item.label
+				? resolved()!
+				: ((await props.resolveCompletion?.(match.item)) ?? match.item);
 		const result = applyCompletion(
 			editor.plainText,
 			{ line: at.row, character: at.col },
 			a.start,
-			resolved,
+			resolvedItem,
 		);
 		editor.setText(result.content);
 		editor.setCursor(result.cursor.line, result.cursor.character);
@@ -138,6 +148,20 @@ export function createEditorCompletion(
 		const count = matches().length;
 		if (selected() >= count) setSelected(Math.max(0, count - 1));
 	});
+	createEffect(
+		on(
+			() => [matches()[selected()]?.item, props.path] as const,
+			([item]) => {
+				const generation = ++resolveGeneration;
+				setResolved(null);
+				if (!item) return;
+				void (async () => {
+					const next = (await props.resolveCompletion?.(item)) ?? item;
+					if (generation === resolveGeneration) setResolved(next);
+				})();
+			},
+		),
+	);
 	onCleanup(() => {
 		if (autoTimer) clearTimeout(autoTimer);
 	});
@@ -162,11 +186,33 @@ export function createEditorCompletion(
 		const visible = matches();
 		if (!editor || !anchor()) return null;
 		const cursor = editor.visualCursor;
-		const width = Math.min(completionMenuWidth(visible), dimensions().width - 2);
-		const left = Math.max(0, Math.min(dimensions().width - width, editor.x + cursor.visualCol));
-		const top = Math.max(0, Math.min(dimensions().height - 2, editor.y + cursor.visualRow + 1));
+		const info = completionInfo(resolved() ?? visible[selected()]?.item);
+		const layout = completionMenuLayout(
+			visible.map((match) => match.item),
+			info,
+			{ width: dimensions().width - 2, height: dimensions().height - 2 },
+			true,
+		);
+		const left = Math.max(
+			0,
+			Math.min(dimensions().width - layout.width, editor.x + cursor.visualCol),
+		);
+		const below = editor.y + cursor.visualRow + 1;
+		const above = editor.y + cursor.visualRow - layout.height;
+		const top =
+			below + layout.height <= dimensions().height
+				? below
+				: Math.max(0, Math.min(dimensions().height - layout.height, above));
 		return (
-			<CompletionMenu matches={visible} selected={selected()} top={top} left={left} width={width} />
+			<CompletionMenu
+				matches={visible}
+				selected={selected()}
+				layout={layout}
+				detail={info?.detail ?? ''}
+				filetype={props.filetype}
+				top={top}
+				left={left}
+			/>
 		);
 	};
 

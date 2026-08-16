@@ -31,7 +31,13 @@ const publish = (uri: string, text: string) => {
 };
 
 const COMPLETIONS: CompletionItem[] = [
-	{ label: 'duneAlpha', kind: 3, detail: '() => void', insertText: 'duneAlpha()' },
+	{
+		label: 'duneAlpha',
+		kind: 3,
+		detail: '() => void',
+		labelDetails: { detail: '() => void', description: 'dune/fake' },
+		insertText: 'duneAlpha()',
+	},
 	{ label: 'duneBeta', kind: 6, detail: 'number' },
 	{ label: 'duneLazy', kind: 7, detail: 'resolve-import' },
 ];
@@ -125,7 +131,14 @@ process.stdin.on(
 								},
 							],
 						}
-					: item;
+					: item.label === 'duneAlpha'
+						? {
+								...item,
+								detail: 'function duneAlpha(): void',
+								labelDetails: { detail: 'function duneAlpha(): void', description: 'dune/fake' },
+								documentation: 'Runs the alpha completion.',
+							}
+						: item;
 			send({ jsonrpc: '2.0', id: message.id, result });
 		} else if (message.method === 'shutdown') {
 			send({ jsonrpc: '2.0', id: message.id, result: null });
