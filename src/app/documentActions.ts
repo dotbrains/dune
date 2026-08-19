@@ -23,10 +23,10 @@ import type { PackageManager } from '../lsp/install';
 import type { FetchableInstall } from '../lsp/servers';
 import { ALT } from '../ui/keys';
 import { installMarketPlugin } from './appearance/pluginsPage';
-import { syncedBuffer } from './buffers';
 import { KEYBINDABLE_COMMANDS } from './commands/keybindings';
 import { CLASH_CHANGED } from './constants';
 import { isTextPrompt } from './prompts';
+import { syncedBuffer } from './state/buffers';
 import type { BufferState, Conflict, DiskSync, Prompt } from './types';
 
 export function createDocumentActions(deps: {

@@ -1,5 +1,5 @@
-import type { TextEncoding } from '../core/fs';
-import type { BufferState } from './types';
+import type { TextEncoding } from '../../core/fs';
+import type { BufferState } from '../types';
 
 export const syncedBuffer = (
 	content: string,

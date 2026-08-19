@@ -2,7 +2,7 @@ import { BinaryFileError, exists, mtimeOf, readTextFile } from '../core/fs';
 import { isImagePath } from '../core/image';
 import { isPdfPath } from '../core/pdf';
 import { loadSession } from '../core/session';
-import { syncedBuffer } from './buffers';
+import { syncedBuffer } from './state/buffers';
 import type { BufferState } from './types';
 
 export interface RestoredAppState {

@@ -5,7 +5,7 @@ import type { Config } from '../core/config';
 import { BinaryFileError, mtimeOf, readTextFile } from '../core/fs';
 import { isImagePath } from '../core/image';
 import { isPdfPath } from '../core/pdf';
-import { syncedBuffer } from './buffers';
+import { syncedBuffer } from './state/buffers';
 import type { BufferState, Focus } from './types';
 
 interface FileOpenDeps {
