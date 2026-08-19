@@ -34,6 +34,7 @@ export function createFileOpener(deps: FileOpenDeps) {
 				const file = readTextFile(path);
 				deps.setBuffers(path, {
 					content: file.content,
+					saved: file.content,
 					dirty: false,
 					mtime: mtimeOf(path),
 					encoding: file.encoding,

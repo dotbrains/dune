@@ -34,7 +34,7 @@ export class History {
 
 		// A pause ends the burst: whatever was pending becomes its own undo step.
 		if (this.pending && now - this.lastEditAt > BURST_MS) this.commit();
-		if (!this.pending) this.pending = this.current;
+		if (!this.pending) this.pending = { content: this.current.content, cursor: next.cursor };
 
 		this.current = next;
 		this.lastEditAt = now;

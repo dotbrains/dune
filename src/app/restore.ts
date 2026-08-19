@@ -28,6 +28,7 @@ export function restoreAppState(rootDir: string, single: string | null): Restore
 			const file = readTextFile(single);
 			const buffer = {
 				content: file.content,
+				saved: file.content,
 				dirty: false,
 				mtime: mtimeOf(single),
 				encoding: file.encoding,
@@ -63,6 +64,7 @@ export function restoreAppState(rootDir: string, single: string | null): Restore
 			const file = readTextFile(path);
 			buffers[path] = {
 				content: file.content,
+				saved: file.content,
 				dirty: false,
 				mtime: mtimeOf(path),
 				encoding: file.encoding,

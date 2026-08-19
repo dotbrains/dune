@@ -44,6 +44,13 @@ describe('undo history', () => {
 		expect(history.undo()).toEqual({ content: 'abc', cursor: 3 });
 	});
 
+	test('the first undo lands where the burst started, not where the file opened', () => {
+		const history = new History(at('a'.repeat(80), 0));
+		history.record({ content: `${'a'.repeat(40)}x${'a'.repeat(40)}`, cursor: 40 }, 1000);
+
+		expect(history.undo()?.cursor).toBe(40);
+	});
+
 	test('a reload from disk is not an undo step', () => {
 		const history = new History(at(''));
 		history.record(at('mine'), 1000);

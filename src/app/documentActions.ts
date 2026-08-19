@@ -134,7 +134,13 @@ export function createDocumentActions(deps: {
 		if (formatter) {
 			const formatError = await runFormatter(formatter, path, deps.rootDir);
 			if (formatError) {
-				deps.setBuffers(path, { content: final, dirty: false, mtime: mtimeOf(path), encoding });
+				deps.setBuffers(path, {
+					content: final,
+					saved: final,
+					dirty: false,
+					mtime: mtimeOf(path),
+					encoding,
+				});
 				if (final !== content && path === deps.activePath()) deps.pushEdit(final);
 				deps.setGitRevision((n) => n + 1);
 				deps.say(`Format failed: ${formatError}`, 'error');
@@ -145,6 +151,7 @@ export function createDocumentActions(deps: {
 				saved = file.content;
 				deps.setBuffers(path, {
 					content: saved,
+					saved,
 					dirty: false,
 					mtime: mtimeOf(path),
 					encoding: file.encoding,
@@ -158,7 +165,7 @@ export function createDocumentActions(deps: {
 				saved = final;
 			}
 		}
-		deps.setBuffers(path, { content: saved, dirty: false, mtime: mtimeOf(path), encoding });
+		deps.setBuffers(path, { content: saved, saved, dirty: false, mtime: mtimeOf(path), encoding });
 		if (saved !== content && path === deps.activePath()) deps.pushEdit(saved);
 		deps.setGitRevision((n) => n + 1);
 		deps.say(formatter ? `Formatted ${basename(path)}` : `Saved ${basename(path)}`);
@@ -198,6 +205,7 @@ export function createDocumentActions(deps: {
 			const file = readTextFile(path);
 			deps.setBuffers(path, {
 				content: file.content,
+				saved: file.content,
 				dirty: false,
 				mtime: mtimeOf(path),
 				encoding: file.encoding,
@@ -327,6 +335,7 @@ export function createDocumentActions(deps: {
 		else if (choice === 'reload') {
 			deps.setBuffers(c.path, {
 				content: c.disk,
+				saved: c.disk,
 				dirty: false,
 				mtime: mtimeOf(c.path),
 				encoding: c.encoding,
@@ -340,7 +349,7 @@ export function createDocumentActions(deps: {
 		const buffer = path ? deps.buffers[path] : undefined;
 		if (!path || !buffer || buffer.content === text) return;
 		deps.pinTab(path);
-		deps.setBuffers(path, { ...buffer, content: text, dirty: true });
+		deps.setBuffers(path, { ...buffer, content: text, dirty: text !== buffer.saved });
 	};
 	const syncFromDisk = (): DiskSync => {
 		const updates: [string, BufferState][] = [];
@@ -365,7 +374,11 @@ export function createDocumentActions(deps: {
 			}
 			if (disk === buffer.content) continue;
 			if (buffer.dirty) changed.push(basename(path));
-			else updates.push([path, { content: disk, dirty: false, mtime: mtimeOf(path), encoding }]);
+			else
+				updates.push([
+					path,
+					{ content: disk, saved: disk, dirty: false, mtime: mtimeOf(path), encoding },
+				]);
 		}
 		for (const path of vanished) deps.closeTab(path, true);
 		if (updates.length > 0) {

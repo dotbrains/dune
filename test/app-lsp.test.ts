@@ -40,7 +40,7 @@ function runLsp(content = 'const oops = 1\n') {
 		disposers.push(dispose);
 		const [tabs, setTabs] = createSignal([path]);
 		const [buffers, setBuffers] = createStore<Record<string, BufferState>>({
-			[path]: { content, dirty: false, mtime: 0 },
+			[path]: { content, saved: content, dirty: false, mtime: 0 },
 		});
 		const warnings: string[] = [];
 		const config = { ...DEFAULTS, lsp: true, lspServers: { typescript: ['bun', FAKE] } };
@@ -143,7 +143,7 @@ test('files can sync with every matching language server', async () => {
 		});
 		const [tabs] = createSignal([path]);
 		const [buffers] = createStore<Record<string, BufferState>>({
-			[path]: { content: 'const oops = 1\n', dirty: false, mtime: 0 },
+			[path]: { content: 'const oops = 1\n', saved: 'const oops = 1\n', dirty: false, mtime: 0 },
 		});
 		wireAppLspEffects({ lsp, config, tabs, buffers });
 
@@ -178,7 +178,7 @@ test('an edit still reaches a live server after a sibling dies', async () => {
 		});
 		const [tabs] = createSignal([path]);
 		const [buffers, setBuffers] = createStore<Record<string, BufferState>>({
-			[path]: { content: 'const oops = 1\n', dirty: false, mtime: 0 },
+			[path]: { content: 'const oops = 1\n', saved: 'const oops = 1\n', dirty: false, mtime: 0 },
 		});
 		wireAppLspEffects({ lsp, config, tabs, buffers });
 

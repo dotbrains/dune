@@ -33,6 +33,8 @@ export interface AppProps {
 
 export interface BufferState {
 	content: string;
+	/** Last content synced with disk; dirty is always content !== saved. */
+	saved: string;
 	dirty: boolean;
 	/** Disk mtime this buffer was last in sync with; used to detect outside edits. */
 	mtime: number;

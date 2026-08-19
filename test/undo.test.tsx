@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { fixture, launch, press } from './helpers';
+import { fixture, launch, press, settle, until } from './helpers';
 
 async function openedFile(dir: string) {
 	const t = await launch(dir);
@@ -33,6 +33,29 @@ describe('undo and redo', () => {
 		await press(t, (input) => input.pressKey('s', { ctrl: true }));
 
 		expect(readFileSync(join(dir, 'a.ts'), 'utf8')).toBe('start\n');
+	});
+
+	test('undoing back to the file drops the unsaved mark', async () => {
+		const t = await openedFile(fixture({ 'a.ts': 'start\n' }));
+		await press(t, (input) => void input.typeText('junk'));
+		expect(t.captureCharFrame()).toContain('unsaved');
+
+		await press(t, (input) => input.pressKey('z', { ctrl: true }));
+		expect(t.captureCharFrame()).not.toContain('unsaved');
+	});
+
+	test('the caret stays where the undone edit was', async () => {
+		const lines = Array.from({ length: 40 }, (_, i) => `line ${i + 1}`).join('\n');
+		const t = await openedFile(fixture({ 'a.ts': `${lines}\n` }));
+		await press(t, (input) => {
+			for (let i = 0; i < 20; i++) input.pressArrow('down');
+		});
+		await press(t, (input) => void input.typeText('x'));
+		await press(t, (input) => input.pressKey('z', { ctrl: true }));
+
+		await until(t, () => t.captureCharFrame().includes('Ln 21'));
+		await settle(t);
+		expect(t.captureCharFrame()).toContain('Ln 21');
 	});
 
 	test('Ctrl+Z with nothing to undo leaves the buffer alone', async () => {
