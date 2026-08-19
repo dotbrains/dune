@@ -140,6 +140,15 @@ fine-grained PAT with contents:write on the tap repository. Without it, the rele
 ships and the workflow emits a notice; Homebrew is left at the previous tap formula until
 someone copies the release asset by hand.
 
+## Landing page
+
+`web/` is the landing page: a Vite React app, separate from the editor and from its
+Solid/OpenTUI toolchain. Nothing in `src/` may import from it. Run
+`cd web && bun install && bun run dev` to serve it on port 3000, and `bun run build` in
+`web/` to type-check and emit static files into `web/dist/`. The root `tsconfig.json`
+excludes `web/` because it needs DOM types and React JSX, while the editor root uses
+Solid JSX and OpenTUI.
+
 ## Architecture
 
 Read [ARCHITECTURE.md](ARCHITECTURE.md) first. It has the folder map, the one-way

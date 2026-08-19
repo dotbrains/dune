@@ -1,4 +1,7 @@
 {
+	// web/ is the landing page: React with DOM types, separate from the
+	// Solid/OpenTUI editor toolchain checked by this root config.
+	"exclude": ["web", "node_modules", "dist"],
 	"compilerOptions": {
 		// Environment setup & latest features
 		"lib": ["ESNext"],
