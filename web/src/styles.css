@@ -30,6 +30,10 @@ body,
 	min-height: 100%;
 }
 
+html {
+	-webkit-text-size-adjust: 100%;
+}
+
 body {
 	margin: 0;
 	background: var(--bg);
@@ -130,6 +134,8 @@ h1 {
 	border: 1px solid var(--border);
 	border-radius: 6px;
 	background: var(--bg);
+	width: max-content;
+	max-width: 100%;
 	overflow-x: auto;
 	animation: rise 0.5s ease-out both;
 	animation-delay: 0.15s;
@@ -143,11 +149,11 @@ h1 {
 }
 
 .editor pre {
-	min-width: 60rem;
+	min-width: max-content;
 	margin: 0;
 	font-family: var(--mono);
-	font-size: 13px;
-	line-height: 1.45;
+	font-size: 12px;
+	line-height: 1.5;
 }
 
 .tabs,
@@ -163,6 +169,7 @@ h1 {
 .status {
 	display: flex;
 	justify-content: space-between;
+	gap: 4ch;
 	border-top: 1px solid var(--border);
 }
 
@@ -238,23 +245,22 @@ h1 {
 }
 
 .command {
-	display: flex;
+	display: block;
 	width: 100%;
-	align-items: baseline;
-	justify-content: space-between;
-	gap: 1rem;
 	border: 0;
 	background: transparent;
 	color: var(--fg);
 	font: inherit;
-	padding: 0.15rem 0;
+	padding: 0.15rem 0 0.15rem 2ch;
 	text-align: left;
 	cursor: pointer;
+	white-space: pre-wrap;
+	text-indent: -2ch;
+	overflow-wrap: anywhere;
 }
 
 .command-main {
-	min-width: 0;
-	overflow-wrap: anywhere;
+	display: inline;
 }
 
 .command-note {
@@ -282,12 +288,29 @@ h1 {
 	}
 
 	.terminal {
-		padding: 2rem 1rem 4rem;
+		padding: 1.75rem 1rem 3rem;
 	}
 
-	.command {
-		align-items: flex-start;
-		flex-direction: column;
-		gap: 0.2rem;
+	.section {
+		margin-top: 2.5rem;
+	}
+
+	.mock-side,
+	.mock-wide {
+		display: none;
+	}
+
+	.editor pre {
+		font-size: clamp(9px, 2.55vw, 12px);
+	}
+
+	.feature {
+		padding-left: 2ch;
+		text-indent: -1ch;
+	}
+
+	.command-note {
+		display: flex;
+		text-indent: 0;
 	}
 }

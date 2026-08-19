@@ -184,11 +184,11 @@ function Row({ row }: { row: MockRow }) {
 
 	return (
 		<div className={row.cursor ? 'cursor-line' : undefined}>
-			<span className="dim">
+			<span className="mock-side dim">
 				<Spans spans={row.side} />
 				{' '.repeat(Math.max(0, SIDEBAR_COLUMNS - width(row.side)))}
 			</span>
-			<span className="gutter">│</span>
+			<span className="mock-side gutter">│</span>
 			<span className="line-number">{row.num ?? '   '}</span>
 			<span className={gutter}>{row.git ? '▎' : ' '}</span>
 			<span className="dim">{`${row.fold ?? ' '} `}</span>
@@ -203,11 +203,11 @@ function EditorMock() {
 		<div className="editor" aria-label="Dune editing its own source">
 			<pre>
 				<div className="tabs">
-					{'  <- ->  '}
+					<span className="mock-wide">{'  <- ->  '}</span>
 					<span className="tab-active">{' ● documentActions.ts x '}</span>
 					{'  '}
 					<span className="warning">{'▲ StatusBar.tsx'}</span>
-					{'    commands.ts    git.ts'}
+					<span className="mock-wide">{'    commands.ts    git.ts'}</span>
 				</div>
 				<div>
 					{rows.map((row, index) => (
@@ -221,7 +221,7 @@ function EditorMock() {
 						{'  '}
 						<span className="warning">▲ 2</span>
 						{'   '}
-						<span className="dim">F1 commands Ctrl+K keys Space preview</span>
+						<span className="mock-wide dim">F1 commands Ctrl+K keys Space preview</span>
 					</span>
 					<span className="dim">
 						{'Ln 134, Col 24  '}
