@@ -47,9 +47,9 @@ describe('undo and redo', () => {
 	test('the caret stays where the undone edit was', async () => {
 		const lines = Array.from({ length: 40 }, (_, i) => `line ${i + 1}`).join('\n');
 		const t = await openedFile(fixture({ 'a.ts': `${lines}\n` }));
-		await press(t, (input) => {
-			for (let i = 0; i < 20; i++) input.pressArrow('down');
-		});
+		await press(t, (input) => input.pressKey('g', { ctrl: true }));
+		await press(t, (input) => void input.typeText('21'));
+		await press(t, (input) => input.pressEnter());
 		await press(t, (input) => void input.typeText('x'));
 		await press(t, (input) => input.pressKey('z', { ctrl: true }));
 

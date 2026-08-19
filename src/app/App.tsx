@@ -13,6 +13,7 @@ import { AppView } from './AppView';
 import { createAppearancePluginUi } from './appearance/pluginsPage';
 import { reloadAppearancePlugins as reloadPlugins } from './appearance/reload';
 import { prepareStartup } from './appearance/startup';
+import { editedBuffer } from './buffers';
 import { createAppCommandTree } from './commands/tree';
 import { READY } from './constants';
 import { createDocumentActions } from './documentActions';
@@ -220,18 +221,14 @@ export function App(props: AppTypes.AppProps) {
 		targetDir,
 	} = fileActions;
 	const pushEdit = (content: string) => setEdit((prev) => ({ content, key: (prev?.key ?? 0) + 1 }));
-	const editedBuffer = (path: string, content: string): AppTypes.BufferState => {
-		const current = buffers[path] ?? { saved: '', mtime: 0 };
-		return { ...current, content, dirty: content !== current.saved };
-	};
-	const applyReplacement = (path: string, next: string) => {
-		pinTab(path);
-		setBuffers(path, editedBuffer(path, next));
-		pushEdit(next);
-	};
+	const applyReplacement = (path: string, next: string) => (
+		pinTab(path),
+		setBuffers(path, editedBuffer(buffers[path] ?? { saved: '', mtime: 0 }, next)),
+		pushEdit(next)
+	);
 	const applyBufferReplacement = (path: string, next: string) => {
 		pinTab(path);
-		setBuffers(path, editedBuffer(path, next));
+		setBuffers(path, editedBuffer(buffers[path] ?? { saved: '', mtime: 0 }, next));
 		if (path === activePath()) pushEdit(next);
 	};
 	const mergeConflicts = createMergeConflictActions({

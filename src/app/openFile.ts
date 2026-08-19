@@ -5,6 +5,7 @@ import type { Config } from '../core/config';
 import { BinaryFileError, mtimeOf, readTextFile } from '../core/fs';
 import { isImagePath } from '../core/image';
 import { isPdfPath } from '../core/pdf';
+import { syncedBuffer } from './buffers';
 import type { BufferState, Focus } from './types';
 
 interface FileOpenDeps {
@@ -32,13 +33,7 @@ export function createFileOpener(deps: FileOpenDeps) {
 		if (!deps.buffers[path] && !viewer) {
 			try {
 				const file = readTextFile(path);
-				deps.setBuffers(path, {
-					content: file.content,
-					saved: file.content,
-					dirty: false,
-					mtime: mtimeOf(path),
-					encoding: file.encoding,
-				});
+				deps.setBuffers(path, syncedBuffer(file.content, mtimeOf(path), file.encoding));
 			} catch (e) {
 				deps.setNotice({
 					name: basename(path),

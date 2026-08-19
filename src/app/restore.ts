@@ -2,6 +2,7 @@ import { BinaryFileError, exists, mtimeOf, readTextFile } from '../core/fs';
 import { isImagePath } from '../core/image';
 import { isPdfPath } from '../core/pdf';
 import { loadSession } from '../core/session';
+import { syncedBuffer } from './buffers';
 import type { BufferState } from './types';
 
 export interface RestoredAppState {
@@ -26,13 +27,7 @@ export function restoreAppState(rootDir: string, single: string | null): Restore
 			};
 		try {
 			const file = readTextFile(single);
-			const buffer = {
-				content: file.content,
-				saved: file.content,
-				dirty: false,
-				mtime: mtimeOf(single),
-				encoding: file.encoding,
-			};
+			const buffer = syncedBuffer(file.content, mtimeOf(single), file.encoding);
 			return {
 				buffers: { [single]: buffer },
 				tabs: [single],
@@ -62,13 +57,7 @@ export function restoreAppState(rootDir: string, single: string | null): Restore
 		if (isImagePath(path) || isPdfPath(path)) continue;
 		try {
 			const file = readTextFile(path);
-			buffers[path] = {
-				content: file.content,
-				saved: file.content,
-				dirty: false,
-				mtime: mtimeOf(path),
-				encoding: file.encoding,
-			};
+			buffers[path] = syncedBuffer(file.content, mtimeOf(path), file.encoding);
 		} catch {}
 	}
 	const tabs = saved.tabs.filter(

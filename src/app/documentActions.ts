@@ -23,6 +23,7 @@ import type { PackageManager } from '../lsp/install';
 import type { FetchableInstall } from '../lsp/servers';
 import { ALT } from '../ui/keys';
 import { installMarketPlugin } from './appearance/pluginsPage';
+import { syncedBuffer } from './buffers';
 import { KEYBINDABLE_COMMANDS } from './commands/keybindings';
 import { CLASH_CHANGED } from './constants';
 import { isTextPrompt } from './prompts';
@@ -134,13 +135,7 @@ export function createDocumentActions(deps: {
 		if (formatter) {
 			const formatError = await runFormatter(formatter, path, deps.rootDir);
 			if (formatError) {
-				deps.setBuffers(path, {
-					content: final,
-					saved: final,
-					dirty: false,
-					mtime: mtimeOf(path),
-					encoding,
-				});
+				deps.setBuffers(path, syncedBuffer(final, mtimeOf(path), encoding));
 				if (final !== content && path === deps.activePath()) deps.pushEdit(final);
 				deps.setGitRevision((n) => n + 1);
 				deps.say(`Format failed: ${formatError}`, 'error');
@@ -149,13 +144,7 @@ export function createDocumentActions(deps: {
 			try {
 				const file = readTextFile(path);
 				saved = file.content;
-				deps.setBuffers(path, {
-					content: saved,
-					saved,
-					dirty: false,
-					mtime: mtimeOf(path),
-					encoding: file.encoding,
-				});
+				deps.setBuffers(path, syncedBuffer(saved, mtimeOf(path), file.encoding));
 				if (saved !== content && path === deps.activePath()) deps.pushEdit(saved);
 				deps.setGitRevision((n) => n + 1);
 				deps.say(`Formatted ${basename(path)}`);
@@ -165,7 +154,7 @@ export function createDocumentActions(deps: {
 				saved = final;
 			}
 		}
-		deps.setBuffers(path, { content: saved, saved, dirty: false, mtime: mtimeOf(path), encoding });
+		deps.setBuffers(path, syncedBuffer(saved, mtimeOf(path), encoding));
 		if (saved !== content && path === deps.activePath()) deps.pushEdit(saved);
 		deps.setGitRevision((n) => n + 1);
 		deps.say(formatter ? `Formatted ${basename(path)}` : `Saved ${basename(path)}`);
@@ -203,13 +192,7 @@ export function createDocumentActions(deps: {
 		}
 		try {
 			const file = readTextFile(path);
-			deps.setBuffers(path, {
-				content: file.content,
-				saved: file.content,
-				dirty: false,
-				mtime: mtimeOf(path),
-				encoding: file.encoding,
-			});
+			deps.setBuffers(path, syncedBuffer(file.content, mtimeOf(path), file.encoding));
 			if (file.content !== before && path === deps.activePath()) deps.pushEdit(file.content);
 			deps.setGitRevision((n) => n + 1);
 			return { ok: true };
@@ -333,13 +316,7 @@ export function createDocumentActions(deps: {
 		if (choice === 'overwrite' && deps.buffers[c.path])
 			void writeBuffer(c.path, deps.buffers[c.path]!.content);
 		else if (choice === 'reload') {
-			deps.setBuffers(c.path, {
-				content: c.disk,
-				saved: c.disk,
-				dirty: false,
-				mtime: mtimeOf(c.path),
-				encoding: c.encoding,
-			});
+			deps.setBuffers(c.path, syncedBuffer(c.disk, mtimeOf(c.path), c.encoding));
 			deps.setReloadKey((k) => k + 1);
 			deps.say(`Reloaded ${basename(c.path)} from disk`);
 		}
@@ -374,11 +351,7 @@ export function createDocumentActions(deps: {
 			}
 			if (disk === buffer.content) continue;
 			if (buffer.dirty) changed.push(basename(path));
-			else
-				updates.push([
-					path,
-					{ content: disk, saved: disk, dirty: false, mtime: mtimeOf(path), encoding },
-				]);
+			else updates.push([path, syncedBuffer(disk, mtimeOf(path), encoding)]);
 		}
 		for (const path of vanished) deps.closeTab(path, true);
 		if (updates.length > 0) {
