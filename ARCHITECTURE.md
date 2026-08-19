@@ -46,7 +46,7 @@ scripts/
   themes/
     index.ts         theme registry  ← add a theme here
     types.ts         Theme / ThemeUi shape
-    github-dark.ts   one file per theme: also github-light, ayu-dark/mirage/light,
+    github-dark.ts   one file per theme: also 0x96f, github-light, ayu-dark/mirage/light,
                      the four catppuccin flavors, dracula, everforest-dark/light,
                      gruvbox-dark/light, kanagawa-wave/dragon/lotus, nord,
                      one-dark, the three rosé pine variants, solarized-dark/light,

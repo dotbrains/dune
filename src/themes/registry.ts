@@ -1,3 +1,4 @@
+import { zeroX96f } from './0x96f';
 import { ayuDark } from './ayu-dark';
 import { ayuLight } from './ayu-light';
 import { ayuMirage } from './ayu-mirage';
@@ -39,6 +40,7 @@ import { vesper } from './vesper';
 export const THEME_ENTRIES = [
 	['dark', githubDark],
 	['light', githubLight],
+	['0x96f', zeroX96f],
 	['ayu-dark', ayuDark],
 	['ayu-mirage', ayuMirage],
 	['ayu-light', ayuLight],

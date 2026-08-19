@@ -109,13 +109,13 @@ test('the settings page edits the light and dark theme slots', async () => {
 	await press(t, (i) => i.pressArrow('down'));
 	await press(t, (i) => i.pressArrow('down'));
 	await press(t, (i) => i.pressEnter());
-	expect(t.captureCharFrame()).toContain('Ayu Dark');
+	expect(t.captureCharFrame()).toContain('0x96f');
 
 	await press(t, (i) => i.pressArrow('down'));
 	await press(t, (i) => i.pressEnter());
 	expect(t.captureCharFrame()).toContain('GitHub Light');
 
 	const saved = JSON.parse(readFileSync(CONFIG_FILE, 'utf8'));
-	expect(saved.themeLight).toBe('ayu-dark');
+	expect(saved.themeLight).toBe('0x96f');
 	expect(saved.themeDark).toBe('light');
 });
