@@ -109,6 +109,17 @@ else
         ;;
     esac
 
+    case "$target" in
+      linux-x64|windows-x64)
+        if [ "${DUNE_CPU_BASELINE:-}" = "1" ]; then
+            target="$target-baseline"
+        elif [ "${DUNE_CPU_BASELINE:-}" != "0" ] && [ -r /proc/cpuinfo ] \
+            && ! grep -qw avx2 /proc/cpuinfo; then
+            target="$target-baseline"
+        fi
+        ;;
+    esac
+
     if [ "$os" = "linux" ]; then
         archive_ext=".tar.gz"
         if ! command -v tar >/dev/null 2>&1; then

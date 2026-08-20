@@ -43,13 +43,35 @@ const SUPPORTED = new Set([
 ]);
 export const supported = SUPPORTED.has(target);
 
-const asset = `dune-${target}.${platform === 'linux' ? 'tar.gz' : 'zip'}`;
+const BASELINE_TARGETS = new Set(['linux-x64', 'windows-x64']);
+
+export function wantsBaseline(cpuinfo) {
+	return !/\bavx2\b/.test(cpuinfo);
+}
+
+function detectBaseline() {
+	const forced = process.env.DUNE_CPU_BASELINE;
+	if (forced === '1') return true;
+	if (forced === '0' || !BASELINE_TARGETS.has(target)) return false;
+	if (platform !== 'linux') return false;
+	try {
+		return wantsBaseline(readFileSync('/proc/cpuinfo', 'utf8'));
+	} catch {
+		return false;
+	}
+}
+
+export function illegalInstruction({ signal, status }) {
+	return signal === 'SIGILL' || status === 3221225501 || status === -1073741795;
+}
+
+const assetFor = (baseline) =>
+	`dune-${target}${baseline ? '-baseline' : ''}.${platform === 'linux' ? 'tar.gz' : 'zip'}`;
 const repo =
 	pkg.repository?.url?.replace(/^git\+/, '').replace(/\.git$/, '') ??
 	'https://github.com/dotbrains/dune';
 /** `DUNE_DOWNLOAD_BASE` points the fetch at a mirror, for networks that cannot reach GitHub. */
 const base = process.env.DUNE_DOWNLOAD_BASE ?? `${repo}/releases/download/v${version}`;
-const url = `${base}/${asset}`;
 
 /**
  * Where the binary may live, best first: beside the shim, then a per-user cache.
@@ -69,27 +91,52 @@ export function findBinary() {
 	return existsSync(local) ? local : null;
 }
 
+async function download(asset, signal) {
+	const temp = join(tmpdir(), `dune-${version}-${asset}-${process.pid}`);
+	let keep = false;
+	try {
+		const response = await fetch(`${base}/${asset}`, { redirect: 'follow', signal });
+		if (!response.ok) return null;
+		mkdirSync(temp, { recursive: true });
+		const archive = join(temp, asset);
+		writeFileSync(archive, Buffer.from(await response.arrayBuffer()));
+		if (!unpack(archive, temp)) return null;
+		const unpacked = join(temp, exe);
+		if (!existsSync(unpacked)) return null;
+		if (platform !== 'windows') chmodSync(unpacked, 0o755);
+		keep = true;
+		return { temp, unpacked };
+	} catch {
+		return null;
+	} finally {
+		if (!keep) rmSync(temp, { recursive: true, force: true });
+	}
+}
+
 /**
  * Download and unpack the release asset. Returns the path, or null if it could not.
  * The timeout covers both the initial response and the body stream.
  */
 export async function fetchBinary({ timeout = DOWNLOAD_TIMEOUT_MS } = {}) {
 	if (!supported) return null;
-	const temp = join(tmpdir(), `dune-${version}-${process.pid}`);
+	const temps = [];
 	try {
-		const response = await fetch(url, {
-			redirect: 'follow',
-			signal: timeout ? AbortSignal.timeout(timeout) : undefined,
-		});
-		if (!response.ok) return null;
-		mkdirSync(temp, { recursive: true });
-		const archive = join(temp, asset);
-		writeFileSync(archive, Buffer.from(await response.arrayBuffer()));
-		if (!unpack(archive, temp)) return null;
+		const signal = timeout ? AbortSignal.timeout(timeout) : undefined;
+		const baseline = detectBaseline();
+		let got = await download(assetFor(baseline), signal);
+		if (!got) return null;
+		temps.push(got.temp);
 
-		const unpacked = join(temp, exe);
-		if (!existsSync(unpacked)) return null;
-		if (platform !== 'windows') chmodSync(unpacked, 0o755);
+		if (!baseline && BASELINE_TARGETS.has(target)) {
+			const probe = spawnSync(got.unpacked, ['--version'], { stdio: 'pipe', windowsHide: true });
+			if (illegalInstruction(probe)) {
+				const fallback = await download(assetFor(true), signal);
+				if (fallback) {
+					temps.push(fallback.temp);
+					got = fallback;
+				}
+			}
+		}
 
 		for (const destination of [inPackage, inCache]) {
 			// Copy beside the destination, then rename into place. Renaming straight from
@@ -99,7 +146,7 @@ export async function fetchBinary({ timeout = DOWNLOAD_TIMEOUT_MS } = {}) {
 			const partial = `${destination}.partial`;
 			try {
 				mkdirSync(dirname(destination), { recursive: true });
-				copyFileSync(unpacked, partial);
+				copyFileSync(got.unpacked, partial);
 				if (platform !== 'windows') chmodSync(partial, 0o755);
 				renameSync(partial, destination);
 				return destination;
@@ -112,7 +159,7 @@ export async function fetchBinary({ timeout = DOWNLOAD_TIMEOUT_MS } = {}) {
 	} catch {
 		return null;
 	} finally {
-		rmSync(temp, { recursive: true, force: true });
+		for (const temp of temps) rmSync(temp, { recursive: true, force: true });
 	}
 }
 

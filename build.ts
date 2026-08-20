@@ -16,7 +16,9 @@ const TARGETS = {
 	'darwin-x64': 'bun-darwin-x64',
 	'linux-arm64': 'bun-linux-arm64',
 	'linux-x64': 'bun-linux-x64',
+	'linux-x64-baseline': 'bun-linux-x64-baseline',
 	'windows-x64': 'bun-windows-x64',
+	'windows-x64-baseline': 'bun-windows-x64-baseline',
 } as const;
 
 export type TargetName = keyof typeof TARGETS;

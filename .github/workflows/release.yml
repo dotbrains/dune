@@ -52,6 +52,10 @@ jobs:
             os: ubuntu-latest
           - target: windows-x64
             os: windows-latest
+          - target: linux-x64-baseline
+            os: ubuntu-latest
+          - target: windows-x64-baseline
+            os: windows-latest
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
@@ -59,6 +63,20 @@ jobs:
           persist-credentials: false
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
+      - name: Prime the baseline compiler
+        if: matrix.target == 'windows-x64-baseline'
+        shell: pwsh
+        run: |
+          $version = (bun --version).Trim()
+          $root = if ($env:BUN_INSTALL) { $env:BUN_INSTALL } else { "$env:USERPROFILE\.bun" }
+          $cache = Join-Path $root 'install\cache'
+          New-Item -ItemType Directory -Force -Path $cache | Out-Null
+          $cached = Join-Path $cache "bun-windows-x64-baseline-v$version"
+          Invoke-WebRequest -UseBasicParsing -OutFile baseline.zip `
+            "https://github.com/oven-sh/bun/releases/download/bun-v$version/bun-windows-x64-baseline.zip"
+          Expand-Archive -LiteralPath baseline.zip -DestinationPath baseline -Force
+          Move-Item -Force 'baseline\bun-windows-x64-baseline\bun.exe' $cached
+          Remove-Item -Recurse -Force baseline.zip, baseline
       - run: bun run build ${{ matrix.target }}
       - uses: actions/upload-artifact@v7
         with:

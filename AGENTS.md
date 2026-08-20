@@ -76,7 +76,7 @@ writes to your real `~/.config/dune`.
 ## Shipping
 
 `bun run build` produces one executable; `bun run release` turns the executables in
-`dist/` into a GitHub Packages shim and release archives. Five things about that are easy
+`dist/` into a GitHub Packages shim and release archives. Six things about that are easy
 to break:
 
 - **Assets must be static `with { type: 'file' }` imports.** Bun embeds only what it can
@@ -89,7 +89,13 @@ to break:
   whose `preload` fails to resolve and kills startup. `build.ts` turns that off.
 - **Cross-compiling needs the target's `@opentui/core-<platform>` package**, and
   `bun install` fetches the host's alone. That is why the release workflow uses one native
-  runner per platform instead of five `--target` flags on one machine.
+  runner per platform instead of five `--target` flags on one machine. The exception is
+  the two `-baseline` targets, which use the same package as their AVX2 siblings.
+- **x64 ships twice.** Bun's default x64 builds require AVX2 and can die at startup with
+  "illegal hardware instruction" on older CPUs, so `linux-x64-baseline` and
+  `windows-x64-baseline` archives ride every release. The npm shim uses `/proc/cpuinfo`
+  on Linux and a `--version` probe fallback everywhere else; the install script uses
+  `/proc/cpuinfo` when available. `DUNE_CPU_BASELINE=1/0` overrides both.
 - **The GitHub release is uploaded before GitHub Packages.** One package is published,
   `@dotbrains/dune`, and it holds no binary: `bin/binary.mjs` fetches the archive for the
   machine from the release. Publishing the package first would leave a window where an
