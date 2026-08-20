@@ -28,6 +28,7 @@ export function useEditorKeymap(deps: {
 	duplicateSelectedLines: (follow: boolean) => void;
 	deleteSelectedLines: () => void;
 	scrollPage: (delta: -1 | 1) => void;
+	centerCursorLine: () => void;
 }) {
 	useKeyboard((key: KeyEvent) => {
 		const editor = deps.editor();
@@ -133,7 +134,11 @@ export function useEditorKeymap(deps: {
 		const editor = deps.editor();
 		if (key.defaultPrevented || deps.blocked() || !deps.vim() || !editor || !deps.focused()) return;
 		const before = deps.vimState.mode;
-		const stepped = { undo: () => deps.stepHistory('undo'), redo: () => deps.stepHistory('redo') };
+		const stepped = {
+			undo: () => deps.stepHistory('undo'),
+			redo: () => deps.stepHistory('redo'),
+			centerLine: deps.centerCursorLine,
+		};
 		if (handleVimKey(editor, key, deps.vimState, stepped)) key.preventDefault();
 		if (deps.vimState.mode !== before) deps.onVimMode(deps.vimState.mode);
 	});

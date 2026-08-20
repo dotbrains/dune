@@ -176,6 +176,18 @@ export function EditorPane(props: EditorPaneProps) {
 		syncViewport();
 		applyWindow();
 	};
+	const centerCursorLine = () => {
+		if (!editor) return;
+		const row = layout.rowAtLine(editor.logicalCursor.row);
+		const height = editor.height || editor.editorView.getViewport().height;
+		const target = Math.max(0, row - Math.floor(height / 2));
+		const delta = target - editor.scrollY;
+		if (delta === 0) return;
+		scrollTextarea(editor, delta);
+		syncViewport();
+		applyWindow();
+		scheduleCursorSync();
+	};
 	const scrollPage = (direction: -1 | 1) => {
 		if (!editor) return;
 		const pageRows = Math.max(1, editor.height - 1);
@@ -368,6 +380,7 @@ export function EditorPane(props: EditorPaneProps) {
 		duplicateSelectedLines,
 		deleteSelectedLines,
 		scrollPage,
+		centerCursorLine,
 	});
 	createEffect(
 		on(

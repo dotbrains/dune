@@ -4,7 +4,14 @@ import { join } from 'node:path';
 
 import { DEFAULTS } from '../../src/core/config';
 import { fixture, launch, press, pressEscape, settle } from '../helpers';
+import type { Harness } from '../helpers';
 import { at, save, type, vimEditor } from './helpers';
+
+const visibleLines = (t: Harness) =>
+	t
+		.captureCharFrame()
+		.split('\n')
+		.flatMap((row) => row.match(/line \d+/) ?? []);
 
 describe('living with the rest of the editor', () => {
 	test('Ctrl+D and Ctrl+U move a screenful', async () => {
@@ -76,5 +83,53 @@ describe('living with the rest of the editor', () => {
 		await press(t, (i) => i.pressKey('s', { ctrl: true }));
 		await settle(t);
 		expect(readFileSync(join(dir, 'a.ts'), 'utf8')).toBe('ddone\n');
+	});
+
+	test('zz puts the cursor line in the middle of the window', async () => {
+		const long = `${Array.from({ length: 200 }, (_, i) => `line ${i}`).join('\n')}\n`;
+		const { t } = await vimEditor(long);
+		await type(t, '100G');
+		expect(at(t)).toBe('Ln 100, Col 1');
+		const before = visibleLines(t);
+		expect(before).toContain('line 99');
+		expect(before[0]).not.toBe('line 90');
+
+		await type(t, 'zz');
+		expect(at(t)).toBe('Ln 100, Col 1');
+		const after = visibleLines(t);
+		expect(after[0]).toBe('line 90');
+		const middle = after.indexOf('line 99');
+		expect(Math.abs(middle - Math.floor(after.length / 2))).toBeLessThanOrEqual(1);
+	});
+
+	test('a count with zz jumps to that line and centers it', async () => {
+		const long = `${Array.from({ length: 200 }, (_, i) => `line ${i}`).join('\n')}\n`;
+		const { t } = await vimEditor(long);
+		await type(t, '50zz');
+		expect(at(t)).toBe('Ln 50, Col 1');
+		const lines = visibleLines(t);
+		expect(lines[0]).toBe('line 40');
+		expect(lines).toContain('line 49');
+	});
+
+	test('zz recenters with a selection live and keeps the selection', async () => {
+		const long = `${Array.from({ length: 200 }, (_, i) => `line ${i}`).join('\n')}\n`;
+		const { t, file } = await vimEditor(long);
+		await type(t, '100G');
+		await type(t, 'vjj');
+		await type(t, 'zz');
+		expect(visibleLines(t)[0]).toBe('line 92');
+		await type(t, 'd');
+		expect(await save(t, file)).toContain('line 98\nine 101\n');
+	});
+
+	test('zz near the top of the file scrolls nothing and moves no caret', async () => {
+		const long = `${Array.from({ length: 200 }, (_, i) => `line ${i}`).join('\n')}\n`;
+		const { t } = await vimEditor(long);
+		await type(t, 'gg');
+		const before = visibleLines(t);
+		await type(t, 'zz');
+		expect(at(t)).toBe('Ln 1, Col 1');
+		expect(visibleLines(t)).toEqual(before);
 	});
 });

@@ -25,7 +25,7 @@ describe('vim mode basics', () => {
 
 	test('normal mode swallows unknown keys instead of typing them', async () => {
 		const { t, file } = await vimEditor();
-		await press(t, (i) => void i.typeText('zzz')); // no such command — must not reach the buffer
+		await press(t, (i) => void i.typeText('qqq')); // no such command — must not reach the buffer
 		await press(t, (i) => i.pressKey('i'));
 		await press(t, (i) => void i.typeText('X'));
 		await press(t, (i) => i.pressKey('s', { ctrl: true }));

@@ -56,6 +56,7 @@ export function initialVimState(): VimState {
 export interface VimActions {
 	undo: () => void;
 	redo: () => void;
+	centerLine: () => void;
 }
 
 type Editor = TextareaRenderable;
@@ -387,6 +388,13 @@ function dispatch(editor: Editor, key: KeyEvent, state: VimState, actions: VimAc
 			}
 			return true;
 		}
+		if (op === 'z') {
+			if (k === 'z') {
+				if (digits) editor.gotoLine(count - 1);
+				actions.centerLine();
+			}
+			return true;
+		}
 		if (k === op) {
 			// dd / yy / cc — linewise
 			if (op === 'd') deleteLine(editor, state, count);
@@ -453,6 +461,12 @@ function dispatch(editor: Editor, key: KeyEvent, state: VimState, actions: VimAc
 
 	if (motion(editor, k, state, count, digits !== '')) {
 		if (state.mode === 'visual') markVisual(editor, state);
+		return true;
+	}
+
+	if (k === 'z') {
+		state.pending = 'z';
+		state.count = digits;
 		return true;
 	}
 
